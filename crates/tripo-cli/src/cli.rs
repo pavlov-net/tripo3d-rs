@@ -96,4 +96,6 @@ pub enum Command {
     RefineModel(crate::commands::variants::RefineModelArgs),
     /// Pre-check whether a model can be rigged.
     CheckRiggable(crate::commands::variants::CheckRiggableArgs),
+    /// Generate a skeletal rig for an existing model.
+    RigModel(crate::commands::variants::RigModelArgs),
 }

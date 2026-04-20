@@ -309,3 +309,37 @@ async fn refine_and_check_riggable_wire_names_match() {
         .assert()
         .success();
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn rig_model_animate_rig() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"animate_rig","original_model_task_id":"m","rig_type":"biped","spec":"mixamo"
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"rm"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "rig-model",
+            "--original-model-task-id",
+            "m",
+            "--rig-type",
+            "biped",
+            "--spec",
+            "mixamo",
+        ])
+        .assert()
+        .success();
+}

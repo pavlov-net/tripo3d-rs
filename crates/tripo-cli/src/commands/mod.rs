@@ -25,5 +25,6 @@ pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
         Command::TextureModel(a) => variants::texture_model::run(&args.global, a).await,
         Command::RefineModel(a) => variants::refine_model::run(&args.global, a).await,
         Command::CheckRiggable(a) => variants::check_riggable::run(&args.global, a).await,
+        Command::RigModel(a) => variants::rig_model::run(&args.global, a).await,
     }
 }
