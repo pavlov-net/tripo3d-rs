@@ -170,3 +170,67 @@ async fn create_task_uploads_local_image_first() {
     let id = c.create_task(req).await.unwrap();
     assert_eq!(id.as_str(), "new-task");
 }
+
+#[tokio::test]
+async fn downloads_model_and_rendered_image() {
+    use std::collections::BTreeMap;
+    use tripo_api::{DownloadOptions, Task, TaskId, TaskOutput, TaskStatus};
+
+    let server = MockServer::start().await;
+    Mock::given(method("GET")).and(path("/files/abc.glb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"model-bytes" as &[u8]))
+        .mount(&server).await;
+    Mock::given(method("GET")).and(path("/files/abc.jpg"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"jpg-bytes" as &[u8]))
+        .mount(&server).await;
+
+    let c = client(&server);
+    let task = Task {
+        task_id: TaskId::new("abc"),
+        task_type: "text_to_model".into(),
+        status: TaskStatus::Success,
+        input: BTreeMap::new(),
+        output: TaskOutput {
+            model: Some(format!("{}/files/abc.glb", server.uri())),
+            base_model: None,
+            pbr_model: None,
+            rendered_image: Some(format!("{}/files/abc.jpg?sig=x", server.uri())),
+            riggable: None, rig_type: None,
+        },
+        progress: 100, create_time: 0, running_left_time: None,
+        queuing_num: None, error_code: None, error_msg: None,
+    };
+
+    let dir = tempfile::tempdir().unwrap();
+    let out = c.download_task_models(&task, dir.path(), DownloadOptions::default()).await.unwrap();
+    assert!(out.model.is_some());
+    assert_eq!(std::fs::read(out.model.unwrap()).unwrap(), b"model-bytes");
+    assert_eq!(std::fs::read(out.rendered_image.unwrap()).unwrap(), b"jpg-bytes");
+}
+
+#[tokio::test]
+async fn download_errors_on_existing_file_without_overwrite() {
+    use std::collections::BTreeMap;
+    use tripo_api::{DownloadOptions, Task, TaskId, TaskOutput, TaskStatus};
+    let server = MockServer::start().await;
+    let c = client(&server);
+
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("abc.glb"), b"pre-existing").unwrap();
+
+    let task = Task {
+        task_id: TaskId::new("abc"),
+        task_type: "text_to_model".into(),
+        status: TaskStatus::Success,
+        input: BTreeMap::new(),
+        output: TaskOutput {
+            model: Some(format!("{}/files/abc.glb", server.uri())),
+            base_model: None, pbr_model: None, rendered_image: None,
+            riggable: None, rig_type: None,
+        },
+        progress: 100, create_time: 0, running_left_time: None,
+        queuing_num: None, error_code: None, error_msg: None,
+    };
+    let err = c.download_task_models(&task, dir.path(), DownloadOptions::default()).await.unwrap_err();
+    assert!(matches!(err, tripo_api::Error::FileExists(_)));
+}

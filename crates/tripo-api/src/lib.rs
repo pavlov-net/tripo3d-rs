@@ -5,6 +5,7 @@
 
 mod client;
 mod upload;
+mod download;
 mod error;
 mod envelope;
 mod image;
@@ -20,6 +21,7 @@ pub use client::{Client, ClientBuilder, Region, API_KEY_ENV, BASE_URL_CN, BASE_U
 pub use error::{Error, Result};
 pub use image::ImageInput;
 pub use compress::CompressionMode;
+pub use download::{DownloadOptions, DownloadedFiles, OutputKind};
 pub use retry::RetryPolicy;
 pub use tasks::{
     CheckRiggableRequest, ConvertModelRequest, ImageToModelRequest, MeshCompletionRequest,
