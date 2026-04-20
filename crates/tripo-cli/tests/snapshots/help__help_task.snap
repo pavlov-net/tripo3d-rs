@@ -1,0 +1,52 @@
+---
+source: crates/tripo-cli/tests/help.rs
+assertion_line: 25
+expression: "help_of(&[\"task\"])"
+---
+Raw task escape hatches: create from JSON, get, wait, download
+
+Usage: tripo task [OPTIONS] <COMMAND>
+
+Commands:
+  create    POST arbitrary JSON to /task
+  get       Fetch a task's current state
+  wait      Wait for a task to reach a terminal status
+  download  Download a task's output models into `--output`
+  help      Print this message or the help of the given subcommand(s)
+
+Options:
+      --api-key <API_KEY>
+          Tripo API key. Must begin with `tsk_`
+
+          [env: TRIPO_API_KEY]
+
+      --region <REGION>
+          API region
+
+          Possible values:
+          - global: Global endpoint (default)
+          - cn:     China mainland endpoint
+
+          [env: TRIPO_REGION=]
+          [default: global]
+
+      --base-url <BASE_URL>
+          Override the API base URL (testing / staging)
+
+      --json
+          Emit structured JSON instead of human-readable tables (default if stdout is not a TTY)
+
+      --no-color
+          Disable ANSI color output
+
+  -v, --verbose...
+          Increase log verbosity (-v = debug, -vv = trace)
+
+  -q, --quiet
+          Silence info-level logs
+
+      --force
+          Overwrite existing files at output paths instead of erroring
+
+  -h, --help
+          Print help (see a summary with '-h')

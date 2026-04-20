@@ -1,0 +1,68 @@
+---
+source: crates/tripo-cli/tests/help.rs
+assertion_line: 15
+expression: "help_of(&[])"
+---
+Command-line client for the Tripo 3D Generation API
+
+Usage: tripo [OPTIONS] <COMMAND>
+
+Commands:
+  balance             Show account balance
+  upload              Upload a file, print the `file_token`
+  completions         Generate shell completions
+  task                Raw task escape hatches: create from JSON, get, wait, download
+  text-to-model       Generate a 3D model from a text prompt
+  image-to-model      Generate a 3D model from a single image
+  multiview-to-model  Generate a 3D model from multi-view images
+  convert-model       Convert a model to a different file format
+  stylize-model       Apply a stylization preset to a model
+  texture-model       (Re-)texture an existing model
+  refine-model        Refine a draft model
+  check-riggable      Pre-check whether a model can be rigged
+  rig-model           Generate a skeletal rig for an existing model
+  retarget-animation  Retarget one or more animations onto a rigged model
+  mesh-segmentation   Decompose a model into semantic parts
+  mesh-completion     Fill holes in an existing mesh
+  smart-lowpoly       Reduce a high-poly model to a lowpoly one
+  help                Print this message or the help of the given subcommand(s)
+
+Options:
+      --api-key <API_KEY>
+          Tripo API key. Must begin with `tsk_`
+
+          [env: TRIPO_API_KEY]
+
+      --region <REGION>
+          API region
+
+          Possible values:
+          - global: Global endpoint (default)
+          - cn:     China mainland endpoint
+
+          [env: TRIPO_REGION=]
+          [default: global]
+
+      --base-url <BASE_URL>
+          Override the API base URL (testing / staging)
+
+      --json
+          Emit structured JSON instead of human-readable tables (default if stdout is not a TTY)
+
+      --no-color
+          Disable ANSI color output
+
+  -v, --verbose...
+          Increase log verbosity (-v = debug, -vv = trace)
+
+  -q, --quiet
+          Silence info-level logs
+
+      --force
+          Overwrite existing files at output paths instead of erroring
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version

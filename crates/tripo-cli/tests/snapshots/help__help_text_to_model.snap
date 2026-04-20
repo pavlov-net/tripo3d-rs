@@ -1,0 +1,117 @@
+---
+source: crates/tripo-cli/tests/help.rs
+assertion_line: 20
+expression: "help_of(&[\"text-to-model\"])"
+---
+Generate a 3D model from a text prompt
+
+Usage: tripo text-to-model [OPTIONS] --prompt <PROMPT>
+
+Options:
+      --api-key <API_KEY>
+          Tripo API key. Must begin with `tsk_`
+
+          [env: TRIPO_API_KEY]
+
+      --prompt <PROMPT>
+          Prompt describing the desired output
+
+      --negative-prompt <NEGATIVE_PROMPT>
+          Negative prompt (things to avoid)
+
+      --region <REGION>
+          API region
+
+          Possible values:
+          - global: Global endpoint (default)
+          - cn:     China mainland endpoint
+
+          [env: TRIPO_REGION=]
+          [default: global]
+
+      --base-url <BASE_URL>
+          Override the API base URL (testing / staging)
+
+      --model-version <MODEL_VERSION>
+          Model version
+
+      --face-limit <FACE_LIMIT>
+          Target face count
+
+      --json
+          Emit structured JSON instead of human-readable tables (default if stdout is not a TTY)
+
+      --no-color
+          Disable ANSI color output
+
+      --texture <TEXTURE>
+          Generate a texture
+
+          [possible values: true, false]
+
+      --pbr <PBR>
+          PBR shading
+
+          [possible values: true, false]
+
+  -v, --verbose...
+          Increase log verbosity (-v = debug, -vv = trace)
+
+      --image-seed <IMAGE_SEED>
+          Seed for the initial reference image
+
+  -q, --quiet
+          Silence info-level logs
+
+      --force
+          Overwrite existing files at output paths instead of erroring
+
+      --model-seed <MODEL_SEED>
+          Seed for model generation
+
+      --texture-seed <TEXTURE_SEED>
+          Seed for texture generation
+
+      --texture-quality <TEXTURE_QUALITY>
+          Texture quality preset
+
+      --geometry-quality <GEOMETRY_QUALITY>
+          Geometry quality preset
+
+      --auto-size <AUTO_SIZE>
+          Auto-size the output mesh
+
+          [possible values: true, false]
+
+      --quad <QUAD>
+          Produce a quad mesh
+
+          [possible values: true, false]
+
+      --compress
+          Enable geometry compression
+
+      --generate-parts <GENERATE_PARTS>
+          Emit part decomposition
+
+          [possible values: true, false]
+
+      --smart-low-poly <SMART_LOW_POLY>
+          Route through smart-lowpoly after generation
+
+          [possible values: true, false]
+
+      --wait
+          Poll until the task reaches a terminal status
+
+  -o, --output <OUTPUT>
+          Download output files into this directory. Implies `--wait`
+
+      --timeout <TIMEOUT>
+          Overall timeout in seconds for `--wait`. No limit by default
+
+      --poll-interval <POLL_INTERVAL>
+          Cap on the polling interval in seconds
+
+  -h, --help
+          Print help (see a summary with '-h')
