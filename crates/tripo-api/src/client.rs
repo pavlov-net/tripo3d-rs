@@ -90,7 +90,7 @@ fn build_http(api_key: &str) -> Result<reqwest::Client> {
         HeaderValue::from_static(concat!(
             "tripo-rs/",
             env!("CARGO_PKG_VERSION"),
-            " (+https://github.com/stuartparmenter/tripo3d-cli)"
+            " (+https://github.com/pavlov-net/tripo3d-cli)"
         )),
     );
     reqwest::Client::builder()

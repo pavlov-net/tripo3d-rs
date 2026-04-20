@@ -6,8 +6,8 @@ members  = ["crates/tripo-api"]
 edition      = "2021"
 rust-version = "1.82"
 license      = "MIT"
-repository   = "https://github.com/stuartparmenter/tripo3d-cli"
-homepage     = "https://github.com/stuartparmenter/tripo3d-cli"
+repository   = "https://github.com/pavlov-net/tripo3d-cli"
+homepage     = "https://github.com/pavlov-net/tripo3d-cli"
 
 [workspace.dependencies]
 tokio         = { version = "1", features = ["rt-multi-thread", "macros", "fs", "signal", "time"] }
