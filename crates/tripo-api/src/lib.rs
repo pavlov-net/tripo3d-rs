@@ -1,7 +1,16 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
 
 //! Async Rust client for the Tripo 3D Generation API.
+//!
+//! # Features
+//!
+//! - `schemars` (default off): derive `schemars::JsonSchema` on public types
+//!   so `tripo-mcp` can expose them as MCP tool schemas.
 
 mod client;
 mod upload;
