@@ -30,10 +30,10 @@ impl ImageInput {
     /// Anything else → [`ImageInput::Path`].
     #[must_use]
     pub fn parse(s: &str) -> Self {
-        if let Ok(url) = Url::parse(s) {
-            if matches!(url.scheme(), "http" | "https") {
-                return Self::Url(url);
-            }
+        if let Ok(url) = Url::parse(s)
+            && matches!(url.scheme(), "http" | "https")
+        {
+            return Self::Url(url);
         }
         if let Ok(uuid) = Uuid::parse_str(s) {
             return Self::FileToken(uuid);
@@ -53,7 +53,7 @@ impl Serialize for ImageInput {
                 return Err(serde::ser::Error::custom(format!(
                     "ImageInput::Path({}) must be uploaded before serialization — call Client::upload_images on the request first",
                     p.display()
-                )))
+                )));
             }
         }
         st.end()

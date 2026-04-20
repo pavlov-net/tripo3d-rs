@@ -3,8 +3,8 @@
 
 use serde_json::Value;
 use tripo_api::{
-    enums::Quality, tasks::TaskRequest, CompressionMode, ConvertModelRequest, FbxPreset,
-    ImageInput, ImageToModelRequest, MultiviewToModelRequest, OutputFormat, TextToModelRequest,
+    CompressionMode, ConvertModelRequest, FbxPreset, ImageInput, ImageToModelRequest,
+    MultiviewToModelRequest, OutputFormat, TextToModelRequest, enums::Quality, tasks::TaskRequest,
 };
 
 fn json_of<T: serde::Serialize>(t: &T) -> Value {

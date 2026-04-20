@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION, USER_AGENT};
+use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderName, HeaderValue, USER_AGENT};
 use url::Url;
 
 use crate::error::{Error, Result};
@@ -96,7 +96,7 @@ fn build_http(api_key: &str) -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .default_headers(headers)
         .connect_timeout(Duration::from_secs(10))
-        .timeout(Duration::from_secs(60))
+        .timeout(Duration::from_mins(1))
         .http2_prior_knowledge()
         .build()
         .map_err(Error::from)
@@ -240,7 +240,7 @@ impl Client {
     where
         F: Fn() -> reqwest::RequestBuilder,
     {
-        use crate::retry::{parse_retry_after, RetryDecision};
+        use crate::retry::{RetryDecision, parse_retry_after};
 
         let mut attempt: u32 = 0;
         loop {

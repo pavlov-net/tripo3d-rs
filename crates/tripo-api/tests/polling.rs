@@ -33,7 +33,7 @@ async fn waits_until_terminal() {
     let seen = Arc::new(Mutex::new(0u32));
     let s2 = seen.clone();
     let opts = WaitOptions {
-        timeout: Some(Duration::from_secs(60)),
+        timeout: Some(Duration::from_mins(1)),
         initial_interval: Duration::from_millis(10),
         max_interval: Duration::from_millis(50),
         on_progress: Some(Box::new(move |t| {

@@ -27,7 +27,7 @@ pub mod versions;
 mod wait;
 
 pub use client::{
-    Client, ClientBuilder, Region, API_KEY_ENV, BASE_URL_CN, BASE_URL_GLOBAL, REGION_ENV,
+    API_KEY_ENV, BASE_URL_CN, BASE_URL_GLOBAL, Client, ClientBuilder, REGION_ENV, Region,
 };
 pub use compress::CompressionMode;
 pub use download::{DownloadOptions, DownloadedFiles, OutputKind};
