@@ -98,4 +98,6 @@ pub enum Command {
     CheckRiggable(crate::commands::variants::CheckRiggableArgs),
     /// Generate a skeletal rig for an existing model.
     RigModel(crate::commands::variants::RigModelArgs),
+    /// Retarget one or more animations onto a rigged model.
+    RetargetAnimation(crate::commands::variants::RetargetAnimationArgs),
 }

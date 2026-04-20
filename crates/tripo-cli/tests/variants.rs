@@ -343,3 +343,64 @@ async fn rig_model_animate_rig() {
         .assert()
         .success();
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn retarget_single_vs_many() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"animate_retarget","original_model_task_id":"m","animation":"preset:walk"
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"r1"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"animate_retarget","original_model_task_id":"m",
+            "animations":["preset:walk","preset:run"]
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"r2"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "retarget-animation",
+            "--original-model-task-id",
+            "m",
+            "--animation",
+            "preset:walk",
+        ])
+        .assert()
+        .success();
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "retarget-animation",
+            "--original-model-task-id",
+            "m",
+            "--animation",
+            "preset:walk,preset:run",
+        ])
+        .assert()
+        .success();
+}
