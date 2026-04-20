@@ -55,8 +55,30 @@ async fn get(g: &GlobalArgs, id: &str) -> Result<()> {
     Ok(())
 }
 
-async fn wait(_g: &GlobalArgs, _id: &str, _timeout: Option<u64>) -> Result<()> {
-    anyhow::bail!("task wait implemented in Task 7")
+async fn wait(g: &GlobalArgs, id: &str, timeout: Option<u64>) -> Result<()> {
+    use std::time::Duration;
+
+    use is_terminal::IsTerminal;
+    use tripo_api::{TaskStatus, WaitOptions};
+
+    let client = crate::resolve::build_client(g)?;
+    let tty = std::io::stderr().is_terminal() && !g.json;
+    let (bar, cb) = crate::progress::select_callback(id, tty);
+
+    let opts = WaitOptions {
+        timeout: timeout.map(Duration::from_secs),
+        on_progress: Some(cb),
+        ..Default::default()
+    };
+    let task = client.wait_for_task(&id.into(), opts).await?;
+    crate::progress::bar_finish(bar.as_ref(), Some(task.status));
+
+    serde_json::to_writer_pretty(std::io::stdout(), &task)?;
+    println!();
+    if task.status != TaskStatus::Success {
+        return Err(tripo_api::Error::TaskFailed(task.task_id.clone(), task.status).into());
+    }
+    Ok(())
 }
 
 async fn download(_g: &GlobalArgs, _id: &str, _out: &std::path::Path) -> Result<()> {
