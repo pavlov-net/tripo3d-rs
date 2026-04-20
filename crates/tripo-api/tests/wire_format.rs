@@ -3,8 +3,8 @@
 
 use serde_json::Value;
 use tripo_api::{
-    enums::Quality, tasks::TaskRequest, CompressionMode, ImageInput, ImageToModelRequest,
-    MultiviewToModelRequest, TextToModelRequest,
+    enums::Quality, tasks::TaskRequest, CompressionMode, ConvertModelRequest, FbxPreset,
+    ImageInput, ImageToModelRequest, MultiviewToModelRequest, OutputFormat, TextToModelRequest,
 };
 
 fn json_of<T: serde::Serialize>(t: &T) -> Value {
@@ -110,6 +110,58 @@ fn multiview_to_model_with_empty_slot() {
         compress: None,
         generate_parts: None,
         smart_low_poly: None,
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn convert_model_minimal_gltf() {
+    let req = TaskRequest::ConvertModel(ConvertModelRequest {
+        original_model_task_id: "src-task-1".into(),
+        format: OutputFormat::Gltf,
+        quad: None,
+        force_symmetry: None,
+        face_limit: None,
+        flatten_bottom: None,
+        flatten_bottom_threshold: None,
+        texture_size: None,
+        texture_format: None,
+        scale_factor: None,
+        pivot_to_center_bottom: None,
+        with_animation: None,
+        pack_uv: None,
+        bake: None,
+        part_names: None,
+        export_vertex_colors: None,
+        fbx_preset: None,
+        export_orientation: None,
+        animate_in_place: None,
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn convert_model_fbx_with_preset() {
+    let req = TaskRequest::ConvertModel(ConvertModelRequest {
+        original_model_task_id: "src-task-1".into(),
+        format: OutputFormat::Fbx,
+        fbx_preset: Some(FbxPreset::Mixamo),
+        part_names: Some(vec!["head".into(), "body".into()]),
+        with_animation: Some(true),
+        quad: None,
+        force_symmetry: None,
+        face_limit: None,
+        flatten_bottom: None,
+        flatten_bottom_threshold: None,
+        texture_size: None,
+        texture_format: None,
+        scale_factor: None,
+        pivot_to_center_bottom: None,
+        pack_uv: None,
+        bake: None,
+        export_vertex_colors: None,
+        export_orientation: None,
+        animate_in_place: None,
     });
     insta::assert_json_snapshot!(json_of(&req));
 }

@@ -9,10 +9,12 @@ use crate::client::Client;
 use crate::error::Result;
 use crate::image::ImageInput;
 
+pub mod convert_model;
 pub mod image_to_model;
 pub mod multiview_to_model;
 pub mod text_to_model;
 
+pub use convert_model::ConvertModelRequest;
 pub use image_to_model::ImageToModelRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
 pub use text_to_model::TextToModelRequest;
@@ -34,6 +36,9 @@ pub enum TaskRequest {
     /// `multiview_to_model` — generate from multiple images (front/back/left/right).
     #[serde(rename = "multiview_to_model")]
     MultiviewToModel(MultiviewToModelRequest),
+    /// `convert_model` — convert a completed model to another file format.
+    #[serde(rename = "convert_model")]
+    ConvertModel(ConvertModelRequest),
 }
 
 impl TaskRequest {
@@ -56,6 +61,7 @@ impl TaskRequest {
                     }
                     Ok(())
                 }
+                Self::ConvertModel(_) => Ok(()),
             }
         })
     }
