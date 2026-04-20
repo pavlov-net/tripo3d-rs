@@ -5,8 +5,12 @@
 
 mod error;
 mod envelope;
-mod enums;
+pub mod enums;
 pub mod types;
 
 pub use error::{Error, Result};
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
+pub use enums::{
+    Animation, ExportOrientation, FbxPreset, Orientation, OutputFormat, PostStyle, Quality,
+    RigOutputFormat, RigSpec, RigType, TextureAlignment, TextureFormat,
+};
