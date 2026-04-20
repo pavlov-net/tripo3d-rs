@@ -7,6 +7,7 @@ mod error;
 mod envelope;
 pub mod enums;
 pub mod types;
+pub mod versions;
 
 pub use error::{Error, Result};
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
