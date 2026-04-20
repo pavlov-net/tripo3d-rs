@@ -14,6 +14,7 @@ pub mod convert_model;
 pub mod image_to_model;
 pub mod multiview_to_model;
 pub mod refine_model;
+pub mod rig_model;
 pub mod stylize_model;
 pub mod text_to_model;
 pub mod texture_model;
@@ -23,6 +24,7 @@ pub use convert_model::ConvertModelRequest;
 pub use image_to_model::ImageToModelRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
 pub use refine_model::RefineModelRequest;
+pub use rig_model::RigModelRequest;
 pub use stylize_model::StylizeModelRequest;
 pub use text_to_model::TextToModelRequest;
 pub use texture_model::{TextureModelRequest, TexturePrompt};
@@ -59,6 +61,9 @@ pub enum TaskRequest {
     /// `check_riggable` — precheck whether a model can be rigged.
     #[serde(rename = "animate_prerigcheck")]
     CheckRiggable(CheckRiggableRequest),
+    /// `rig_model` — generate a skeletal rig for an existing model.
+    #[serde(rename = "animate_rig")]
+    Rig(RigModelRequest),
 }
 
 impl TaskRequest {
@@ -93,7 +98,7 @@ impl TaskRequest {
                     }
                     Ok(())
                 }
-                Self::Refine(_) | Self::CheckRiggable(_) => Ok(()),
+                Self::Refine(_) | Self::CheckRiggable(_) | Self::Rig(_) => Ok(()),
             }
         })
     }

@@ -232,3 +232,17 @@ fn check_riggable_uses_rename() {
     }
     "###);
 }
+
+use tripo_api::{RigModelRequest, RigOutputFormat, RigSpec, RigType};
+
+#[test]
+fn rig_model_with_spec() {
+    let req = TaskRequest::Rig(RigModelRequest {
+        original_model_task_id: "src".into(),
+        model_version: Some("v2.0-20250506".into()),
+        out_format: Some(RigOutputFormat::Fbx),
+        rig_type: Some(RigType::Quadruped),
+        spec: Some(RigSpec::Mixamo),
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}
