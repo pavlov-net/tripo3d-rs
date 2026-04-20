@@ -16,10 +16,12 @@ use crate::cli::GlobalArgs;
 pub mod convert_model;
 pub mod image_to_model;
 pub mod multiview_to_model;
+pub mod stylize_model;
 pub mod text_to_model;
 pub use convert_model::ConvertModelArgs;
 pub use image_to_model::ImageToModelArgs;
 pub use multiview_to_model::MultiviewToModelArgs;
+pub use stylize_model::StylizeModelArgs;
 pub use text_to_model::TextToModelArgs;
 
 /// Shared flags attached to every variant command.

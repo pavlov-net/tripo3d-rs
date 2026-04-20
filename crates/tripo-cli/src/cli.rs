@@ -88,4 +88,6 @@ pub enum Command {
     MultiviewToModel(crate::commands::variants::MultiviewToModelArgs),
     /// Convert a model to a different file format.
     ConvertModel(crate::commands::variants::ConvertModelArgs),
+    /// Apply a stylization preset to a model.
+    StylizeModel(crate::commands::variants::StylizeModelArgs),
 }

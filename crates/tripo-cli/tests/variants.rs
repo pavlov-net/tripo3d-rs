@@ -183,3 +183,37 @@ async fn convert_model_to_fbx() {
         .assert()
         .success();
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn stylize_voxel() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"stylize_model","original_model_task_id":"src","style":"voxel","block_size":64
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"sv"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "stylize-model",
+            "--original-model-task-id",
+            "src",
+            "--style",
+            "voxel",
+            "--block-size",
+            "64",
+        ])
+        .assert()
+        .success();
+}

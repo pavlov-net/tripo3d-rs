@@ -21,5 +21,6 @@ pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
         Command::ImageToModel(a) => variants::image_to_model::run(&args.global, a).await,
         Command::MultiviewToModel(a) => variants::multiview_to_model::run(&args.global, a).await,
         Command::ConvertModel(a) => variants::convert_model::run(&args.global, a).await,
+        Command::StylizeModel(a) => variants::stylize_model::run(&args.global, a).await,
     }
 }
