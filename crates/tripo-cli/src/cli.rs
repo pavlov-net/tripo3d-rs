@@ -90,4 +90,6 @@ pub enum Command {
     ConvertModel(crate::commands::variants::ConvertModelArgs),
     /// Apply a stylization preset to a model.
     StylizeModel(crate::commands::variants::StylizeModelArgs),
+    /// (Re-)texture an existing model.
+    TextureModel(crate::commands::variants::TextureModelArgs),
 }

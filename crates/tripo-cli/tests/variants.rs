@@ -217,3 +217,39 @@ async fn stylize_voxel() {
         .assert()
         .success();
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn texture_model_nests_prompt() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"texture_model",
+            "original_model_task_id":"src",
+            "texture_prompt":{"text":"brass","style_image":{"type":"jpg","url":"https://cdn/s.jpg"}}
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"tx"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "texture-model",
+            "--original-model-task-id",
+            "src",
+            "--text-prompt",
+            "brass",
+            "--style-image",
+            "https://cdn/s.jpg",
+        ])
+        .assert()
+        .success();
+}

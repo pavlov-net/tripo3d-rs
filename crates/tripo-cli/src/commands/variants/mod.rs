@@ -18,11 +18,13 @@ pub mod image_to_model;
 pub mod multiview_to_model;
 pub mod stylize_model;
 pub mod text_to_model;
+pub mod texture_model;
 pub use convert_model::ConvertModelArgs;
 pub use image_to_model::ImageToModelArgs;
 pub use multiview_to_model::MultiviewToModelArgs;
 pub use stylize_model::StylizeModelArgs;
 pub use text_to_model::TextToModelArgs;
+pub use texture_model::TextureModelArgs;
 
 /// Shared flags attached to every variant command.
 #[derive(Debug, Clone, clap::Args)]
