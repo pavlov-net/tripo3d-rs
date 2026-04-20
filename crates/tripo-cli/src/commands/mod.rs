@@ -29,5 +29,6 @@ pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
         Command::RetargetAnimation(a) => variants::retarget_animation::run(&args.global, a).await,
         Command::MeshSegmentation(a) => variants::mesh_segmentation::run(&args.global, a).await,
         Command::MeshCompletion(a) => variants::mesh_completion::run(&args.global, a).await,
+        Command::SmartLowpoly(a) => variants::smart_lowpoly::run(&args.global, a).await,
     }
 }

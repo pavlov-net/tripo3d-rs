@@ -461,3 +461,35 @@ async fn mesh_seg_and_completion() {
         .assert()
         .success();
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn smart_lowpoly_highpoly_to_lowpoly() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"highpoly_to_lowpoly","original_model_task_id":"m","face_limit":2000
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"sl"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "smart-lowpoly",
+            "--original-model-task-id",
+            "m",
+            "--face-limit",
+            "2000",
+        ])
+        .assert()
+        .success();
+}
