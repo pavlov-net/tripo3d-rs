@@ -27,13 +27,9 @@ pub struct TexturePrompt {
 }
 
 impl TexturePrompt {
-    fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.text.is_none() && self.image.is_none() && self.style_image.is_none()
     }
-}
-
-fn skip_empty_prompt(p: &TexturePrompt) -> bool {
-    p.is_empty()
 }
 
 /// Request body for `texture_model`. Wire `type`: `texture_model`.
@@ -44,7 +40,7 @@ pub struct TextureModelRequest {
     /// Source task id.
     pub original_model_task_id: String,
     /// Nested prompt object; omitted when all sub-fields are None.
-    #[serde(skip_serializing_if = "skip_empty_prompt")]
+    #[serde(skip_serializing_if = "TexturePrompt::is_empty")]
     pub texture_prompt: TexturePrompt,
     /// Model version.
     #[serde(skip_serializing_if = "Option::is_none")]
