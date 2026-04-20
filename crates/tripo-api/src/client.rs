@@ -205,6 +205,40 @@ impl Client {
         env.into_result()
     }
 
+    /// `POST /task` — submit a task. Any `ImageInput::Path` in the request is
+    /// uploaded first and replaced with a `FileToken`.
+    #[tracing::instrument(skip(self, req))]
+    pub async fn create_task(&self, mut req: crate::tasks::TaskRequest) -> Result<crate::types::TaskId> {
+        req.upload_images(self).await?;
+        self.create_task_raw(&serde_json::to_value(&req)?).await
+    }
+
+    /// Submit an already-built JSON body to `/task`. Used by `create_task` and
+    /// the CLI's `task create --json <FILE>` escape hatch.
+    pub async fn create_task_raw(&self, body: &serde_json::Value) -> Result<crate::types::TaskId> {
+        #[derive(serde::Deserialize)]
+        struct TaskIdBody {
+            task_id: String,
+        }
+        let url = self.url(&["task"]);
+        let body = body.clone();
+        let resp = self
+            .send_with_retry(|| {
+                self.http
+                    .post(url.clone())
+                    .headers(self.region_headers())
+                    .json(&body)
+            })
+            .await?;
+        let status = resp.status();
+        let bytes = resp.bytes().await?;
+        if !status.is_success() {
+            return Err(self.map_http_error(status, &bytes));
+        }
+        let env: crate::envelope::Envelope<TaskIdBody> = serde_json::from_slice(&bytes)?;
+        Ok(crate::types::TaskId(env.into_result()?.task_id))
+    }
+
     #[allow(clippy::unused_self)]
     pub(crate) fn map_http_error(&self, status: reqwest::StatusCode, bytes: &[u8]) -> Error {
         if let Ok(env) = serde_json::from_slice::<crate::envelope::Envelope<serde_json::Value>>(bytes) {
