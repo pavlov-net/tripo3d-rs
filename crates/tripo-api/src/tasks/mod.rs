@@ -14,12 +14,14 @@ pub mod image_to_model;
 pub mod multiview_to_model;
 pub mod stylize_model;
 pub mod text_to_model;
+pub mod texture_model;
 
 pub use convert_model::ConvertModelRequest;
 pub use image_to_model::ImageToModelRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
 pub use stylize_model::StylizeModelRequest;
 pub use text_to_model::TextToModelRequest;
+pub use texture_model::{TextureModelRequest, TexturePrompt};
 
 /// Task creation request body. `type` tag is set by serde.
 ///
@@ -44,6 +46,9 @@ pub enum TaskRequest {
     /// `stylize_model` — apply a stylization preset (lego/voxel/etc).
     #[serde(rename = "stylize_model")]
     Stylize(StylizeModelRequest),
+    /// `texture_model` — (re)texture an existing model.
+    #[serde(rename = "texture_model")]
+    TextureModel(TextureModelRequest),
 }
 
 impl TaskRequest {
@@ -69,6 +74,15 @@ impl TaskRequest {
                 }
                 Self::ConvertModel(_) => Ok(()),
                 Self::Stylize(_) => Ok(()),
+                Self::TextureModel(r) => {
+                    if let Some(img) = r.texture_prompt.image.as_mut() {
+                        upload_image_if_path(client, img).await?;
+                    }
+                    if let Some(img) = r.texture_prompt.style_image.as_mut() {
+                        upload_image_if_path(client, img).await?;
+                    }
+                    Ok(())
+                }
             }
         })
     }

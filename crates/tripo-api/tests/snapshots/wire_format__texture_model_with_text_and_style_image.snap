@@ -1,0 +1,17 @@
+---
+source: crates/tripo-api/tests/wire_format.rs
+expression: json_of(&req)
+---
+{
+  "original_model_task_id": "src",
+  "pbr": true,
+  "texture": true,
+  "texture_prompt": {
+    "style_image": {
+      "type": "jpg",
+      "url": "https://cdn/s.jpg"
+    },
+    "text": "brass and copper"
+  },
+  "type": "texture_model"
+}

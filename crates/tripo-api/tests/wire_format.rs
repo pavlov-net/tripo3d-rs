@@ -177,3 +177,30 @@ fn stylize_model_voxel() {
     });
     insta::assert_json_snapshot!(json_of(&req));
 }
+
+use tripo_api::{TextureModelRequest, TexturePrompt};
+
+#[test]
+fn texture_model_no_prompt() {
+    let req = TaskRequest::TextureModel(TextureModelRequest {
+        original_model_task_id: "src".into(),
+        ..Default::default()
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn texture_model_with_text_and_style_image() {
+    let req = TaskRequest::TextureModel(TextureModelRequest {
+        original_model_task_id: "src".into(),
+        texture_prompt: TexturePrompt {
+            text: Some("brass and copper".into()),
+            image: None,
+            style_image: Some(ImageInput::Url("https://cdn/s.jpg".parse().unwrap())),
+        },
+        texture: Some(true),
+        pbr: Some(true),
+        ..Default::default()
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}
