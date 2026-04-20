@@ -1,6 +1,9 @@
 // Expanded in Tasks 6–9.
 
+use anyhow::Result;
 use clap::Subcommand;
+
+use crate::cli::GlobalArgs;
 
 /// `task` subcommands: raw task escape hatches.
 #[derive(Debug, Subcommand)]
@@ -32,4 +35,9 @@ pub enum TaskCommand {
         #[arg(long, short = 'o')]
         output: std::path::PathBuf,
     },
+}
+
+/// Run a `task` subcommand. Placeholder — real implementation in Tasks 6–9.
+pub async fn run(_g: &GlobalArgs, _cmd: TaskCommand) -> Result<()> {
+    anyhow::bail!("task subcommands implemented in Tasks 6–9")
 }

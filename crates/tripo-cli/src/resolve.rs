@@ -5,7 +5,6 @@ use anyhow::Context;
 use crate::cli::GlobalArgs;
 
 /// Construct the client. Exits with usage error if the API key is missing/invalid.
-#[allow(dead_code)] // First caller wires up in Task 4.
 pub fn build_client(g: &GlobalArgs) -> anyhow::Result<tripo_api::Client> {
     let mut b = tripo_api::Client::builder();
     if let Some(key) = &g.api_key {
