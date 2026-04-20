@@ -80,4 +80,6 @@ pub enum Command {
     /// Raw task escape hatches: create from JSON, get, wait, download.
     #[command(subcommand)]
     Task(crate::commands::task::TaskCommand),
+    /// Generate a 3D model from a text prompt.
+    TextToModel(crate::commands::variants::TextToModelArgs),
 }

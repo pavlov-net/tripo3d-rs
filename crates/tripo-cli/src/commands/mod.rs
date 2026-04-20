@@ -6,6 +6,7 @@ pub mod balance;
 pub mod completions;
 pub mod task;
 pub mod upload;
+pub mod variants;
 
 use crate::cli::{Cli, Command};
 
@@ -16,5 +17,6 @@ pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
         Command::Upload(a) => upload::run(&args.global, a).await,
         Command::Completions(a) => completions::run(&a),
         Command::Task(cmd) => task::run(&args.global, cmd).await,
+        Command::TextToModel(a) => variants::text_to_model::run(&args.global, a).await,
     }
 }
