@@ -70,7 +70,16 @@ async fn wait(g: &GlobalArgs, id: &str, timeout: Option<u64>) -> Result<()> {
         on_progress: Some(cb),
         ..Default::default()
     };
-    let task = client.wait_for_task(&id.into(), opts).await?;
+    let cancel = crate::signals::global();
+    let task_id = tripo_api::TaskId::from(id);
+    let task = tokio::select! {
+        res = client.wait_for_task(&task_id, opts) => res?,
+        () = cancel.cancelled() => {
+            crate::progress::bar_finish(bar.as_ref(), None);
+            eprintln!("interrupted — resume with: tripo task wait {id}");
+            return Err(crate::signals::Interrupted.into());
+        }
+    };
     crate::progress::bar_finish(bar.as_ref(), Some(task.status));
 
     serde_json::to_writer_pretty(std::io::stdout(), &task)?;
@@ -89,7 +98,14 @@ async fn download(g: &GlobalArgs, id: &str, out_dir: &std::path::Path) -> Result
         overwrite: g.force,
         ..Default::default()
     };
-    let files = client.download_task_models(&task, out_dir, opts).await?;
+    let cancel = crate::signals::global();
+    let files = tokio::select! {
+        res = client.download_task_models(&task, out_dir, opts) => res?,
+        () = cancel.cancelled() => {
+            cleanup_partial_files(out_dir);
+            return Err(crate::signals::Interrupted.into());
+        }
+    };
     for p in [
         &files.model,
         &files.base_model,
@@ -102,6 +118,21 @@ async fn download(g: &GlobalArgs, id: &str, out_dir: &std::path::Path) -> Result
         println!("{}", p.display());
     }
     Ok(())
+}
+
+fn cleanup_partial_files(dir: &std::path::Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for e in entries.flatten() {
+        let p = e.path();
+        if p.extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| e.ends_with("partial"))
+        {
+            let _ = std::fs::remove_file(p);
+        }
+    }
 }
 
 async fn create(g: &GlobalArgs, json_path: &std::path::Path) -> Result<()> {

@@ -94,7 +94,15 @@ pub async fn run_variant<A: IntoRequest>(
         on_progress: Some(cb),
         ..Default::default()
     };
-    let task = client.wait_for_task(&id, wait_opts).await?;
+    let cancel = crate::signals::global();
+    let task = tokio::select! {
+        res = client.wait_for_task(&id, wait_opts) => res?,
+        () = cancel.cancelled() => {
+            crate::progress::bar_finish(bar.as_ref(), None);
+            eprintln!("interrupted — resume with: tripo task wait {id}");
+            return Err(crate::signals::Interrupted.into());
+        }
+    };
     crate::progress::bar_finish(bar.as_ref(), Some(task.status));
 
     if task.status != TaskStatus::Success {
@@ -109,7 +117,13 @@ pub async fn run_variant<A: IntoRequest>(
             overwrite: g.force,
             ..Default::default()
         };
-        let files = client.download_task_models(&task, dir, dl).await?;
+        let files = tokio::select! {
+            res = client.download_task_models(&task, dir, dl) => res?,
+            () = cancel.cancelled() => {
+                cleanup_partial_files(dir);
+                return Err(crate::signals::Interrupted.into());
+            }
+        };
         for p in [
             &files.model,
             &files.base_model,
@@ -126,4 +140,19 @@ pub async fn run_variant<A: IntoRequest>(
         println!();
     }
     Ok(())
+}
+
+fn cleanup_partial_files(dir: &std::path::Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for e in entries.flatten() {
+        let p = e.path();
+        if p.extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| e.ends_with("partial"))
+        {
+            let _ = std::fs::remove_file(p);
+        }
+    }
 }

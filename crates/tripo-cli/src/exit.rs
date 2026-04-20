@@ -24,6 +24,9 @@ pub enum ExitCode {
 /// Map an `anyhow::Error` to an `ExitCode`.
 #[allow(clippy::match_same_arms)] // Explicit Api/Http arm documents intent.
 pub fn code_for_error(err: &anyhow::Error) -> ExitCode {
+    if err.downcast_ref::<crate::signals::Interrupted>().is_some() {
+        return ExitCode::Interrupted;
+    }
     if let Some(api_err) = err.downcast_ref::<tripo_api::Error>() {
         return match api_err {
             tripo_api::Error::WaitTimeout(_) => ExitCode::Timeout,

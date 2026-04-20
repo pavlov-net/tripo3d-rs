@@ -17,6 +17,7 @@ use crate::exit::ExitCode;
 async fn main() -> std::process::ExitCode {
     let args = Cli::parse();
     init_tracing(&args.global);
+    signals::install_global();
     let code = match run(args).await {
         Ok(()) => ExitCode::Success,
         Err(err) => exit::code_for_error(&err),
