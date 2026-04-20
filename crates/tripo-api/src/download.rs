@@ -104,7 +104,7 @@ impl Client {
             let Some(url) = url.clone() else { continue };
             let ext = extension_of(&url, default_ext);
             let target = dir.join(kind.filename(&task.task_id, &ext));
-            if !opts.overwrite && target.exists() {
+            if !opts.overwrite && tokio::fs::try_exists(&target).await? {
                 return Err(Error::FileExists(target));
             }
             jobs.push((*kind, url, target));
