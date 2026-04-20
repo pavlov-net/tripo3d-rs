@@ -3,17 +3,21 @@
 
 //! Async Rust client for the Tripo 3D Generation API.
 
+mod client;
 mod error;
 mod envelope;
 mod image;
 mod compress;
+mod retry;
 pub mod enums;
 pub mod types;
 pub mod versions;
 
+pub use client::{Client, ClientBuilder, Region, API_KEY_ENV, BASE_URL_CN, BASE_URL_GLOBAL, REGION_ENV};
 pub use error::{Error, Result};
 pub use image::ImageInput;
 pub use compress::CompressionMode;
+pub use retry::RetryPolicy;
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
 pub use enums::{
     Animation, ExportOrientation, FbxPreset, Orientation, OutputFormat, PostStyle, Quality,
