@@ -10,9 +10,11 @@ use crate::error::Result;
 use crate::image::ImageInput;
 
 pub mod image_to_model;
+pub mod multiview_to_model;
 pub mod text_to_model;
 
 pub use image_to_model::ImageToModelRequest;
+pub use multiview_to_model::MultiviewToModelRequest;
 pub use text_to_model::TextToModelRequest;
 
 /// Task creation request body. `type` tag is set by serde.
@@ -29,6 +31,9 @@ pub enum TaskRequest {
     /// `image_to_model` — generate a 3D model from a single image.
     #[serde(rename = "image_to_model")]
     ImageToModel(ImageToModelRequest),
+    /// `multiview_to_model` — generate from multiple images (front/back/left/right).
+    #[serde(rename = "multiview_to_model")]
+    MultiviewToModel(MultiviewToModelRequest),
 }
 
 impl TaskRequest {
@@ -45,6 +50,12 @@ impl TaskRequest {
                     Ok(())
                 }
                 Self::ImageToModel(r) => upload_image_if_path(client, &mut r.image).await,
+                Self::MultiviewToModel(r) => {
+                    for slot in r.images.iter_mut().flatten() {
+                        upload_image_if_path(client, slot).await?;
+                    }
+                    Ok(())
+                }
             }
         })
     }

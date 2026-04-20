@@ -4,7 +4,7 @@
 use serde_json::Value;
 use tripo_api::{
     enums::Quality, tasks::TaskRequest, CompressionMode, ImageInput, ImageToModelRequest,
-    TextToModelRequest,
+    MultiviewToModelRequest, TextToModelRequest,
 };
 
 fn json_of<T: serde::Serialize>(t: &T) -> Value {
@@ -83,4 +83,33 @@ fn default_image_to_model() -> ImageToModelRequest {
         generate_parts: None,
         smart_low_poly: None,
     }
+}
+
+#[test]
+fn multiview_to_model_with_empty_slot() {
+    let req = TaskRequest::MultiviewToModel(MultiviewToModelRequest {
+        images: vec![
+            Some(ImageInput::Url("https://example.com/front.jpg".parse().unwrap())),
+            None,
+            Some(ImageInput::FileToken(
+                uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
+            )),
+        ],
+        model_version: None,
+        face_limit: None,
+        texture: None,
+        pbr: None,
+        model_seed: None,
+        texture_seed: None,
+        texture_quality: None,
+        geometry_quality: None,
+        texture_alignment: None,
+        auto_size: None,
+        orientation: None,
+        quad: None,
+        compress: None,
+        generate_parts: None,
+        smart_low_poly: None,
+    });
+    insta::assert_json_snapshot!(json_of(&req));
 }
