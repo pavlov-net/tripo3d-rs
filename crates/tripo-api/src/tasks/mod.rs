@@ -27,7 +27,7 @@ pub use mesh_completion::MeshCompletionRequest;
 pub use mesh_segmentation::MeshSegmentationRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
 pub use refine_model::RefineModelRequest;
-pub use retarget_animation::RetargetAnimationRequest;
+pub use retarget_animation::{AnimationInput, RetargetAnimationRequest};
 pub use rig_model::RigModelRequest;
 pub use smart_lowpoly::SmartLowpolyRequest;
 pub use stylize_model::StylizeModelRequest;

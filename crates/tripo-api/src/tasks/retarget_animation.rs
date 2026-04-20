@@ -1,38 +1,65 @@
 //! `retarget_animation` task variant. Wire `type`: `animate_retarget`.
 //!
-//! Polymorphic animation field: a single animation serializes under the key
-//! `animation`, a list under `animations`. Different field names, so the
-//! simplest correct encoding is two `Option` fields that are mutually exclusive.
+//! Uses `AnimationInput` to type-enforce the single-or-many wire-format
+//! invariant: a single animation serializes under key `animation`, a list
+//! under `animations`.
 
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 
 use crate::enums::{Animation, RigOutputFormat};
 
-/// Request body for `retarget_animation`. Wire `type`: `animate_retarget`.
-#[derive(Debug, Clone, Serialize)]
+/// One animation or many. Serializes to the correct wire key (`animation`
+/// or `animations`) — cannot be in an invalid "both set" state.
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-#[serde(deny_unknown_fields)]
+pub enum AnimationInput {
+    /// One animation preset; serializes under key `animation`.
+    Single(Animation),
+    /// Multiple animation presets; serializes under key `animations`.
+    Many(Vec<Animation>),
+}
+
+/// Request body for `retarget_animation`. Wire `type`: `animate_retarget`.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct RetargetAnimationRequest {
     /// Source rigged task id.
     pub original_model_task_id: String,
-    /// Single animation preset (serializes as `animation`).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub animation: Option<Animation>,
-    /// List of animation presets (serializes as `animations`).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub animations: Option<Vec<Animation>>,
+    /// Animation(s) to retarget; serializes as `animation` (single) or `animations` (list).
+    pub animation: AnimationInput,
     /// Output file format.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub out_format: Option<RigOutputFormat>,
     /// Bake animation samples.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub bake_animation: Option<bool>,
     /// Export with skinned geometry.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub export_with_geometry: Option<bool>,
     /// Animate in-place.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub animate_in_place: Option<bool>,
+}
+
+impl Serialize for RetargetAnimationRequest {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+        let mut m = s.serialize_map(None)?;
+        m.serialize_entry("original_model_task_id", &self.original_model_task_id)?;
+        match &self.animation {
+            AnimationInput::Single(a) => m.serialize_entry("animation", a)?,
+            AnimationInput::Many(list) => m.serialize_entry("animations", list)?,
+        }
+        if let Some(v) = &self.out_format {
+            m.serialize_entry("out_format", v)?;
+        }
+        if let Some(v) = &self.bake_animation {
+            m.serialize_entry("bake_animation", v)?;
+        }
+        if let Some(v) = &self.export_with_geometry {
+            m.serialize_entry("export_with_geometry", v)?;
+        }
+        if let Some(v) = &self.animate_in_place {
+            m.serialize_entry("animate_in_place", v)?;
+        }
+        m.end()
+    }
 }
 
 impl RetargetAnimationRequest {
@@ -41,8 +68,7 @@ impl RetargetAnimationRequest {
     pub fn single(original_model_task_id: impl Into<String>, animation: Animation) -> Self {
         Self {
             original_model_task_id: original_model_task_id.into(),
-            animation: Some(animation),
-            animations: None,
+            animation: AnimationInput::Single(animation),
             out_format: None,
             bake_animation: None,
             export_with_geometry: None,
@@ -54,8 +80,7 @@ impl RetargetAnimationRequest {
     pub fn many(original_model_task_id: impl Into<String>, animations: Vec<Animation>) -> Self {
         Self {
             original_model_task_id: original_model_task_id.into(),
-            animation: None,
-            animations: Some(animations),
+            animation: AnimationInput::Many(animations),
             out_format: None,
             bake_animation: None,
             export_with_geometry: None,

@@ -39,10 +39,10 @@ pub use error::{Error, Result};
 pub use image::ImageInput;
 pub use retry::RetryPolicy;
 pub use tasks::{
-    CheckRiggableRequest, ConvertModelRequest, ImageToModelRequest, MeshCompletionRequest,
-    MeshSegmentationRequest, MultiviewToModelRequest, RefineModelRequest, RetargetAnimationRequest,
-    RigModelRequest, SmartLowpolyRequest, StylizeModelRequest, TaskRequest, TextToModelRequest,
-    TextureModelRequest, TexturePrompt,
+    AnimationInput, CheckRiggableRequest, ConvertModelRequest, ImageToModelRequest,
+    MeshCompletionRequest, MeshSegmentationRequest, MultiviewToModelRequest, RefineModelRequest,
+    RetargetAnimationRequest, RigModelRequest, SmartLowpolyRequest, StylizeModelRequest,
+    TaskRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
 };
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
 pub use wait::{ProgressCallback, WaitOptions};
