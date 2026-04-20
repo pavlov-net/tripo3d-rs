@@ -1,4 +1,4 @@
-// Expanded in Tasks 6–9.
+//! `task` subcommands: raw task escape hatches.
 
 use anyhow::Result;
 use clap::Subcommand;
@@ -37,7 +37,32 @@ pub enum TaskCommand {
     },
 }
 
-/// Run a `task` subcommand. Placeholder — real implementation in Tasks 6–9.
-pub async fn run(_g: &GlobalArgs, _cmd: TaskCommand) -> Result<()> {
-    anyhow::bail!("task subcommands implemented in Tasks 6–9")
+/// Dispatch to the matching `task` subcommand runner.
+pub async fn run(g: &GlobalArgs, cmd: TaskCommand) -> Result<()> {
+    match cmd {
+        TaskCommand::Get { task_id } => get(g, &task_id).await,
+        TaskCommand::Wait { task_id, timeout } => wait(g, &task_id, timeout).await,
+        TaskCommand::Download { task_id, output } => download(g, &task_id, &output).await,
+        TaskCommand::Create { json } => create(g, &json).await,
+    }
+}
+
+async fn get(g: &GlobalArgs, id: &str) -> Result<()> {
+    let client = crate::resolve::build_client(g)?;
+    let task = client.get_task(&id.into()).await?;
+    serde_json::to_writer_pretty(std::io::stdout(), &task)?;
+    println!();
+    Ok(())
+}
+
+async fn wait(_g: &GlobalArgs, _id: &str, _timeout: Option<u64>) -> Result<()> {
+    anyhow::bail!("task wait implemented in Task 7")
+}
+
+async fn download(_g: &GlobalArgs, _id: &str, _out: &std::path::Path) -> Result<()> {
+    anyhow::bail!("task download implemented in Task 8")
+}
+
+async fn create(_g: &GlobalArgs, _json: &std::path::Path) -> Result<()> {
+    anyhow::bail!("task create implemented in Task 9")
 }
