@@ -17,7 +17,7 @@ pub struct RigModelArgs {
     #[arg(long)]
     pub model_version: Option<String>,
     /// Output file format (glb|fbx).
-    #[arg(long, value_parser = parse_out_format)]
+    #[arg(long, value_parser = super::parsers::rig_out_format)]
     pub out_format: Option<RigOutputFormat>,
     /// Rig classification.
     #[arg(long, value_parser = parse_rig_type)]
@@ -28,14 +28,6 @@ pub struct RigModelArgs {
 
     #[command(flatten)]
     pub run: VariantRunOpts,
-}
-
-pub(super) fn parse_out_format(s: &str) -> Result<RigOutputFormat, String> {
-    Ok(match s {
-        "glb" => RigOutputFormat::Glb,
-        "fbx" => RigOutputFormat::Fbx,
-        o => return Err(format!("invalid out_format `{o}`")),
-    })
 }
 
 fn parse_rig_type(s: &str) -> Result<RigType, String> {

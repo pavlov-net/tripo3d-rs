@@ -17,7 +17,7 @@ pub struct RetargetAnimationArgs {
     #[arg(long, value_delimiter = ',', value_parser = parse_animation, required = true)]
     pub animation: Vec<Animation>,
     /// Output file format.
-    #[arg(long, value_parser = super::rig_model::parse_out_format)]
+    #[arg(long, value_parser = super::parsers::rig_out_format)]
     pub out_format: Option<RigOutputFormat>,
     /// Bake animation samples.
     #[arg(long)]

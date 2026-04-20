@@ -38,10 +38,10 @@ pub struct TextureModelArgs {
     #[arg(long)]
     pub texture_seed: Option<i32>,
     /// Texture quality preset.
-    #[arg(long, value_parser = super::text_to_model::parse_quality)]
+    #[arg(long, value_parser = super::parsers::quality)]
     pub texture_quality: Option<Quality>,
     /// Texture alignment strategy.
-    #[arg(long, value_parser = super::image_to_model::__private::parse_alignment)]
+    #[arg(long, value_parser = super::parsers::texture_alignment)]
     pub texture_alignment: Option<TextureAlignment>,
     /// Restrict to named parts (comma-separated).
     #[arg(long, value_delimiter = ',')]

@@ -33,19 +33,19 @@ pub struct ImageToModelArgs {
     #[arg(long)]
     pub texture_seed: Option<i32>,
     /// Texture quality preset.
-    #[arg(long, value_parser = super::text_to_model::parse_quality)]
+    #[arg(long, value_parser = super::parsers::quality)]
     pub texture_quality: Option<Quality>,
     /// Geometry quality preset.
-    #[arg(long, value_parser = super::text_to_model::parse_quality)]
+    #[arg(long, value_parser = super::parsers::quality)]
     pub geometry_quality: Option<Quality>,
     /// Texture alignment strategy.
-    #[arg(long, value_parser = __private::parse_alignment)]
+    #[arg(long, value_parser = super::parsers::texture_alignment)]
     pub texture_alignment: Option<TextureAlignment>,
     /// Auto-size.
     #[arg(long)]
     pub auto_size: Option<bool>,
     /// Output orientation hint.
-    #[arg(long, value_parser = __private::parse_orientation)]
+    #[arg(long, value_parser = super::parsers::orientation)]
     pub orientation: Option<Orientation>,
     /// Produce a quad mesh.
     #[arg(long)]
@@ -62,26 +62,6 @@ pub struct ImageToModelArgs {
 
     #[command(flatten)]
     pub run: VariantRunOpts,
-}
-
-pub(super) mod __private {
-    use tripo_api::enums::{Orientation, TextureAlignment};
-
-    pub fn parse_alignment(s: &str) -> Result<TextureAlignment, String> {
-        match s {
-            "original_image" => Ok(TextureAlignment::OriginalImage),
-            "geometry" => Ok(TextureAlignment::Geometry),
-            o => Err(format!("invalid alignment `{o}`")),
-        }
-    }
-
-    pub fn parse_orientation(s: &str) -> Result<Orientation, String> {
-        match s {
-            "default" => Ok(Orientation::Default),
-            "align_image" => Ok(Orientation::AlignImage),
-            o => Err(format!("invalid orientation `{o}`")),
-        }
-    }
 }
 
 impl VariantArgs for ImageToModelArgs {

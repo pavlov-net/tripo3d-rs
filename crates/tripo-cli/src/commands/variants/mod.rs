@@ -19,6 +19,7 @@ pub mod image_to_model;
 pub mod mesh_completion;
 pub mod mesh_segmentation;
 pub mod multiview_to_model;
+mod parsers;
 pub mod refine_model;
 pub mod retarget_animation;
 pub mod rig_model;

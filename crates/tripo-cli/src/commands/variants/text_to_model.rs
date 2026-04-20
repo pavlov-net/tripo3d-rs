@@ -39,10 +39,10 @@ pub struct TextToModelArgs {
     #[arg(long)]
     pub texture_seed: Option<i32>,
     /// Texture quality preset.
-    #[arg(long, value_parser = parse_quality)]
+    #[arg(long, value_parser = super::parsers::quality)]
     pub texture_quality: Option<Quality>,
     /// Geometry quality preset.
-    #[arg(long, value_parser = parse_quality)]
+    #[arg(long, value_parser = super::parsers::quality)]
     pub geometry_quality: Option<Quality>,
     /// Auto-size the output mesh.
     #[arg(long)]
@@ -62,14 +62,6 @@ pub struct TextToModelArgs {
 
     #[command(flatten)]
     pub run: VariantRunOpts,
-}
-
-pub(super) fn parse_quality(s: &str) -> Result<Quality, String> {
-    match s {
-        "standard" => Ok(Quality::Standard),
-        "detailed" => Ok(Quality::Detailed),
-        other => Err(format!("invalid quality `{other}` — use standard|detailed")),
-    }
 }
 
 impl VariantArgs for TextToModelArgs {
