@@ -10,6 +10,7 @@ mod envelope;
 mod image;
 mod compress;
 mod retry;
+mod wait;
 pub mod enums;
 pub mod types;
 pub mod versions;
@@ -20,6 +21,7 @@ pub use image::ImageInput;
 pub use compress::CompressionMode;
 pub use retry::RetryPolicy;
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
+pub use wait::{ProgressCallback, WaitOptions};
 pub use enums::{
     Animation, ExportOrientation, FbxPreset, Orientation, OutputFormat, PostStyle, Quality,
     RigOutputFormat, RigSpec, RigType, TextureAlignment, TextureFormat,
