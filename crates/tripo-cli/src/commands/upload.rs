@@ -1,18 +1,27 @@
-// Expanded in Task 5.
+//! `upload` subcommand.
 
 use anyhow::Result;
 use clap::Args;
 
 use crate::cli::GlobalArgs;
+use crate::output::use_json;
 
 /// Arguments for the `upload` subcommand.
 #[derive(Debug, Args)]
 pub struct UploadArgs {
-    /// Path to the file to upload.
+    /// Path to the file.
     pub path: std::path::PathBuf,
 }
 
-/// Run `upload`. Placeholder — real implementation in Task 5.
-pub async fn run(_g: &GlobalArgs, _a: UploadArgs) -> Result<()> {
-    anyhow::bail!("upload is implemented in Task 5")
+/// Run `upload`: POST the file, print the resulting `file_token`.
+pub async fn run(g: &GlobalArgs, a: UploadArgs) -> Result<()> {
+    let client = crate::resolve::build_client(g)?;
+    let up = client.upload_file(&a.path).await?;
+    if use_json(g.json) {
+        serde_json::to_writer_pretty(std::io::stdout(), &up)?;
+        println!();
+    } else {
+        println!("{}", up.file_token);
+    }
+    Ok(())
 }
