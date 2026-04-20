@@ -281,3 +281,29 @@ fn retarget_multi_animation() {
     }
     "###);
 }
+
+use tripo_api::{MeshCompletionRequest, MeshSegmentationRequest};
+
+#[test]
+fn mesh_segmentation_minimal() {
+    let req = TaskRequest::MeshSegmentation(MeshSegmentationRequest {
+        original_model_task_id: "src".into(),
+        model_version: None,
+    });
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "original_model_task_id": "src",
+      "type": "mesh_segmentation"
+    }
+    "###);
+}
+
+#[test]
+fn mesh_completion_with_parts() {
+    let req = TaskRequest::MeshCompletion(MeshCompletionRequest {
+        original_model_task_id: "src".into(),
+        model_version: Some("v1.0-20250506".into()),
+        part_names: Some(vec!["head".into()]),
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}

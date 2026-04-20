@@ -12,6 +12,8 @@ use crate::image::ImageInput;
 pub mod check_riggable;
 pub mod convert_model;
 pub mod image_to_model;
+pub mod mesh_completion;
+pub mod mesh_segmentation;
 pub mod multiview_to_model;
 pub mod refine_model;
 pub mod retarget_animation;
@@ -23,6 +25,8 @@ pub mod texture_model;
 pub use check_riggable::CheckRiggableRequest;
 pub use convert_model::ConvertModelRequest;
 pub use image_to_model::ImageToModelRequest;
+pub use mesh_completion::MeshCompletionRequest;
+pub use mesh_segmentation::MeshSegmentationRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
 pub use refine_model::RefineModelRequest;
 pub use retarget_animation::RetargetAnimationRequest;
@@ -69,6 +73,12 @@ pub enum TaskRequest {
     /// `retarget_animation` — retarget animations onto a rigged model.
     #[serde(rename = "animate_retarget")]
     Retarget(RetargetAnimationRequest),
+    /// `mesh_segmentation` — decompose a model into semantic parts.
+    #[serde(rename = "mesh_segmentation")]
+    MeshSegmentation(MeshSegmentationRequest),
+    /// `mesh_completion` — fill holes in an existing mesh.
+    #[serde(rename = "mesh_completion")]
+    MeshCompletion(MeshCompletionRequest),
 }
 
 impl TaskRequest {
@@ -103,9 +113,12 @@ impl TaskRequest {
                     }
                     Ok(())
                 }
-                Self::Refine(_) | Self::CheckRiggable(_) | Self::Rig(_) | Self::Retarget(_) => {
-                    Ok(())
-                }
+                Self::Refine(_)
+                | Self::CheckRiggable(_)
+                | Self::Rig(_)
+                | Self::Retarget(_)
+                | Self::MeshSegmentation(_)
+                | Self::MeshCompletion(_) => Ok(()),
             }
         })
     }
