@@ -89,7 +89,9 @@ fn default_image_to_model() -> ImageToModelRequest {
 fn multiview_to_model_with_empty_slot() {
     let req = TaskRequest::MultiviewToModel(MultiviewToModelRequest {
         images: vec![
-            Some(ImageInput::Url("https://example.com/front.jpg".parse().unwrap())),
+            Some(ImageInput::Url(
+                "https://example.com/front.jpg".parse().unwrap(),
+            )),
             None,
             Some(ImageInput::FileToken(
                 uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
@@ -251,10 +253,7 @@ use tripo_api::{Animation, RetargetAnimationRequest};
 
 #[test]
 fn retarget_single_animation() {
-    let req = TaskRequest::Retarget(RetargetAnimationRequest::single(
-        "src",
-        Animation::Walk,
-    ));
+    let req = TaskRequest::Retarget(RetargetAnimationRequest::single("src", Animation::Walk));
     insta::assert_json_snapshot!(json_of(&req), @r###"
     {
       "animation": "preset:walk",

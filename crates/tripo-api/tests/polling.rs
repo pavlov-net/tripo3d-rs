@@ -57,11 +57,17 @@ async fn times_out() {
         .mount(&server).await;
 
     let c = client(&server);
-    let err = c.wait_for_task(&TaskId::new("abc"), WaitOptions {
-        timeout: Some(Duration::from_millis(50)),
-        initial_interval: Duration::from_millis(10),
-        max_interval: Duration::from_millis(10),
-        on_progress: None,
-    }).await.unwrap_err();
+    let err = c
+        .wait_for_task(
+            &TaskId::new("abc"),
+            WaitOptions {
+                timeout: Some(Duration::from_millis(50)),
+                initial_interval: Duration::from_millis(10),
+                max_interval: Duration::from_millis(10),
+                on_progress: None,
+            },
+        )
+        .await
+        .unwrap_err();
     assert!(matches!(err, tripo_api::Error::WaitTimeout(_)));
 }

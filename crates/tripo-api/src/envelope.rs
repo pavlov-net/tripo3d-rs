@@ -52,7 +52,12 @@ mod tests {
         let json = r#"{"code":1001,"message":"bad key","suggestion":"regenerate"}"#;
         let env: Envelope<serde_json::Value> = serde_json::from_str(json).unwrap();
         let err = env.into_result().unwrap_err();
-        let crate::Error::Api { code, message, suggestion } = err else {
+        let crate::Error::Api {
+            code,
+            message,
+            suggestion,
+        } = err
+        else {
             panic!("wrong variant");
         };
         assert_eq!(code, 1001);

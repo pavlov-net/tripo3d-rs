@@ -85,8 +85,8 @@ fn validate_key(key: &str) -> Result<()> {
 
 fn build_http(api_key: &str) -> Result<reqwest::Client> {
     let mut headers = HeaderMap::new();
-    let mut auth = HeaderValue::from_str(&format!("Bearer {api_key}"))
-        .map_err(|_| Error::InvalidApiKey)?;
+    let mut auth =
+        HeaderValue::from_str(&format!("Bearer {api_key}")).map_err(|_| Error::InvalidApiKey)?;
     auth.set_sensitive(true);
     headers.insert(AUTHORIZATION, auth);
     headers.insert(
@@ -183,8 +183,7 @@ impl Client {
         if !status.is_success() {
             return Err(self.map_http_error(status, &bytes));
         }
-        let env: crate::envelope::Envelope<crate::types::Balance> =
-            serde_json::from_slice(&bytes)?;
+        let env: crate::envelope::Envelope<crate::types::Balance> = serde_json::from_slice(&bytes)?;
         env.into_result()
     }
 
@@ -200,15 +199,17 @@ impl Client {
         if !status.is_success() {
             return Err(self.map_http_error(status, &bytes));
         }
-        let env: crate::envelope::Envelope<crate::types::Task> =
-            serde_json::from_slice(&bytes)?;
+        let env: crate::envelope::Envelope<crate::types::Task> = serde_json::from_slice(&bytes)?;
         env.into_result()
     }
 
     /// `POST /task` — submit a task. Any `ImageInput::Path` in the request is
     /// uploaded first and replaced with a `FileToken`.
     #[tracing::instrument(skip(self, req))]
-    pub async fn create_task(&self, mut req: crate::tasks::TaskRequest) -> Result<crate::types::TaskId> {
+    pub async fn create_task(
+        &self,
+        mut req: crate::tasks::TaskRequest,
+    ) -> Result<crate::types::TaskId> {
         req.upload_images(self).await?;
         self.create_task_raw(&serde_json::to_value(&req)?).await
     }
@@ -241,7 +242,9 @@ impl Client {
 
     #[allow(clippy::unused_self)]
     pub(crate) fn map_http_error(&self, status: reqwest::StatusCode, bytes: &[u8]) -> Error {
-        if let Ok(env) = serde_json::from_slice::<crate::envelope::Envelope<serde_json::Value>>(bytes) {
+        if let Ok(env) =
+            serde_json::from_slice::<crate::envelope::Envelope<serde_json::Value>>(bytes)
+        {
             if env.code != 0 {
                 return Error::Api {
                     code: env.code,
@@ -359,7 +362,10 @@ mod tests {
 
     #[test]
     fn rejects_bad_prefix() {
-        let err = Client::builder().api_key("wrong_prefix").build().unwrap_err();
+        let err = Client::builder()
+            .api_key("wrong_prefix")
+            .build()
+            .unwrap_err();
         assert!(matches!(err, Error::InvalidApiKey));
     }
 

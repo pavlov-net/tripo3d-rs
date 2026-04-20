@@ -142,7 +142,12 @@ mod tests {
 
     #[test]
     fn post_style_roundtrips() {
-        for s in [PostStyle::Lego, PostStyle::Voxel, PostStyle::Voronoi, PostStyle::Minecraft] {
+        for s in [
+            PostStyle::Lego,
+            PostStyle::Voxel,
+            PostStyle::Voronoi,
+            PostStyle::Minecraft,
+        ] {
             let j = serde_json::to_string(&s).unwrap();
             let back: PostStyle = serde_json::from_str(&j).unwrap();
             assert_eq!(s, back);
@@ -157,13 +162,19 @@ mod tests {
 
     #[test]
     fn output_format_uppercase_wire() {
-        assert_eq!(serde_json::to_string(&OutputFormat::ThreeMf).unwrap(), "\"3MF\"");
+        assert_eq!(
+            serde_json::to_string(&OutputFormat::ThreeMf).unwrap(),
+            "\"3MF\""
+        );
         let gltf: OutputFormat = serde_json::from_str("\"GLTF\"").unwrap();
         assert_eq!(gltf, OutputFormat::Gltf);
     }
 
     #[test]
     fn export_orientation_sign_prefix() {
-        assert_eq!(serde_json::to_string(&ExportOrientation::MinusY).unwrap(), "\"-y\"");
+        assert_eq!(
+            serde_json::to_string(&ExportOrientation::MinusY).unwrap(),
+            "\"-y\""
+        );
     }
 }

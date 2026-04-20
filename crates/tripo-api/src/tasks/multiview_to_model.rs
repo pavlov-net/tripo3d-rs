@@ -64,10 +64,7 @@ pub struct MultiviewToModelRequest {
     pub smart_low_poly: Option<bool>,
 }
 
-fn serialize_files<S: Serializer>(
-    v: &[Option<ImageInput>],
-    s: S,
-) -> Result<S::Ok, S::Error> {
+fn serialize_files<S: Serializer>(v: &[Option<ImageInput>], s: S) -> Result<S::Ok, S::Error> {
     use serde::ser::SerializeSeq;
     let mut seq = s.serialize_seq(Some(v.len()))?;
     for entry in v {

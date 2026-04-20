@@ -129,30 +129,55 @@ mod tests {
     #[test]
     fn eta_drives_half_of_remaining() {
         let t = task_with_eta(Some(40));
-        let d = next_interval(&t, Duration::from_secs(2), Duration::from_secs(2), Duration::from_secs(30));
+        let d = next_interval(
+            &t,
+            Duration::from_secs(2),
+            Duration::from_secs(2),
+            Duration::from_secs(30),
+        );
         assert_eq!(d, Duration::from_secs(20));
     }
 
     #[test]
     fn eta_capped_by_max() {
         let t = task_with_eta(Some(600));
-        let d = next_interval(&t, Duration::from_secs(2), Duration::from_secs(2), Duration::from_secs(30));
+        let d = next_interval(
+            &t,
+            Duration::from_secs(2),
+            Duration::from_secs(2),
+            Duration::from_secs(30),
+        );
         assert_eq!(d, Duration::from_secs(30));
     }
 
     #[test]
     fn eta_floor_is_initial() {
         let t = task_with_eta(Some(1));
-        let d = next_interval(&t, Duration::from_secs(2), Duration::from_secs(2), Duration::from_secs(30));
+        let d = next_interval(
+            &t,
+            Duration::from_secs(2),
+            Duration::from_secs(2),
+            Duration::from_secs(30),
+        );
         assert_eq!(d, Duration::from_secs(2));
     }
 
     #[test]
     fn without_eta_exponential() {
         let t = task_with_eta(None);
-        let d = next_interval(&t, Duration::from_secs(2), Duration::from_secs(2), Duration::from_secs(30));
+        let d = next_interval(
+            &t,
+            Duration::from_secs(2),
+            Duration::from_secs(2),
+            Duration::from_secs(30),
+        );
         assert_eq!(d, Duration::from_secs(4));
-        let d2 = next_interval(&t, Duration::from_secs(20), Duration::from_secs(2), Duration::from_secs(30));
+        let d2 = next_interval(
+            &t,
+            Duration::from_secs(20),
+            Duration::from_secs(2),
+            Duration::from_secs(30),
+        );
         assert_eq!(d2, Duration::from_secs(30));
     }
 }

@@ -143,10 +143,7 @@ pub(crate) async fn upload_image_if_path(client: &Client, img: &mut ImageInput) 
 /// Helper for multi-image variants.
 // Used by multi-image variants added in Tasks 16+.
 #[allow(dead_code)]
-pub(crate) async fn upload_images_if_paths(
-    client: &Client,
-    imgs: &mut [ImageInput],
-) -> Result<()> {
+pub(crate) async fn upload_images_if_paths(client: &Client, imgs: &mut [ImageInput]) -> Result<()> {
     for img in imgs.iter_mut() {
         upload_image_if_path(client, img).await?;
     }

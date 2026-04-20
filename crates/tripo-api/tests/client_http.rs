@@ -42,7 +42,14 @@ async fn get_balance_api_error() {
         .await;
 
     let err = client(&server).get_balance().await.unwrap_err();
-    let Error::Api { code, message, suggestion } = err else { panic!("wrong variant: {err:?}") };
+    let Error::Api {
+        code,
+        message,
+        suggestion,
+    } = err
+    else {
+        panic!("wrong variant: {err:?}")
+    };
     assert_eq!(code, 1001);
     assert_eq!(message, "bad key");
     assert_eq!(suggestion.as_deref(), Some("rotate"));
@@ -77,7 +84,10 @@ async fn get_task_parses_full_body() {
     assert_eq!(task.status, tripo_api::TaskStatus::Running);
     assert_eq!(task.progress, 65);
     assert_eq!(task.running_left_time, Some(20));
-    assert_eq!(task.output.model.as_deref(), Some("https://cdn.example.com/abc123.glb"));
+    assert_eq!(
+        task.output.model.as_deref(),
+        Some("https://cdn.example.com/abc123.glb")
+    );
 }
 
 #[tokio::test]
@@ -119,7 +129,10 @@ async fn upload_file_roundtrip() {
 
     let c = client(&server);
     let up = c.upload_file(tmp.path()).await.unwrap();
-    assert_eq!(up.file_token.to_string(), "550e8400-e29b-41d4-a716-446655440000");
+    assert_eq!(
+        up.file_token.to_string(),
+        "550e8400-e29b-41d4-a716-446655440000"
+    );
 }
 
 #[tokio::test]
@@ -177,12 +190,16 @@ async fn downloads_model_and_rendered_image() {
     use tripo_api::{DownloadOptions, Task, TaskId, TaskOutput, TaskStatus};
 
     let server = MockServer::start().await;
-    Mock::given(method("GET")).and(path("/files/abc.glb"))
+    Mock::given(method("GET"))
+        .and(path("/files/abc.glb"))
         .respond_with(ResponseTemplate::new(200).set_body_bytes(b"model-bytes" as &[u8]))
-        .mount(&server).await;
-    Mock::given(method("GET")).and(path("/files/abc.jpg"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/files/abc.jpg"))
         .respond_with(ResponseTemplate::new(200).set_body_bytes(b"jpg-bytes" as &[u8]))
-        .mount(&server).await;
+        .mount(&server)
+        .await;
 
     let c = client(&server);
     let task = Task {
@@ -195,17 +212,28 @@ async fn downloads_model_and_rendered_image() {
             base_model: None,
             pbr_model: None,
             rendered_image: Some(format!("{}/files/abc.jpg?sig=x", server.uri())),
-            riggable: None, rig_type: None,
+            riggable: None,
+            rig_type: None,
         },
-        progress: 100, create_time: 0, running_left_time: None,
-        queuing_num: None, error_code: None, error_msg: None,
+        progress: 100,
+        create_time: 0,
+        running_left_time: None,
+        queuing_num: None,
+        error_code: None,
+        error_msg: None,
     };
 
     let dir = tempfile::tempdir().unwrap();
-    let out = c.download_task_models(&task, dir.path(), DownloadOptions::default()).await.unwrap();
+    let out = c
+        .download_task_models(&task, dir.path(), DownloadOptions::default())
+        .await
+        .unwrap();
     assert!(out.model.is_some());
     assert_eq!(std::fs::read(out.model.unwrap()).unwrap(), b"model-bytes");
-    assert_eq!(std::fs::read(out.rendered_image.unwrap()).unwrap(), b"jpg-bytes");
+    assert_eq!(
+        std::fs::read(out.rendered_image.unwrap()).unwrap(),
+        b"jpg-bytes"
+    );
 }
 
 #[tokio::test]
@@ -225,12 +253,22 @@ async fn download_errors_on_existing_file_without_overwrite() {
         input: BTreeMap::new(),
         output: TaskOutput {
             model: Some(format!("{}/files/abc.glb", server.uri())),
-            base_model: None, pbr_model: None, rendered_image: None,
-            riggable: None, rig_type: None,
+            base_model: None,
+            pbr_model: None,
+            rendered_image: None,
+            riggable: None,
+            rig_type: None,
         },
-        progress: 100, create_time: 0, running_left_time: None,
-        queuing_num: None, error_code: None, error_msg: None,
+        progress: 100,
+        create_time: 0,
+        running_left_time: None,
+        queuing_num: None,
+        error_code: None,
+        error_msg: None,
     };
-    let err = c.download_task_models(&task, dir.path(), DownloadOptions::default()).await.unwrap_err();
+    let err = c
+        .download_task_models(&task, dir.path(), DownloadOptions::default())
+        .await
+        .unwrap_err();
     assert!(matches!(err, tripo_api::Error::FileExists(_)));
 }

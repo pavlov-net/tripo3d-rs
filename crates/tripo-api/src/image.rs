@@ -92,7 +92,10 @@ mod tests {
     fn serialize_url() {
         let i = ImageInput::Url("https://example.com/x.jpg".parse().unwrap());
         let got: serde_json::Value = serde_json::to_value(&i).unwrap();
-        assert_eq!(got, serde_json::json!({"type":"jpg","url":"https://example.com/x.jpg"}));
+        assert_eq!(
+            got,
+            serde_json::json!({"type":"jpg","url":"https://example.com/x.jpg"})
+        );
     }
 
     #[test]

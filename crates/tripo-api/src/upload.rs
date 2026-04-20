@@ -21,7 +21,12 @@ impl Client {
         let file_name = path
             .file_name()
             .and_then(|s| s.to_str())
-            .ok_or_else(|| Error::Io(std::io::Error::new(std::io::ErrorKind::InvalidInput, "non-utf8 filename")))?
+            .ok_or_else(|| {
+                Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "non-utf8 filename",
+                ))
+            })?
             .to_string();
         let bytes = tokio::fs::read(path).await?;
         let part = reqwest::multipart::Part::bytes(bytes).file_name(file_name);
@@ -42,6 +47,8 @@ impl Client {
         }
         let env: crate::envelope::Envelope<ImageTokenBody> = serde_json::from_slice(&body)?;
         let data = env.into_result()?;
-        Ok(UploadedFile { file_token: data.image_token })
+        Ok(UploadedFile {
+            file_token: data.image_token,
+        })
     }
 }

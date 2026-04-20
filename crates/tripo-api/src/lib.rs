@@ -13,24 +13,30 @@
 //!   so `tripo-mcp` can expose them as MCP tool schemas.
 
 mod client;
-mod upload;
-mod download;
-mod error;
-mod envelope;
-mod image;
 mod compress;
-mod retry;
-mod wait;
+mod download;
 pub mod enums;
+mod envelope;
+mod error;
+mod image;
+mod retry;
 pub mod tasks;
 pub mod types;
+mod upload;
 pub mod versions;
+mod wait;
 
-pub use client::{Client, ClientBuilder, Region, API_KEY_ENV, BASE_URL_CN, BASE_URL_GLOBAL, REGION_ENV};
-pub use error::{Error, Result};
-pub use image::ImageInput;
+pub use client::{
+    Client, ClientBuilder, Region, API_KEY_ENV, BASE_URL_CN, BASE_URL_GLOBAL, REGION_ENV,
+};
 pub use compress::CompressionMode;
 pub use download::{DownloadOptions, DownloadedFiles, OutputKind};
+pub use enums::{
+    Animation, ExportOrientation, FbxPreset, Orientation, OutputFormat, PostStyle, Quality,
+    RigOutputFormat, RigSpec, RigType, TextureAlignment, TextureFormat,
+};
+pub use error::{Error, Result};
+pub use image::ImageInput;
 pub use retry::RetryPolicy;
 pub use tasks::{
     CheckRiggableRequest, ConvertModelRequest, ImageToModelRequest, MeshCompletionRequest,
@@ -40,7 +46,3 @@ pub use tasks::{
 };
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
 pub use wait::{ProgressCallback, WaitOptions};
-pub use enums::{
-    Animation, ExportOrientation, FbxPreset, Orientation, OutputFormat, PostStyle, Quality,
-    RigOutputFormat, RigSpec, RigType, TextureAlignment, TextureFormat,
-};
