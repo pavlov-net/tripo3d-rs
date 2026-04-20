@@ -165,3 +165,15 @@ fn convert_model_fbx_with_preset() {
     });
     insta::assert_json_snapshot!(json_of(&req));
 }
+
+use tripo_api::{PostStyle, StylizeModelRequest};
+
+#[test]
+fn stylize_model_voxel() {
+    let req = TaskRequest::Stylize(StylizeModelRequest {
+        original_model_task_id: "src-task".into(),
+        style: PostStyle::Voxel,
+        block_size: Some(80),
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}

@@ -12,11 +12,13 @@ use crate::image::ImageInput;
 pub mod convert_model;
 pub mod image_to_model;
 pub mod multiview_to_model;
+pub mod stylize_model;
 pub mod text_to_model;
 
 pub use convert_model::ConvertModelRequest;
 pub use image_to_model::ImageToModelRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
+pub use stylize_model::StylizeModelRequest;
 pub use text_to_model::TextToModelRequest;
 
 /// Task creation request body. `type` tag is set by serde.
@@ -39,6 +41,9 @@ pub enum TaskRequest {
     /// `convert_model` — convert a completed model to another file format.
     #[serde(rename = "convert_model")]
     ConvertModel(ConvertModelRequest),
+    /// `stylize_model` — apply a stylization preset (lego/voxel/etc).
+    #[serde(rename = "stylize_model")]
+    Stylize(StylizeModelRequest),
 }
 
 impl TaskRequest {
@@ -49,6 +54,7 @@ impl TaskRequest {
         client: &'a Client,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>> {
         Box::pin(async move {
+            #[allow(clippy::match_same_arms)]
             match self {
                 Self::TextToModel(_) => {
                     let _ = client;
@@ -62,6 +68,7 @@ impl TaskRequest {
                     Ok(())
                 }
                 Self::ConvertModel(_) => Ok(()),
+                Self::Stylize(_) => Ok(()),
             }
         })
     }

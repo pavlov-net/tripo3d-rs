@@ -22,8 +22,8 @@ pub use image::ImageInput;
 pub use compress::CompressionMode;
 pub use retry::RetryPolicy;
 pub use tasks::{
-    ConvertModelRequest, ImageToModelRequest, MultiviewToModelRequest, TaskRequest,
-    TextToModelRequest,
+    ConvertModelRequest, ImageToModelRequest, MultiviewToModelRequest, StylizeModelRequest,
+    TaskRequest, TextToModelRequest,
 };
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
 pub use wait::{ProgressCallback, WaitOptions};
