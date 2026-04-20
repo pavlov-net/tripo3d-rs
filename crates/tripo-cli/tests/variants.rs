@@ -404,3 +404,60 @@ async fn retarget_single_vs_many() {
         .assert()
         .success();
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn mesh_seg_and_completion() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"mesh_segmentation","original_model_task_id":"m"
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"ms"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"mesh_completion","original_model_task_id":"m","part_names":["head","arm"]
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"mc"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "mesh-segmentation",
+            "--original-model-task-id",
+            "m",
+        ])
+        .assert()
+        .success();
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "mesh-completion",
+            "--original-model-task-id",
+            "m",
+            "--part-names",
+            "head,arm",
+        ])
+        .assert()
+        .success();
+}

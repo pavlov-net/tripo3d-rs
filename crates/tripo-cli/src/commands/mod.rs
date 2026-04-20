@@ -27,5 +27,7 @@ pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
         Command::CheckRiggable(a) => variants::check_riggable::run(&args.global, a).await,
         Command::RigModel(a) => variants::rig_model::run(&args.global, a).await,
         Command::RetargetAnimation(a) => variants::retarget_animation::run(&args.global, a).await,
+        Command::MeshSegmentation(a) => variants::mesh_segmentation::run(&args.global, a).await,
+        Command::MeshCompletion(a) => variants::mesh_completion::run(&args.global, a).await,
     }
 }

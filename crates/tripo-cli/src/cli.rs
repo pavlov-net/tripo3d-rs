@@ -100,4 +100,8 @@ pub enum Command {
     RigModel(crate::commands::variants::RigModelArgs),
     /// Retarget one or more animations onto a rigged model.
     RetargetAnimation(crate::commands::variants::RetargetAnimationArgs),
+    /// Decompose a model into semantic parts.
+    MeshSegmentation(crate::commands::variants::MeshSegmentationArgs),
+    /// Fill holes in an existing mesh.
+    MeshCompletion(crate::commands::variants::MeshCompletionArgs),
 }
