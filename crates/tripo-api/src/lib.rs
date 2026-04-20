@@ -24,8 +24,8 @@ pub use retry::RetryPolicy;
 pub use tasks::{
     CheckRiggableRequest, ConvertModelRequest, ImageToModelRequest, MeshCompletionRequest,
     MeshSegmentationRequest, MultiviewToModelRequest, RefineModelRequest, RetargetAnimationRequest,
-    RigModelRequest, StylizeModelRequest, TaskRequest, TextToModelRequest, TextureModelRequest,
-    TexturePrompt,
+    RigModelRequest, SmartLowpolyRequest, StylizeModelRequest, TaskRequest, TextToModelRequest,
+    TextureModelRequest, TexturePrompt,
 };
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
 pub use wait::{ProgressCallback, WaitOptions};

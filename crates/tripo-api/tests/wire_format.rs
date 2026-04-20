@@ -307,3 +307,20 @@ fn mesh_completion_with_parts() {
     });
     insta::assert_json_snapshot!(json_of(&req));
 }
+
+use tripo_api::SmartLowpolyRequest;
+
+#[test]
+fn smart_lowpoly_uses_highpoly_to_lowpoly_wire_name() {
+    let req = TaskRequest::SmartLowpoly(SmartLowpolyRequest {
+        original_model_task_id: "src".into(),
+        quad: Some(true),
+        face_limit: Some(2000),
+        bake: Some(true),
+        model_version: None,
+        part_names: None,
+    });
+    let v = serde_json::to_value(&req).unwrap();
+    assert_eq!(v["type"], "highpoly_to_lowpoly");
+    insta::assert_json_snapshot!(v);
+}

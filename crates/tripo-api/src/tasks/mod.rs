@@ -18,6 +18,7 @@ pub mod multiview_to_model;
 pub mod refine_model;
 pub mod retarget_animation;
 pub mod rig_model;
+pub mod smart_lowpoly;
 pub mod stylize_model;
 pub mod text_to_model;
 pub mod texture_model;
@@ -31,6 +32,7 @@ pub use multiview_to_model::MultiviewToModelRequest;
 pub use refine_model::RefineModelRequest;
 pub use retarget_animation::RetargetAnimationRequest;
 pub use rig_model::RigModelRequest;
+pub use smart_lowpoly::SmartLowpolyRequest;
 pub use stylize_model::StylizeModelRequest;
 pub use text_to_model::TextToModelRequest;
 pub use texture_model::{TextureModelRequest, TexturePrompt};
@@ -79,6 +81,9 @@ pub enum TaskRequest {
     /// `mesh_completion` — fill holes in an existing mesh.
     #[serde(rename = "mesh_completion")]
     MeshCompletion(MeshCompletionRequest),
+    /// `smart_lowpoly` — reduce a high-poly model to a lowpoly one. Wire: `highpoly_to_lowpoly`.
+    #[serde(rename = "highpoly_to_lowpoly")]
+    SmartLowpoly(SmartLowpolyRequest),
 }
 
 impl TaskRequest {
@@ -118,7 +123,8 @@ impl TaskRequest {
                 | Self::Rig(_)
                 | Self::Retarget(_)
                 | Self::MeshSegmentation(_)
-                | Self::MeshCompletion(_) => Ok(()),
+                | Self::MeshCompletion(_)
+                | Self::SmartLowpoly(_) => Ok(()),
             }
         })
     }
