@@ -30,8 +30,8 @@ impl ImageInput {
     /// Anything else → [`ImageInput::Path`].
     #[must_use]
     pub fn parse(s: &str) -> Self {
-        if s.starts_with("http://") || s.starts_with("https://") {
-            if let Ok(url) = Url::parse(s) {
+        if let Ok(url) = Url::parse(s) {
+            if matches!(url.scheme(), "http" | "https") {
                 return Self::Url(url);
             }
         }
