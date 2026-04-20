@@ -13,7 +13,9 @@ use tripo_api::{DownloadOptions, TaskRequest, TaskStatus, WaitOptions};
 
 use crate::cli::GlobalArgs;
 
+pub mod image_to_model;
 pub mod text_to_model;
+pub use image_to_model::ImageToModelArgs;
 pub use text_to_model::TextToModelArgs;
 
 /// Shared flags attached to every variant command.

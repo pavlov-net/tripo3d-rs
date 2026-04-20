@@ -82,4 +82,6 @@ pub enum Command {
     Task(crate::commands::task::TaskCommand),
     /// Generate a 3D model from a text prompt.
     TextToModel(crate::commands::variants::TextToModelArgs),
+    /// Generate a 3D model from a single image.
+    ImageToModel(crate::commands::variants::ImageToModelArgs),
 }

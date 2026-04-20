@@ -18,5 +18,6 @@ pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
         Command::Completions(a) => completions::run(&a),
         Command::Task(cmd) => task::run(&args.global, cmd).await,
         Command::TextToModel(a) => variants::text_to_model::run(&args.global, a).await,
+        Command::ImageToModel(a) => variants::image_to_model::run(&args.global, a).await,
     }
 }
