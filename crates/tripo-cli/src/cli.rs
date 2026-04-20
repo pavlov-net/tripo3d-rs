@@ -84,4 +84,6 @@ pub enum Command {
     TextToModel(crate::commands::variants::TextToModelArgs),
     /// Generate a 3D model from a single image.
     ImageToModel(crate::commands::variants::ImageToModelArgs),
+    /// Generate a 3D model from multi-view images.
+    MultiviewToModel(crate::commands::variants::MultiviewToModelArgs),
 }

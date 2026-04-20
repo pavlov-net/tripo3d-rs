@@ -108,3 +108,43 @@ async fn image_to_model_with_local_path_uploads_first() {
         .assert()
         .success();
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn multiview_sends_files_array_with_empty_slot() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"multiview_to_model",
+            "files":[
+                {"type":"jpg","url":"https://example.com/front.jpg"},
+                {},
+                {"type":"jpg","url":"https://example.com/back.jpg"}
+            ]
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"mv"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "multiview-to-model",
+            "--image",
+            "https://example.com/front.jpg",
+            "--image",
+            "",
+            "--image",
+            "https://example.com/back.jpg",
+        ])
+        .assert()
+        .success();
+}
