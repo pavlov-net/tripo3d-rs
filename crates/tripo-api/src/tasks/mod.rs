@@ -14,6 +14,7 @@ pub mod convert_model;
 pub mod image_to_model;
 pub mod multiview_to_model;
 pub mod refine_model;
+pub mod retarget_animation;
 pub mod rig_model;
 pub mod stylize_model;
 pub mod text_to_model;
@@ -24,6 +25,7 @@ pub use convert_model::ConvertModelRequest;
 pub use image_to_model::ImageToModelRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
 pub use refine_model::RefineModelRequest;
+pub use retarget_animation::RetargetAnimationRequest;
 pub use rig_model::RigModelRequest;
 pub use stylize_model::StylizeModelRequest;
 pub use text_to_model::TextToModelRequest;
@@ -64,6 +66,9 @@ pub enum TaskRequest {
     /// `rig_model` — generate a skeletal rig for an existing model.
     #[serde(rename = "animate_rig")]
     Rig(RigModelRequest),
+    /// `retarget_animation` — retarget animations onto a rigged model.
+    #[serde(rename = "animate_retarget")]
+    Retarget(RetargetAnimationRequest),
 }
 
 impl TaskRequest {
@@ -98,7 +103,9 @@ impl TaskRequest {
                     }
                     Ok(())
                 }
-                Self::Refine(_) | Self::CheckRiggable(_) | Self::Rig(_) => Ok(()),
+                Self::Refine(_) | Self::CheckRiggable(_) | Self::Rig(_) | Self::Retarget(_) => {
+                    Ok(())
+                }
             }
         })
     }

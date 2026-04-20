@@ -23,8 +23,8 @@ pub use compress::CompressionMode;
 pub use retry::RetryPolicy;
 pub use tasks::{
     CheckRiggableRequest, ConvertModelRequest, ImageToModelRequest, MultiviewToModelRequest,
-    RefineModelRequest, RigModelRequest, StylizeModelRequest, TaskRequest, TextToModelRequest,
-    TextureModelRequest, TexturePrompt,
+    RefineModelRequest, RetargetAnimationRequest, RigModelRequest, StylizeModelRequest,
+    TaskRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
 };
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
 pub use wait::{ProgressCallback, WaitOptions};

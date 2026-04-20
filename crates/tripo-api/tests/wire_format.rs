@@ -246,3 +246,38 @@ fn rig_model_with_spec() {
     });
     insta::assert_json_snapshot!(json_of(&req));
 }
+
+use tripo_api::{Animation, RetargetAnimationRequest};
+
+#[test]
+fn retarget_single_animation() {
+    let req = TaskRequest::Retarget(RetargetAnimationRequest::single(
+        "src",
+        Animation::Walk,
+    ));
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "animation": "preset:walk",
+      "original_model_task_id": "src",
+      "type": "animate_retarget"
+    }
+    "###);
+}
+
+#[test]
+fn retarget_multi_animation() {
+    let req = TaskRequest::Retarget(RetargetAnimationRequest::many(
+        "src",
+        vec![Animation::Walk, Animation::Run],
+    ));
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "animations": [
+        "preset:walk",
+        "preset:run"
+      ],
+      "original_model_task_id": "src",
+      "type": "animate_retarget"
+    }
+    "###);
+}
