@@ -105,3 +105,48 @@ async fn task_wait_non_success_exit_6() {
         .failure()
         .code(6);
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn task_download_writes_model() {
+    let server = MockServer::start().await;
+    let url = format!("{}/files/abc.glb", server.uri());
+    Mock::given(method("GET"))
+        .and(path("/task/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0,"data":{
+                "task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0,
+                "output":{"model": url }
+            }
+        })))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/files/abc.glb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"glb-bytes" as &[u8]))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let out = Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "task",
+            "download",
+            "abc",
+            "-o",
+            dir.path().to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let target = dir.path().join("abc.glb");
+    assert_eq!(std::fs::read(target).unwrap(), b"glb-bytes");
+}

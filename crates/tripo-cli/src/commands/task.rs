@@ -81,8 +81,27 @@ async fn wait(g: &GlobalArgs, id: &str, timeout: Option<u64>) -> Result<()> {
     Ok(())
 }
 
-async fn download(_g: &GlobalArgs, _id: &str, _out: &std::path::Path) -> Result<()> {
-    anyhow::bail!("task download implemented in Task 8")
+async fn download(g: &GlobalArgs, id: &str, out_dir: &std::path::Path) -> Result<()> {
+    use tripo_api::DownloadOptions;
+    let client = crate::resolve::build_client(g)?;
+    let task = client.get_task(&id.into()).await?;
+    let opts = DownloadOptions {
+        overwrite: g.force,
+        ..Default::default()
+    };
+    let files = client.download_task_models(&task, out_dir, opts).await?;
+    for p in [
+        &files.model,
+        &files.base_model,
+        &files.pbr_model,
+        &files.rendered_image,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        println!("{}", p.display());
+    }
+    Ok(())
 }
 
 async fn create(_g: &GlobalArgs, _json: &std::path::Path) -> Result<()> {
