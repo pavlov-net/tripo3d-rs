@@ -140,10 +140,8 @@ async fn download_one(
     client: &Client,
     (kind, url, target): (OutputKind, String, PathBuf),
 ) -> Result<(OutputKind, PathBuf)> {
-    let partial = target.with_extension(format!(
-        "{}.partial",
-        target.extension().and_then(|e| e.to_str()).unwrap_or("")
-    ));
+    let mut partial = target.clone();
+    partial.as_mut_os_string().push(".partial");
     let mut resp = client.http.get(&url).send().await?.error_for_status()?;
     let mut f = tokio::fs::File::create(&partial).await?;
     while let Some(chunk) = resp.chunk().await? {
