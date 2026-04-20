@@ -150,7 +150,6 @@ async fn download_one(
         f.write_all(&chunk).await?;
     }
     f.flush().await?;
-    f.sync_all().await?;
     drop(f);
     tokio::fs::rename(&partial, &target).await?;
     Ok((kind, target))
