@@ -493,3 +493,59 @@ async fn smart_lowpoly_highpoly_to_lowpoly() {
         .assert()
         .success();
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn text_to_model_wait_output_end_to_end() {
+    let server = MockServer::start().await;
+    let model_url = format!("{}/files/abc.glb", server.uri());
+
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"abc"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/task/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"running","progress":10,"create_time":0}
+        })))
+        .up_to_n_times(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/task/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0,
+                              "output":{"model": model_url }}
+        })))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/files/abc.glb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"glb" as &[u8]))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "--json",
+            "text-to-model",
+            "--prompt",
+            "x",
+            "--output",
+            dir.path().to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+    assert_eq!(std::fs::read(dir.path().join("abc.glb")).unwrap(), b"glb");
+}
