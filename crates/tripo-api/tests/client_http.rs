@@ -47,3 +47,57 @@ async fn get_balance_api_error() {
     assert_eq!(message, "bad key");
     assert_eq!(suggestion.as_deref(), Some("rotate"));
 }
+
+#[tokio::test]
+async fn get_task_parses_full_body() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/task/abc123"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 0,
+            "data": {
+                "task_id": "abc123",
+                "type": "text_to_model",
+                "status": "running",
+                "progress": 65,
+                "create_time": 1_700_000_000,
+                "running_left_time": 20,
+                "output": {
+                    "model": "https://cdn.example.com/abc123.glb",
+                    "rendered_image": "https://cdn.example.com/abc123.jpg"
+                }
+            }
+        })))
+        .mount(&server)
+        .await;
+
+    let c = client(&server);
+    let task = c.get_task(&"abc123".into()).await.unwrap();
+    assert_eq!(task.task_id.as_str(), "abc123");
+    assert_eq!(task.status, tripo_api::TaskStatus::Running);
+    assert_eq!(task.progress, 65);
+    assert_eq!(task.running_left_time, Some(20));
+    assert_eq!(task.output.model.as_deref(), Some("https://cdn.example.com/abc123.glb"));
+}
+
+#[tokio::test]
+async fn get_task_cn_region_header() {
+    use tripo_api::Region;
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/task/abc123"))
+        .and(header("x-tripo-region", "rg2"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 0,
+            "data": { "task_id": "abc123", "type": "text_to_model", "status": "queued", "progress": 0, "create_time": 0 }
+        })))
+        .mount(&server)
+        .await;
+    let c = Client::builder()
+        .api_key("tsk_test")
+        .region(Region::Cn)
+        .base_url(server.uri().parse().unwrap())
+        .build()
+        .unwrap();
+    c.get_task(&"abc123".into()).await.unwrap();
+}

@@ -187,6 +187,21 @@ impl Client {
         env.into_result()
     }
 
+    /// `GET /task/{id}` — current state of an existing task.
+    #[tracing::instrument(skip(self), fields(task_id = %id))]
+    pub async fn get_task(&self, id: &crate::types::TaskId) -> Result<crate::types::Task> {
+        let url = self.url(&["task", id.as_str()]);
+        let resp = self.http.get(url).headers(self.region_headers()).send().await?;
+        let status = resp.status();
+        let bytes = resp.bytes().await?;
+        if !status.is_success() {
+            return Err(self.map_http_error(status, &bytes));
+        }
+        let env: crate::envelope::Envelope<crate::types::Task> =
+            serde_json::from_slice(&bytes)?;
+        env.into_result()
+    }
+
     #[allow(clippy::unused_self)]
     pub(crate) fn map_http_error(&self, status: reqwest::StatusCode, bytes: &[u8]) -> Error {
         if let Ok(env) = serde_json::from_slice::<crate::envelope::Envelope<serde_json::Value>>(bytes) {
