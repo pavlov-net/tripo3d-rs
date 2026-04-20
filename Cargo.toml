@@ -3,8 +3,8 @@ resolver = "2"
 members  = ["crates/tripo-api"]
 
 [workspace.package]
-edition      = "2021"
-rust-version = "1.82"
+edition      = "2024"
+rust-version = "1.95"
 license      = "MIT"
 repository   = "https://github.com/pavlov-net/tripo3d-cli"
 homepage     = "https://github.com/pavlov-net/tripo3d-cli"
