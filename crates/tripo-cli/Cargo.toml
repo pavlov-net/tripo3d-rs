@@ -1,0 +1,41 @@
+[package]
+name         = "tripo-cli"
+version      = "0.1.0"
+description  = "Command-line client for the Tripo 3D Generation API"
+keywords     = ["tripo", "3d", "cli"]
+categories   = ["command-line-utilities"]
+edition      = { workspace = true }
+rust-version = { workspace = true }
+license      = { workspace = true }
+repository   = { workspace = true }
+homepage     = { workspace = true }
+
+[[bin]]
+name = "tripo"
+path = "src/main.rs"
+
+[dependencies]
+tripo-api          = { path = "../tripo-api" }
+clap               = { workspace = true }
+clap_complete      = { workspace = true }
+tokio              = { workspace = true }
+anyhow             = { workspace = true }
+indicatif          = { workspace = true }
+is-terminal        = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+url                = { workspace = true }
+uuid               = { workspace = true }
+
+[dev-dependencies]
+assert_cmd = { workspace = true }
+predicates = { workspace = true }
+insta      = { workspace = true }
+wiremock   = { workspace = true }
+tempfile   = { workspace = true }
+tokio      = { workspace = true, features = ["rt-multi-thread", "macros"] }
+
+[lints]
+workspace = true
