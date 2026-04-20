@@ -1,8 +1,5 @@
 //! Per-variant task request structs and the top-level `TaskRequest` dispatch enum.
 
-use std::future::Future;
-use std::pin::Pin;
-
 use serde::Serialize;
 
 use crate::client::Client;
@@ -89,44 +86,35 @@ pub enum TaskRequest {
 impl TaskRequest {
     /// Walk the request, uploading any `ImageInput::Path` entries to `file_token`s.
     /// Call this before serializing & sending.
-    pub fn upload_images<'a>(
-        &'a mut self,
-        client: &'a Client,
-    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>> {
-        Box::pin(async move {
-            #[allow(clippy::match_same_arms)]
-            match self {
-                Self::TextToModel(_) => {
-                    let _ = client;
-                    Ok(())
+    pub async fn upload_images(&mut self, client: &Client) -> Result<()> {
+        match self {
+            Self::ImageToModel(r) => upload_image_if_path(client, &mut r.image).await,
+            Self::MultiviewToModel(r) => {
+                for slot in r.images.iter_mut().flatten() {
+                    upload_image_if_path(client, slot).await?;
                 }
-                Self::ImageToModel(r) => upload_image_if_path(client, &mut r.image).await,
-                Self::MultiviewToModel(r) => {
-                    for slot in r.images.iter_mut().flatten() {
-                        upload_image_if_path(client, slot).await?;
-                    }
-                    Ok(())
-                }
-                Self::ConvertModel(_) => Ok(()),
-                Self::Stylize(_) => Ok(()),
-                Self::TextureModel(r) => {
-                    if let Some(img) = r.texture_prompt.image.as_mut() {
-                        upload_image_if_path(client, img).await?;
-                    }
-                    if let Some(img) = r.texture_prompt.style_image.as_mut() {
-                        upload_image_if_path(client, img).await?;
-                    }
-                    Ok(())
-                }
-                Self::Refine(_)
-                | Self::CheckRiggable(_)
-                | Self::Rig(_)
-                | Self::Retarget(_)
-                | Self::MeshSegmentation(_)
-                | Self::MeshCompletion(_)
-                | Self::SmartLowpoly(_) => Ok(()),
+                Ok(())
             }
-        })
+            Self::TextureModel(r) => {
+                if let Some(img) = r.texture_prompt.image.as_mut() {
+                    upload_image_if_path(client, img).await?;
+                }
+                if let Some(img) = r.texture_prompt.style_image.as_mut() {
+                    upload_image_if_path(client, img).await?;
+                }
+                Ok(())
+            }
+            Self::TextToModel(_)
+            | Self::ConvertModel(_)
+            | Self::Stylize(_)
+            | Self::Refine(_)
+            | Self::CheckRiggable(_)
+            | Self::Rig(_)
+            | Self::Retarget(_)
+            | Self::MeshSegmentation(_)
+            | Self::MeshCompletion(_)
+            | Self::SmartLowpoly(_) => Ok(()),
+        }
     }
 }
 
@@ -136,16 +124,6 @@ pub(crate) async fn upload_image_if_path(client: &Client, img: &mut ImageInput) 
     if let ImageInput::Path(p) = img {
         let up = client.upload_file(&*p).await?;
         *img = ImageInput::FileToken(up.file_token);
-    }
-    Ok(())
-}
-
-/// Helper for multi-image variants.
-// Used by multi-image variants added in Tasks 16+.
-#[allow(dead_code)]
-pub(crate) async fn upload_images_if_paths(client: &Client, imgs: &mut [ImageInput]) -> Result<()> {
-    for img in imgs.iter_mut() {
-        upload_image_if_path(client, img).await?;
     }
     Ok(())
 }
