@@ -13,9 +13,11 @@ use tripo_api::{DownloadOptions, TaskRequest, TaskStatus, WaitOptions};
 
 use crate::cli::GlobalArgs;
 
+pub mod convert_model;
 pub mod image_to_model;
 pub mod multiview_to_model;
 pub mod text_to_model;
+pub use convert_model::ConvertModelArgs;
 pub use image_to_model::ImageToModelArgs;
 pub use multiview_to_model::MultiviewToModelArgs;
 pub use text_to_model::TextToModelArgs;

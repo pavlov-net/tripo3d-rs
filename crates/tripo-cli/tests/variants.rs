@@ -148,3 +148,38 @@ async fn multiview_sends_files_array_with_empty_slot() {
         .assert()
         .success();
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn convert_model_to_fbx() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(body_partial_json(serde_json::json!({
+            "type":"convert_model","original_model_task_id":"src","format":"FBX","fbx_preset":"mixamo"
+        })))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"cv"}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "convert-model",
+            "--original-model-task-id",
+            "src",
+            "--format",
+            "FBX",
+            "--fbx-preset",
+            "mixamo",
+        ])
+        .assert()
+        .success();
+}
