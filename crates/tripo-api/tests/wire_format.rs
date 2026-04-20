@@ -3,7 +3,8 @@
 
 use serde_json::Value;
 use tripo_api::{
-    enums::Quality, tasks::TaskRequest, CompressionMode, TextToModelRequest,
+    enums::Quality, tasks::TaskRequest, CompressionMode, ImageInput, ImageToModelRequest,
+    TextToModelRequest,
 };
 
 fn json_of<T: serde::Serialize>(t: &T) -> Value {
@@ -38,4 +39,48 @@ fn text_to_model_full() {
         ..Default::default()
     });
     insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn image_to_model_file_token() {
+    let req = TaskRequest::ImageToModel(ImageToModelRequest {
+        image: ImageInput::FileToken(
+            uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
+        ),
+        texture: Some(true),
+        pbr: Some(false),
+        quad: Some(true),
+        ..default_image_to_model()
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn image_to_model_url() {
+    let req = TaskRequest::ImageToModel(ImageToModelRequest {
+        image: ImageInput::Url("https://example.com/x.jpg".parse().unwrap()),
+        ..default_image_to_model()
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+fn default_image_to_model() -> ImageToModelRequest {
+    ImageToModelRequest {
+        image: ImageInput::FileToken(uuid::Uuid::nil()),
+        model_version: None,
+        face_limit: None,
+        texture: None,
+        pbr: None,
+        model_seed: None,
+        texture_seed: None,
+        texture_quality: None,
+        geometry_quality: None,
+        texture_alignment: None,
+        auto_size: None,
+        orientation: None,
+        quad: None,
+        compress: None,
+        generate_parts: None,
+        smart_low_poly: None,
+    }
 }

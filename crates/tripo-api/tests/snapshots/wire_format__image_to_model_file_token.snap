@@ -1,0 +1,14 @@
+---
+source: crates/tripo-api/tests/wire_format.rs
+expression: json_of(&req)
+---
+{
+  "file": {
+    "file_token": "550e8400-e29b-41d4-a716-446655440000",
+    "type": "jpg"
+  },
+  "pbr": false,
+  "quad": true,
+  "texture": true,
+  "type": "image_to_model"
+}

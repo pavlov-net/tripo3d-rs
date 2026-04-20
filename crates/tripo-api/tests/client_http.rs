@@ -121,3 +121,52 @@ async fn upload_file_roundtrip() {
     let up = c.upload_file(tmp.path()).await.unwrap();
     assert_eq!(up.file_token.to_string(), "550e8400-e29b-41d4-a716-446655440000");
 }
+
+#[tokio::test]
+async fn create_task_uploads_local_image_first() {
+    use tripo_api::tasks::TaskRequest;
+    use tripo_api::{ImageInput, ImageToModelRequest};
+
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/upload"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0, "data":{"image_token":"550e8400-e29b-41d4-a716-446655440000"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0, "data":{"task_id":"new-task"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let tmp = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(tmp.path(), b"jpeg").unwrap();
+
+    let req = TaskRequest::ImageToModel(ImageToModelRequest {
+        image: ImageInput::Path(tmp.path().to_path_buf()),
+        model_version: None,
+        face_limit: None,
+        texture: None,
+        pbr: None,
+        model_seed: None,
+        texture_seed: None,
+        texture_quality: None,
+        geometry_quality: None,
+        texture_alignment: None,
+        auto_size: None,
+        orientation: None,
+        quad: None,
+        compress: None,
+        generate_parts: None,
+        smart_low_poly: None,
+    });
+    let c = client(&server);
+    let id = c.create_task(req).await.unwrap();
+    assert_eq!(id.as_str(), "new-task");
+}

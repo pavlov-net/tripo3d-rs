@@ -21,7 +21,7 @@ pub use error::{Error, Result};
 pub use image::ImageInput;
 pub use compress::CompressionMode;
 pub use retry::RetryPolicy;
-pub use tasks::{TaskRequest, TextToModelRequest};
+pub use tasks::{ImageToModelRequest, TaskRequest, TextToModelRequest};
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
 pub use wait::{ProgressCallback, WaitOptions};
 pub use enums::{

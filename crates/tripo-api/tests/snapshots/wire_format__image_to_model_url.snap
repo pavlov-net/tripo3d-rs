@@ -1,0 +1,11 @@
+---
+source: crates/tripo-api/tests/wire_format.rs
+expression: json_of(&req)
+---
+{
+  "file": {
+    "type": "jpg",
+    "url": "https://example.com/x.jpg"
+  },
+  "type": "image_to_model"
+}

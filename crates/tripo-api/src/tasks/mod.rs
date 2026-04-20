@@ -9,8 +9,10 @@ use crate::client::Client;
 use crate::error::Result;
 use crate::image::ImageInput;
 
+pub mod image_to_model;
 pub mod text_to_model;
 
+pub use image_to_model::ImageToModelRequest;
 pub use text_to_model::TextToModelRequest;
 
 /// Task creation request body. `type` tag is set by serde.
@@ -24,6 +26,9 @@ pub enum TaskRequest {
     /// `text_to_model` — generate a 3D model from a text prompt.
     #[serde(rename = "text_to_model")]
     TextToModel(TextToModelRequest),
+    /// `image_to_model` — generate a 3D model from a single image.
+    #[serde(rename = "image_to_model")]
+    ImageToModel(ImageToModelRequest),
 }
 
 impl TaskRequest {
@@ -39,6 +44,7 @@ impl TaskRequest {
                     let _ = client;
                     Ok(())
                 }
+                Self::ImageToModel(r) => upload_image_if_path(client, &mut r.image).await,
             }
         })
     }
@@ -46,8 +52,6 @@ impl TaskRequest {
 
 /// Helper used by variants that consume one image: uploads if the variant is
 /// `ImageInput::Path`, replacing it with `ImageInput::FileToken`.
-// Used by image-consuming variants added in Tasks 16+.
-#[allow(dead_code)]
 pub(crate) async fn upload_image_if_path(client: &Client, img: &mut ImageInput) -> Result<()> {
     if let ImageInput::Path(p) = img {
         let up = client.upload_file(&*p).await?;
