@@ -1,4 +1,5 @@
 use assert_cmd::Command;
+use predicates::prelude::*;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -149,4 +150,35 @@ async fn task_download_writes_model() {
     );
     let target = dir.path().join("abc.glb");
     assert_eq!(std::fs::read(target).unwrap(), b"glb-bytes");
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn task_create_raw_posts_body() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0,"data":{"task_id":"newtask"}
+        })))
+        .mount(&server)
+        .await;
+
+    let tmp = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(tmp.path(), r#"{"type":"text_to_model","prompt":"a car"}"#).unwrap();
+
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "task",
+            "create",
+            "--body",
+            tmp.path().to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("newtask"));
 }

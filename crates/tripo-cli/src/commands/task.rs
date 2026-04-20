@@ -11,8 +11,8 @@ pub enum TaskCommand {
     /// POST arbitrary JSON to /task.
     Create {
         /// Path to the JSON request file (or `-` for stdin).
-        #[arg(long)]
-        json: std::path::PathBuf,
+        #[arg(long, value_name = "FILE")]
+        body: std::path::PathBuf,
     },
     /// Fetch a task's current state.
     Get {
@@ -43,7 +43,7 @@ pub async fn run(g: &GlobalArgs, cmd: TaskCommand) -> Result<()> {
         TaskCommand::Get { task_id } => get(g, &task_id).await,
         TaskCommand::Wait { task_id, timeout } => wait(g, &task_id, timeout).await,
         TaskCommand::Download { task_id, output } => download(g, &task_id, &output).await,
-        TaskCommand::Create { json } => create(g, &json).await,
+        TaskCommand::Create { body } => create(g, &body).await,
     }
 }
 
@@ -104,6 +104,23 @@ async fn download(g: &GlobalArgs, id: &str, out_dir: &std::path::Path) -> Result
     Ok(())
 }
 
-async fn create(_g: &GlobalArgs, _json: &std::path::Path) -> Result<()> {
-    anyhow::bail!("task create implemented in Task 9")
+async fn create(g: &GlobalArgs, json_path: &std::path::Path) -> Result<()> {
+    let bytes = if json_path == std::path::Path::new("-") {
+        use std::io::Read;
+        let mut buf = Vec::new();
+        std::io::stdin().read_to_end(&mut buf)?;
+        buf
+    } else {
+        std::fs::read(json_path)?
+    };
+    let body: serde_json::Value = serde_json::from_slice(&bytes)?;
+    let client = crate::resolve::build_client(g)?;
+    let id = client.create_task_raw(&body).await?;
+    if crate::output::use_json(g.json) {
+        serde_json::to_writer_pretty(std::io::stdout(), &serde_json::json!({"task_id": id}))?;
+        println!();
+    } else {
+        println!("{id}");
+    }
+    Ok(())
 }
