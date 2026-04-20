@@ -4,6 +4,7 @@
 //! Async Rust client for the Tripo 3D Generation API.
 
 mod client;
+mod upload;
 mod error;
 mod envelope;
 mod image;

@@ -101,3 +101,23 @@ async fn get_task_cn_region_header() {
         .unwrap();
     c.get_task(&"abc123".into()).await.unwrap();
 }
+
+#[tokio::test]
+async fn upload_file_roundtrip() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/upload"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 0,
+            "data": { "image_token": "550e8400-e29b-41d4-a716-446655440000" }
+        })))
+        .mount(&server)
+        .await;
+
+    let tmp = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(tmp.path(), b"jpeg bytes").unwrap();
+
+    let c = client(&server);
+    let up = c.upload_file(tmp.path()).await.unwrap();
+    assert_eq!(up.file_token.to_string(), "550e8400-e29b-41d4-a716-446655440000");
+}
