@@ -1,7 +1,5 @@
 //! `wait_for_task`: poll until terminal status with ETA-driven backoff.
 
-use std::future::Future;
-use std::pin::Pin;
 use std::time::{Duration, Instant};
 
 use crate::client::Client;
@@ -91,16 +89,12 @@ impl Client {
                     return Err(Error::WaitTimeout(id.clone()));
                 }
                 let to_sleep = interval.min(remaining);
-                sleep_until(to_sleep).await;
+                tokio::time::sleep(to_sleep).await;
             } else {
-                sleep_until(interval).await;
+                tokio::time::sleep(interval).await;
             }
         }
     }
-}
-
-fn sleep_until(d: Duration) -> Pin<Box<dyn Future<Output = ()> + Send>> {
-    Box::pin(tokio::time::sleep(d))
 }
 
 #[cfg(test)]
