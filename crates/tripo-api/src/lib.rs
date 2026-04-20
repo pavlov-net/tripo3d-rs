@@ -5,6 +5,8 @@
 
 mod error;
 mod envelope;
-mod types; // will be created in Task 4 — add the `mod types;` stub now so error.rs compiles
+mod enums;
+pub mod types;
 
 pub use error::{Error, Result};
+pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
