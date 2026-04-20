@@ -90,17 +90,27 @@ impl TaskRequest {
         match self {
             Self::ImageToModel(r) => upload_image_if_path(client, &mut r.image).await,
             Self::MultiviewToModel(r) => {
-                for slot in r.images.iter_mut().flatten() {
-                    upload_image_if_path(client, slot).await?;
-                }
+                let futs = r
+                    .images
+                    .iter_mut()
+                    .flatten()
+                    .map(|img| upload_image_if_path(client, img));
+                futures::future::try_join_all(futs).await?;
                 Ok(())
             }
             Self::TextureModel(r) => {
-                if let Some(img) = r.texture_prompt.image.as_mut() {
-                    upload_image_if_path(client, img).await?;
-                }
-                if let Some(img) = r.texture_prompt.style_image.as_mut() {
-                    upload_image_if_path(client, img).await?;
+                let image = &mut r.texture_prompt.image;
+                let style = &mut r.texture_prompt.style_image;
+                match (image.as_mut(), style.as_mut()) {
+                    (Some(a), Some(b)) => {
+                        tokio::try_join!(
+                            upload_image_if_path(client, a),
+                            upload_image_if_path(client, b)
+                        )?;
+                    }
+                    (Some(a), None) => upload_image_if_path(client, a).await?,
+                    (None, Some(b)) => upload_image_if_path(client, b).await?,
+                    (None, None) => {}
                 }
                 Ok(())
             }
