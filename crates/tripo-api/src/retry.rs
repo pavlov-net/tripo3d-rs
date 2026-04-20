@@ -53,11 +53,20 @@ impl RetryPolicy {
     }
 
     /// Decide whether a transport error is retryable.
+    ///
+    /// Only connect-time and timeout errors are retried — both are safe because
+    /// either no bytes reached the server, or the client didn't observe the
+    /// server's state change. Post-connect errors (partial body send, broken
+    /// streams) are not retried to avoid duplicate side-effects on non-idempotent
+    /// endpoints like `POST /task`.
     pub(crate) fn decide_transport(&self, attempt: u32, err: &reqwest::Error) -> RetryDecision {
         if attempt >= self.max_attempts {
             return RetryDecision::Stop;
         }
-        if err.is_timeout() || err.is_connect() || err.is_request() {
+        // Retry only on connect/timeout — these are safe because no bytes reached the server
+        // (or if they did, the server's state change hasn't been observed). Post-connect errors
+        // (e.g. partial body send) might have side effects, so we stop.
+        if err.is_connect() || err.is_timeout() {
             RetryDecision::Retry(self.backoff(attempt))
         } else {
             RetryDecision::Stop
