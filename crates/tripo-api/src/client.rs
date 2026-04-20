@@ -1,7 +1,6 @@
 //! `Client`: entry point for the library. Builds a configured `reqwest::Client`
 //! and carries the API key + base URL + retry policy.
 
-use std::sync::Arc;
 use std::time::Duration;
 
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION, USER_AGENT};
@@ -58,8 +57,6 @@ pub struct Client {
     pub(crate) http: reqwest::Client,
     pub(crate) base_url: Url,
     pub(crate) region: Region,
-    #[allow(dead_code)]
-    pub(crate) api_key: Arc<str>,
     pub(crate) retry: RetryPolicy,
 }
 
@@ -68,7 +65,6 @@ impl std::fmt::Debug for Client {
         f.debug_struct("Client")
             .field("base_url", &self.base_url.as_str())
             .field("region", &self.region)
-            .field("api_key", &"<redacted>")
             .finish_non_exhaustive()
     }
 }
@@ -344,7 +340,6 @@ impl ClientBuilder {
             http,
             base_url,
             region,
-            api_key: Arc::from(key),
             retry: self.retry.unwrap_or_default(),
         })
     }
