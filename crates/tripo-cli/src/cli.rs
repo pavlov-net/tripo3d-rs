@@ -92,4 +92,8 @@ pub enum Command {
     StylizeModel(crate::commands::variants::StylizeModelArgs),
     /// (Re-)texture an existing model.
     TextureModel(crate::commands::variants::TextureModelArgs),
+    /// Refine a draft model.
+    RefineModel(crate::commands::variants::RefineModelArgs),
+    /// Pre-check whether a model can be rigged.
+    CheckRiggable(crate::commands::variants::CheckRiggableArgs),
 }
