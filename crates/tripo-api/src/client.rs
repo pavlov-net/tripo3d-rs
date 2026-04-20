@@ -177,7 +177,7 @@ impl Client {
         let status = resp.status();
         let bytes = resp.bytes().await?;
         if !status.is_success() {
-            return Err(self.map_http_error(status, &bytes));
+            return Err(crate::envelope::map_http_error(status, &bytes));
         }
         let env: crate::envelope::Envelope<crate::types::Balance> = serde_json::from_slice(&bytes)?;
         env.into_result()
@@ -193,7 +193,7 @@ impl Client {
         let status = resp.status();
         let bytes = resp.bytes().await?;
         if !status.is_success() {
-            return Err(self.map_http_error(status, &bytes));
+            return Err(crate::envelope::map_http_error(status, &bytes));
         }
         let env: crate::envelope::Envelope<crate::types::Task> = serde_json::from_slice(&bytes)?;
         env.into_result()
@@ -230,29 +230,10 @@ impl Client {
         let status = resp.status();
         let bytes = resp.bytes().await?;
         if !status.is_success() {
-            return Err(self.map_http_error(status, &bytes));
+            return Err(crate::envelope::map_http_error(status, &bytes));
         }
         let env: crate::envelope::Envelope<TaskIdBody> = serde_json::from_slice(&bytes)?;
         Ok(crate::types::TaskId(env.into_result()?.task_id))
-    }
-
-    #[allow(clippy::unused_self)]
-    pub(crate) fn map_http_error(&self, status: reqwest::StatusCode, bytes: &[u8]) -> Error {
-        if let Ok(env) =
-            serde_json::from_slice::<crate::envelope::Envelope<serde_json::Value>>(bytes)
-        {
-            if env.code != 0 {
-                return Error::Api {
-                    code: env.code,
-                    message: env.message.unwrap_or_else(|| status.to_string()),
-                    suggestion: env.suggestion,
-                };
-            }
-        }
-        Error::Http {
-            status: status.as_u16(),
-            message: String::from_utf8_lossy(bytes).into_owned(),
-        }
     }
 
     pub(crate) async fn send_with_retry<F>(&self, build: F) -> Result<reqwest::Response>

@@ -43,7 +43,7 @@ impl Client {
         let status = resp.status();
         let body = resp.bytes().await?;
         if !status.is_success() {
-            return Err(self.map_http_error(status, &body));
+            return Err(crate::envelope::map_http_error(status, &body));
         }
         let env: crate::envelope::Envelope<ImageTokenBody> = serde_json::from_slice(&body)?;
         let data = env.into_result()?;

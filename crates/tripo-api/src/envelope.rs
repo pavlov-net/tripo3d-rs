@@ -35,6 +35,24 @@ impl<T> Envelope<T> {
     }
 }
 
+/// Map an HTTP error response to an `Error`, preferring Tripo's envelope
+/// shape when present, falling back to raw HTTP status/body otherwise.
+pub(crate) fn map_http_error(status: reqwest::StatusCode, bytes: &[u8]) -> Error {
+    if let Ok(env) = serde_json::from_slice::<Envelope<serde_json::Value>>(bytes) {
+        if env.code != 0 {
+            return Error::Api {
+                code: env.code,
+                message: env.message.unwrap_or_else(|| status.to_string()),
+                suggestion: env.suggestion,
+            };
+        }
+    }
+    Error::Http {
+        status: status.as_u16(),
+        message: String::from_utf8_lossy(bytes).into_owned(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
