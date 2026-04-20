@@ -1,0 +1,38 @@
+[package]
+name        = "tripo-api"
+version     = "0.1.0"
+description = "Async Rust client for the Tripo 3D Generation API"
+keywords    = ["tripo", "3d", "api", "sdk", "async"]
+categories  = ["api-bindings", "asynchronous"]
+edition     = { workspace = true }
+rust-version = { workspace = true }
+license     = { workspace = true }
+repository  = { workspace = true }
+homepage    = { workspace = true }
+
+[features]
+default  = []
+schemars = ["dep:schemars"]
+
+[dependencies]
+tokio      = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+thiserror  = { workspace = true }
+tracing    = { workspace = true }
+url        = { workspace = true }
+uuid       = { workspace = true }
+bytes      = { workspace = true }
+futures    = { workspace = true }
+reqwest    = { workspace = true }
+schemars   = { workspace = true, optional = true }
+
+[dev-dependencies]
+wiremock   = { workspace = true }
+insta      = { workspace = true }
+tempfile   = { workspace = true }
+tokio-test = { workspace = true }
+tokio      = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
+
+[lints]
+workspace = true

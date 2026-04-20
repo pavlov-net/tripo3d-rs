@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members  = ["crates/tripo-api"]
+
+[workspace.package]
+edition      = "2021"
+rust-version = "1.82"
+license      = "MIT"
+repository   = "https://github.com/stuartparmenter/tripo3d-cli"
+homepage     = "https://github.com/stuartparmenter/tripo3d-cli"
+
+[workspace.dependencies]
+tokio         = { version = "1", features = ["rt-multi-thread", "macros", "fs", "signal", "time"] }
+serde         = { version = "1", features = ["derive"] }
+serde_json    = "1"
+thiserror     = "2"
+tracing       = "0.1"
+url           = { version = "2", features = ["serde"] }
+uuid          = { version = "1", features = ["v4", "serde"] }
+bytes         = "1"
+futures       = "0.3"
+reqwest       = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "brotli", "json", "multipart", "stream"] }
+schemars      = "0.8"
+# dev
+wiremock      = "0.6"
+insta         = { version = "1", features = ["json"] }
+tempfile      = "3"
+tokio-test    = "0.4"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all      = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc      = "allow"
+missing_panics_doc      = "allow"
