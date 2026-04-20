@@ -60,7 +60,6 @@ pub struct Client {
     pub(crate) region: Region,
     #[allow(dead_code)]
     pub(crate) api_key: Arc<str>,
-    #[allow(dead_code)]
     pub(crate) retry: RetryPolicy,
 }
 
@@ -176,7 +175,9 @@ impl Client {
     #[tracing::instrument(skip(self))]
     pub async fn get_balance(&self) -> Result<crate::types::Balance> {
         let url = self.url(&["user", "balance"]);
-        let resp = self.http.get(url).headers(self.region_headers()).send().await?;
+        let resp = self
+            .send_with_retry(|| self.http.get(url.clone()).headers(self.region_headers()))
+            .await?;
         let status = resp.status();
         let bytes = resp.bytes().await?;
         if !status.is_success() {
@@ -191,7 +192,9 @@ impl Client {
     #[tracing::instrument(skip(self), fields(task_id = %id))]
     pub async fn get_task(&self, id: &crate::types::TaskId) -> Result<crate::types::Task> {
         let url = self.url(&["task", id.as_str()]);
-        let resp = self.http.get(url).headers(self.region_headers()).send().await?;
+        let resp = self
+            .send_with_retry(|| self.http.get(url.clone()).headers(self.region_headers()))
+            .await?;
         let status = resp.status();
         let bytes = resp.bytes().await?;
         if !status.is_success() {
@@ -216,6 +219,45 @@ impl Client {
         Error::Http {
             status: status.as_u16(),
             message: String::from_utf8_lossy(bytes).into_owned(),
+        }
+    }
+
+    pub(crate) async fn send_with_retry<F>(&self, build: F) -> Result<reqwest::Response>
+    where
+        F: Fn() -> reqwest::RequestBuilder,
+    {
+        use crate::retry::{parse_retry_after, RetryDecision};
+
+        let mut attempt: u32 = 0;
+        loop {
+            let req = build();
+            match req.send().await {
+                Ok(resp) => {
+                    let status = resp.status();
+                    if status.is_success() || (status.is_client_error() && status.as_u16() != 429) {
+                        return Ok(resp);
+                    }
+                    let retry_after = resp
+                        .headers()
+                        .get(reqwest::header::RETRY_AFTER)
+                        .and_then(parse_retry_after);
+                    match self.retry.decide_status(attempt, status, retry_after) {
+                        RetryDecision::Stop => return Ok(resp),
+                        RetryDecision::Retry(d) => {
+                            tracing::debug!(?status, ?d, attempt, "retrying after status");
+                            tokio::time::sleep(d).await;
+                        }
+                    }
+                }
+                Err(err) => match self.retry.decide_transport(attempt, &err) {
+                    RetryDecision::Stop => return Err(Error::from(err)),
+                    RetryDecision::Retry(d) => {
+                        tracing::debug!(error = %err, ?d, attempt, "retrying after transport error");
+                        tokio::time::sleep(d).await;
+                    }
+                },
+            }
+            attempt += 1;
         }
     }
 }
