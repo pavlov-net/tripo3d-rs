@@ -20,7 +20,7 @@ uuid          = { version = "1", features = ["v4", "serde"] }
 bytes         = "1"
 futures       = "0.3"
 reqwest       = { version = "0.13", default-features = false, features = ["rustls", "gzip", "brotli", "json", "multipart", "stream", "http2"] }
-schemars      = { version = "0.8", features = ["uuid1", "url"] }
+schemars      = { version = "1", features = ["uuid1", "url2"] }
 # dev
 wiremock      = "0.6"
 insta         = { version = "1", features = ["json"] }
