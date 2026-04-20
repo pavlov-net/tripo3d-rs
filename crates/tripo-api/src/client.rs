@@ -55,7 +55,6 @@ impl Region {
 /// Async client for the Tripo 3D Generation API.
 #[derive(Clone)]
 pub struct Client {
-    #[allow(dead_code)]
     pub(crate) http: reqwest::Client,
     pub(crate) base_url: Url,
     pub(crate) region: Region,
@@ -150,7 +149,6 @@ impl Client {
     }
 
     /// Join `segments` onto the base URL, preserving the existing path.
-    #[allow(dead_code)]
     pub(crate) fn url(&self, segments: &[&str]) -> Url {
         let mut u = self.base_url.clone();
         {
@@ -163,7 +161,6 @@ impl Client {
     }
 
     /// Extra headers attached to every request. `X-Tripo-Region: rg2` for CN.
-    #[allow(dead_code)]
     pub(crate) fn region_headers(&self) -> HeaderMap {
         let mut h = HeaderMap::new();
         if self.region == Region::Cn {
@@ -173,6 +170,38 @@ impl Client {
             );
         }
         h
+    }
+
+    /// `GET /user/balance` — current account balance.
+    #[tracing::instrument(skip(self))]
+    pub async fn get_balance(&self) -> Result<crate::types::Balance> {
+        let url = self.url(&["user", "balance"]);
+        let resp = self.http.get(url).headers(self.region_headers()).send().await?;
+        let status = resp.status();
+        let bytes = resp.bytes().await?;
+        if !status.is_success() {
+            return Err(self.map_http_error(status, &bytes));
+        }
+        let env: crate::envelope::Envelope<crate::types::Balance> =
+            serde_json::from_slice(&bytes)?;
+        env.into_result()
+    }
+
+    #[allow(clippy::unused_self)]
+    pub(crate) fn map_http_error(&self, status: reqwest::StatusCode, bytes: &[u8]) -> Error {
+        if let Ok(env) = serde_json::from_slice::<crate::envelope::Envelope<serde_json::Value>>(bytes) {
+            if env.code != 0 {
+                return Error::Api {
+                    code: env.code,
+                    message: env.message.unwrap_or_else(|| status.to_string()),
+                    suggestion: env.suggestion,
+                };
+            }
+        }
+        Error::Http {
+            status: status.as_u16(),
+            message: String::from_utf8_lossy(bytes).into_owned(),
+        }
     }
 }
 

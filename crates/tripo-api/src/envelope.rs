@@ -6,7 +6,6 @@ use crate::error::Error;
 
 /// Raw wire envelope. `data` is success-only; `message` is error-only.
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)] // used by client modules added in later tasks
 pub(crate) struct Envelope<T> {
     pub code: i32,
     #[serde(default = "Option::default")]
@@ -19,7 +18,6 @@ pub(crate) struct Envelope<T> {
 
 impl<T> Envelope<T> {
     /// Convert the envelope to a `Result`: `code == 0` → `Ok(data)`, else `Err(Error::Api)`.
-    #[allow(dead_code)] // used by client modules added in later tasks
     pub(crate) fn into_result(self) -> Result<T, Error> {
         if self.code == 0 {
             self.data.ok_or(Error::Api {
