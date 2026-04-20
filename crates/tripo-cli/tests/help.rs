@@ -9,9 +9,10 @@ fn help_of(args: &[&str]) -> String {
         .unwrap();
     let s = String::from_utf8(out.stdout).unwrap();
     // Strip trailing whitespace on each line so snapshots survive the project's
-    // trailing-whitespace prek hook.
+    // trailing-whitespace prek hook. Normalize the `tripo.exe` Windows suffix
+    // so snapshots are cross-platform.
     s.lines()
-        .map(|l| l.trim_end().to_string())
+        .map(|l| l.trim_end().replace("tripo.exe", "tripo"))
         .collect::<Vec<_>>()
         .join("\n")
         + "\n"
