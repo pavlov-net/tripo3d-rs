@@ -204,3 +204,31 @@ fn texture_model_with_text_and_style_image() {
     });
     insta::assert_json_snapshot!(json_of(&req));
 }
+
+use tripo_api::{CheckRiggableRequest, RefineModelRequest};
+
+#[test]
+fn refine_model() {
+    let req = TaskRequest::Refine(RefineModelRequest {
+        draft_model_task_id: "draft-1".into(),
+    });
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "draft_model_task_id": "draft-1",
+      "type": "refine_model"
+    }
+    "###);
+}
+
+#[test]
+fn check_riggable_uses_rename() {
+    let req = TaskRequest::CheckRiggable(CheckRiggableRequest {
+        original_model_task_id: "src".into(),
+    });
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "original_model_task_id": "src",
+      "type": "animate_prerigcheck"
+    }
+    "###);
+}

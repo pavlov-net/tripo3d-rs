@@ -9,16 +9,20 @@ use crate::client::Client;
 use crate::error::Result;
 use crate::image::ImageInput;
 
+pub mod check_riggable;
 pub mod convert_model;
 pub mod image_to_model;
 pub mod multiview_to_model;
+pub mod refine_model;
 pub mod stylize_model;
 pub mod text_to_model;
 pub mod texture_model;
 
+pub use check_riggable::CheckRiggableRequest;
 pub use convert_model::ConvertModelRequest;
 pub use image_to_model::ImageToModelRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
+pub use refine_model::RefineModelRequest;
 pub use stylize_model::StylizeModelRequest;
 pub use text_to_model::TextToModelRequest;
 pub use texture_model::{TextureModelRequest, TexturePrompt};
@@ -49,6 +53,12 @@ pub enum TaskRequest {
     /// `texture_model` — (re)texture an existing model.
     #[serde(rename = "texture_model")]
     TextureModel(TextureModelRequest),
+    /// `refine_model` — turn a draft model into a finished one.
+    #[serde(rename = "refine_model")]
+    Refine(RefineModelRequest),
+    /// `check_riggable` — precheck whether a model can be rigged.
+    #[serde(rename = "animate_prerigcheck")]
+    CheckRiggable(CheckRiggableRequest),
 }
 
 impl TaskRequest {
@@ -83,6 +93,7 @@ impl TaskRequest {
                     }
                     Ok(())
                 }
+                Self::Refine(_) | Self::CheckRiggable(_) => Ok(()),
             }
         })
     }
