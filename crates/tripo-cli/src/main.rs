@@ -1,9 +1,9 @@
 //! `tripo` — command-line client for the Tripo 3D Generation API.
 
+mod cleanup;
 mod cli;
 mod commands;
 mod exit;
-mod output;
 mod progress;
 mod resolve;
 mod signals;

@@ -4,7 +4,6 @@ use anyhow::Result;
 use clap::Args;
 
 use crate::cli::GlobalArgs;
-use crate::output::use_json;
 
 /// Arguments for the `upload` subcommand.
 #[derive(Debug, Args)]
@@ -17,7 +16,7 @@ pub struct UploadArgs {
 pub async fn run(g: &GlobalArgs, a: UploadArgs) -> Result<()> {
     let client = crate::resolve::build_client(g)?;
     let up = client.upload_file(&a.path).await?;
-    if use_json(g.json) {
+    if g.json {
         serde_json::to_writer_pretty(std::io::stdout(), &up)?;
         println!();
     } else {

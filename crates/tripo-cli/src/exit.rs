@@ -3,7 +3,6 @@
 /// Exit codes used by the CLI.
 #[repr(u8)]
 #[derive(Debug, Clone, Copy)]
-#[allow(dead_code)] // `Interrupted` wired up in Task 25.
 pub enum ExitCode {
     /// Command succeeded.
     Success = 0,

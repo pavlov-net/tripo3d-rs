@@ -5,8 +5,7 @@ use clap::Args;
 use tripo_api::enums::{RigOutputFormat, RigSpec, RigType};
 use tripo_api::{RigModelRequest, TaskRequest};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// Generate a skeletal rig for an existing model.
 #[derive(Debug, Args)]
@@ -61,7 +60,10 @@ fn parse_rig_spec(s: &str) -> Result<RigSpec, String> {
     })
 }
 
-impl IntoRequest for RigModelArgs {
+impl VariantArgs for RigModelArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::Rig(RigModelRequest {
             original_model_task_id: self.original_model_task_id,
@@ -71,24 +73,4 @@ impl IntoRequest for RigModelArgs {
             spec: self.spec,
         }))
     }
-}
-
-/// Run `rig-model`.
-pub async fn run(g: &GlobalArgs, a: RigModelArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = RigModelArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }

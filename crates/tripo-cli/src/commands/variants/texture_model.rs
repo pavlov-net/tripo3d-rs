@@ -5,8 +5,7 @@ use clap::Args;
 use tripo_api::enums::{Quality, TextureAlignment};
 use tripo_api::{CompressionMode, ImageInput, TaskRequest, TextureModelRequest, TexturePrompt};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// (Re-)texture an existing model.
 #[derive(Debug, Args)]
@@ -58,7 +57,10 @@ pub struct TextureModelArgs {
     pub run: VariantRunOpts,
 }
 
-impl IntoRequest for TextureModelArgs {
+impl VariantArgs for TextureModelArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(self) -> Result<TaskRequest> {
         let prompt = TexturePrompt {
             text: self.text_prompt,
@@ -80,24 +82,4 @@ impl IntoRequest for TextureModelArgs {
             bake: self.bake,
         }))
     }
-}
-
-/// Run `texture-model`.
-pub async fn run(g: &GlobalArgs, a: TextureModelArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = TextureModelArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }

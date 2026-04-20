@@ -4,8 +4,7 @@ use anyhow::Result;
 use clap::Args;
 use tripo_api::{SmartLowpolyRequest, TaskRequest};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// Reduce a high-poly model to a lowpoly one.
 #[derive(Debug, Args)]
@@ -33,7 +32,10 @@ pub struct SmartLowpolyArgs {
     pub run: VariantRunOpts,
 }
 
-impl IntoRequest for SmartLowpolyArgs {
+impl VariantArgs for SmartLowpolyArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::SmartLowpoly(SmartLowpolyRequest {
             original_model_task_id: self.original_model_task_id,
@@ -44,24 +46,4 @@ impl IntoRequest for SmartLowpolyArgs {
             bake: self.bake,
         }))
     }
-}
-
-/// Run `smart-lowpoly`.
-pub async fn run(g: &GlobalArgs, a: SmartLowpolyArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = SmartLowpolyArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }

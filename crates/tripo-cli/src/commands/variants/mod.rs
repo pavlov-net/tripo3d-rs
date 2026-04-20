@@ -1,7 +1,7 @@
 //! Per-variant subcommand framework.
 //!
 //! Each variant has its own `Args` struct (typed clap flags) and implements
-//! `IntoRequest` to build a `tripo_api::TaskRequest`. The generic `run_variant`
+//! `VariantArgs` to build a `tripo_api::TaskRequest`. The generic `run_variant`
 //! function handles submit → (optional) wait → (optional) download.
 
 use std::path::PathBuf;
@@ -41,7 +41,7 @@ pub use text_to_model::TextToModelArgs;
 pub use texture_model::TextureModelArgs;
 
 /// Shared flags attached to every variant command.
-#[derive(Debug, Clone, clap::Args)]
+#[derive(Debug, Clone, Default, clap::Args)]
 pub struct VariantRunOpts {
     /// Poll until the task reaches a terminal status.
     #[arg(long)]
@@ -57,25 +57,27 @@ pub struct VariantRunOpts {
     pub poll_interval: Option<u64>,
 }
 
-/// Convert per-variant CLI args into a `TaskRequest`.
-pub trait IntoRequest {
-    /// Build the request body for submission.
+/// Per-variant Args able to yield a `TaskRequest` and surrender its
+/// `VariantRunOpts` so `run_variant` can drive the lifecycle generically.
+pub trait VariantArgs: Sized {
+    /// Take ownership of the args' `VariantRunOpts`.
+    fn take_run_opts(&mut self) -> VariantRunOpts;
+    /// Build the API request body.
     fn into_request(self) -> Result<TaskRequest>;
 }
 
-/// Submit → (optional) wait → (optional) download. Used by every variant's `run`.
-pub async fn run_variant<A: IntoRequest>(
-    g: &GlobalArgs,
-    opts: VariantRunOpts,
-    args: A,
-) -> Result<()> {
+/// Submit → (optional) wait → (optional) download.
+pub async fn run_variant<A: VariantArgs>(g: &GlobalArgs, mut args: A) -> Result<()> {
+    let opts = args.take_run_opts();
     let client = crate::resolve::build_client(g)?;
     let req = args.into_request()?;
     let id = client.create_task(req).await?;
 
-    // Bare submit: print id, exit 0.
-    if !opts.wait && opts.output.is_none() {
-        if crate::output::use_json(g.json) {
+    // --output implies --wait.
+    let wait = opts.wait || opts.output.is_some();
+
+    if !wait {
+        if g.json {
             serde_json::to_writer_pretty(std::io::stdout(), &serde_json::json!({"task_id": id}))?;
             println!();
         } else {
@@ -111,7 +113,6 @@ pub async fn run_variant<A: IntoRequest>(
         return Err(tripo_api::Error::TaskFailed(task.task_id.clone(), task.status).into());
     }
 
-    // download if requested
     if let Some(dir) = opts.output.as_ref() {
         let dl = DownloadOptions {
             overwrite: g.force,
@@ -120,7 +121,7 @@ pub async fn run_variant<A: IntoRequest>(
         let files = tokio::select! {
             res = client.download_task_models(&task, dir, dl) => res?,
             () = cancel.cancelled() => {
-                cleanup_partial_files(dir);
+                crate::cleanup::partial_files(dir).await;
                 return Err(crate::signals::Interrupted.into());
             }
         };
@@ -140,19 +141,4 @@ pub async fn run_variant<A: IntoRequest>(
         println!();
     }
     Ok(())
-}
-
-fn cleanup_partial_files(dir: &std::path::Path) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    for e in entries.flatten() {
-        let p = e.path();
-        if p.extension()
-            .and_then(|e| e.to_str())
-            .is_some_and(|e| e.ends_with("partial"))
-        {
-            let _ = std::fs::remove_file(p);
-        }
-    }
 }

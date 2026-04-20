@@ -3,13 +3,12 @@
 use anyhow::Result;
 
 use crate::cli::GlobalArgs;
-use crate::output::use_json;
 
 /// Run `balance`: print the account balance as JSON or human text.
 pub async fn run(g: &GlobalArgs) -> Result<()> {
     let client = crate::resolve::build_client(g)?;
     let bal = client.get_balance().await?;
-    if use_json(g.json) {
+    if g.json {
         serde_json::to_writer_pretty(std::io::stdout(), &bal)?;
         println!();
     } else {

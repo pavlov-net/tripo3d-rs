@@ -5,8 +5,7 @@ use clap::Args;
 use tripo_api::enums::PostStyle;
 use tripo_api::{StylizeModelRequest, TaskRequest};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// Apply a stylization preset to an existing model.
 #[derive(Debug, Args)]
@@ -35,7 +34,10 @@ fn parse_style(s: &str) -> Result<PostStyle, String> {
     })
 }
 
-impl IntoRequest for StylizeModelArgs {
+impl VariantArgs for StylizeModelArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::Stylize(StylizeModelRequest {
             original_model_task_id: self.original_model_task_id,
@@ -43,24 +45,4 @@ impl IntoRequest for StylizeModelArgs {
             block_size: self.block_size,
         }))
     }
-}
-
-/// Run `stylize-model`.
-pub async fn run(g: &GlobalArgs, a: StylizeModelArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = StylizeModelArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }

@@ -4,8 +4,7 @@ use anyhow::Result;
 use clap::Args;
 use tripo_api::{MeshCompletionRequest, TaskRequest};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// Fill holes in an existing mesh.
 #[derive(Debug, Args)]
@@ -23,7 +22,10 @@ pub struct MeshCompletionArgs {
     pub run: VariantRunOpts,
 }
 
-impl IntoRequest for MeshCompletionArgs {
+impl VariantArgs for MeshCompletionArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::MeshCompletion(MeshCompletionRequest {
             original_model_task_id: self.original_model_task_id,
@@ -31,24 +33,4 @@ impl IntoRequest for MeshCompletionArgs {
             part_names: self.part_names,
         }))
     }
-}
-
-/// Run `mesh-completion`.
-pub async fn run(g: &GlobalArgs, a: MeshCompletionArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = MeshCompletionArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }

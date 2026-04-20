@@ -1,7 +1,5 @@
 //! Dispatch from `Command` to subcommand runners.
 
-#![allow(clippy::unused_async)] // Several subcommand `run` stubs become async in later tasks.
-
 pub mod balance;
 pub mod completions;
 pub mod task;
@@ -12,23 +10,24 @@ use crate::cli::{Cli, Command};
 
 /// Dispatch to the matching subcommand runner.
 pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
+    let g = &args.global;
     match args.command {
-        Command::Balance => balance::run(&args.global).await,
-        Command::Upload(a) => upload::run(&args.global, a).await,
+        Command::Balance => balance::run(g).await,
+        Command::Upload(a) => upload::run(g, a).await,
         Command::Completions(a) => completions::run(&a),
-        Command::Task(cmd) => task::run(&args.global, cmd).await,
-        Command::TextToModel(a) => variants::text_to_model::run(&args.global, a).await,
-        Command::ImageToModel(a) => variants::image_to_model::run(&args.global, a).await,
-        Command::MultiviewToModel(a) => variants::multiview_to_model::run(&args.global, a).await,
-        Command::ConvertModel(a) => variants::convert_model::run(&args.global, a).await,
-        Command::StylizeModel(a) => variants::stylize_model::run(&args.global, a).await,
-        Command::TextureModel(a) => variants::texture_model::run(&args.global, a).await,
-        Command::RefineModel(a) => variants::refine_model::run(&args.global, a).await,
-        Command::CheckRiggable(a) => variants::check_riggable::run(&args.global, a).await,
-        Command::RigModel(a) => variants::rig_model::run(&args.global, a).await,
-        Command::RetargetAnimation(a) => variants::retarget_animation::run(&args.global, a).await,
-        Command::MeshSegmentation(a) => variants::mesh_segmentation::run(&args.global, a).await,
-        Command::MeshCompletion(a) => variants::mesh_completion::run(&args.global, a).await,
-        Command::SmartLowpoly(a) => variants::smart_lowpoly::run(&args.global, a).await,
+        Command::Task(cmd) => task::run(g, cmd).await,
+        Command::TextToModel(a) => variants::run_variant(g, a).await,
+        Command::ImageToModel(a) => variants::run_variant(g, a).await,
+        Command::MultiviewToModel(a) => variants::run_variant(g, a).await,
+        Command::ConvertModel(a) => variants::run_variant(g, a).await,
+        Command::StylizeModel(a) => variants::run_variant(g, a).await,
+        Command::TextureModel(a) => variants::run_variant(g, a).await,
+        Command::RefineModel(a) => variants::run_variant(g, a).await,
+        Command::CheckRiggable(a) => variants::run_variant(g, a).await,
+        Command::RigModel(a) => variants::run_variant(g, a).await,
+        Command::RetargetAnimation(a) => variants::run_variant(g, a).await,
+        Command::MeshSegmentation(a) => variants::run_variant(g, a).await,
+        Command::MeshCompletion(a) => variants::run_variant(g, a).await,
+        Command::SmartLowpoly(a) => variants::run_variant(g, a).await,
     }
 }

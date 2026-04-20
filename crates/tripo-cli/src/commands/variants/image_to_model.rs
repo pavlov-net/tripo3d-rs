@@ -5,8 +5,7 @@ use clap::Args;
 use tripo_api::enums::{Orientation, Quality, TextureAlignment};
 use tripo_api::{CompressionMode, ImageInput, ImageToModelRequest, TaskRequest};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// Generate a 3D model from a single image.
 #[derive(Debug, Args)]
@@ -85,7 +84,10 @@ pub(super) mod __private {
     }
 }
 
-impl IntoRequest for ImageToModelArgs {
+impl VariantArgs for ImageToModelArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::ImageToModel(ImageToModelRequest {
             image: ImageInput::parse(&self.image),
@@ -106,24 +108,4 @@ impl IntoRequest for ImageToModelArgs {
             smart_low_poly: self.smart_low_poly,
         }))
     }
-}
-
-/// Run `image-to-model`.
-pub async fn run(g: &GlobalArgs, a: ImageToModelArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = ImageToModelArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }

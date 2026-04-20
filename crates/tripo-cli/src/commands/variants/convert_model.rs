@@ -5,8 +5,7 @@ use clap::Args;
 use tripo_api::enums::{ExportOrientation, FbxPreset, OutputFormat, TextureFormat};
 use tripo_api::{ConvertModelRequest, TaskRequest};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// Convert a model to a different file format.
 #[derive(Debug, Args)]
@@ -119,7 +118,10 @@ fn parse_export_orientation(s: &str) -> Result<ExportOrientation, String> {
     })
 }
 
-impl IntoRequest for ConvertModelArgs {
+impl VariantArgs for ConvertModelArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::ConvertModel(ConvertModelRequest {
             original_model_task_id: self.original_model_task_id,
@@ -143,24 +145,4 @@ impl IntoRequest for ConvertModelArgs {
             animate_in_place: self.animate_in_place,
         }))
     }
-}
-
-/// Run `convert-model`.
-pub async fn run(g: &GlobalArgs, a: ConvertModelArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = ConvertModelArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }

@@ -102,7 +102,7 @@ async fn download(g: &GlobalArgs, id: &str, out_dir: &std::path::Path) -> Result
     let files = tokio::select! {
         res = client.download_task_models(&task, out_dir, opts) => res?,
         () = cancel.cancelled() => {
-            cleanup_partial_files(out_dir);
+            crate::cleanup::partial_files(out_dir).await;
             return Err(crate::signals::Interrupted.into());
         }
     };
@@ -120,34 +120,20 @@ async fn download(g: &GlobalArgs, id: &str, out_dir: &std::path::Path) -> Result
     Ok(())
 }
 
-fn cleanup_partial_files(dir: &std::path::Path) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    for e in entries.flatten() {
-        let p = e.path();
-        if p.extension()
-            .and_then(|e| e.to_str())
-            .is_some_and(|e| e.ends_with("partial"))
-        {
-            let _ = std::fs::remove_file(p);
-        }
-    }
-}
-
 async fn create(g: &GlobalArgs, json_path: &std::path::Path) -> Result<()> {
     let bytes = if json_path == std::path::Path::new("-") {
         use std::io::Read;
+        // Single blocking read at command startup before any concurrent work.
         let mut buf = Vec::new();
         std::io::stdin().read_to_end(&mut buf)?;
         buf
     } else {
-        std::fs::read(json_path)?
+        tokio::fs::read(json_path).await?
     };
     let body: serde_json::Value = serde_json::from_slice(&bytes)?;
     let client = crate::resolve::build_client(g)?;
     let id = client.create_task_raw(&body).await?;
-    if crate::output::use_json(g.json) {
+    if g.json {
         serde_json::to_writer_pretty(std::io::stdout(), &serde_json::json!({"task_id": id}))?;
         println!();
     } else {

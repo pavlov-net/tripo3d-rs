@@ -5,8 +5,7 @@ use clap::Args;
 use tripo_api::enums::{Orientation, Quality, TextureAlignment};
 use tripo_api::{CompressionMode, ImageInput, MultiviewToModelRequest, TaskRequest};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// Multi-view to 3D model. Pass `--image` once per view (empty slots: `--image=""`).
 #[derive(Debug, Args)]
@@ -65,7 +64,10 @@ pub struct MultiviewToModelArgs {
     pub run: VariantRunOpts,
 }
 
-impl IntoRequest for MultiviewToModelArgs {
+impl VariantArgs for MultiviewToModelArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(self) -> Result<TaskRequest> {
         let images: Vec<Option<ImageInput>> = self
             .image
@@ -97,24 +99,4 @@ impl IntoRequest for MultiviewToModelArgs {
             smart_low_poly: self.smart_low_poly,
         }))
     }
-}
-
-/// Run `multiview-to-model`.
-pub async fn run(g: &GlobalArgs, a: MultiviewToModelArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = MultiviewToModelArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }

@@ -5,8 +5,7 @@ use clap::Args;
 use tripo_api::enums::Quality;
 use tripo_api::{CompressionMode, TaskRequest, TextToModelRequest};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// Generate a 3D model from a text prompt.
 #[derive(Debug, Args)]
@@ -73,7 +72,10 @@ pub(super) fn parse_quality(s: &str) -> Result<Quality, String> {
     }
 }
 
-impl IntoRequest for TextToModelArgs {
+impl VariantArgs for TextToModelArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::TextToModel(TextToModelRequest {
             prompt: self.prompt,
@@ -94,24 +96,4 @@ impl IntoRequest for TextToModelArgs {
             smart_low_poly: self.smart_low_poly,
         }))
     }
-}
-
-/// Run `text-to-model`.
-pub async fn run(g: &GlobalArgs, a: TextToModelArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = TextToModelArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }

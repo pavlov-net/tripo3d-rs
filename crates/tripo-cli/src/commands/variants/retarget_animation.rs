@@ -5,8 +5,7 @@ use clap::Args;
 use tripo_api::enums::{Animation, RigOutputFormat};
 use tripo_api::{AnimationInput, RetargetAnimationRequest, TaskRequest};
 
-use crate::cli::GlobalArgs;
-use crate::commands::variants::{IntoRequest, VariantRunOpts};
+use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
 /// Retarget one or more animations onto a rigged model.
 #[derive(Debug, Args)]
@@ -60,7 +59,10 @@ fn parse_animation(s: &str) -> Result<Animation, String> {
     })
 }
 
-impl IntoRequest for RetargetAnimationArgs {
+impl VariantArgs for RetargetAnimationArgs {
+    fn take_run_opts(&mut self) -> VariantRunOpts {
+        std::mem::take(&mut self.run)
+    }
     fn into_request(mut self) -> Result<TaskRequest> {
         let animation = if self.animation.len() == 1 {
             AnimationInput::Single(self.animation.remove(0))
@@ -76,24 +78,4 @@ impl IntoRequest for RetargetAnimationArgs {
             animate_in_place: self.animate_in_place,
         }))
     }
-}
-
-/// Run `retarget-animation`.
-pub async fn run(g: &GlobalArgs, a: RetargetAnimationArgs) -> Result<()> {
-    let opts = VariantRunOpts {
-        wait: a.run.wait || a.run.output.is_some(),
-        output: a.run.output.clone(),
-        timeout: a.run.timeout,
-        poll_interval: a.run.poll_interval,
-    };
-    let inner = RetargetAnimationArgs {
-        run: VariantRunOpts {
-            wait: false,
-            output: None,
-            timeout: None,
-            poll_interval: None,
-        },
-        ..a
-    };
-    super::run_variant(g, opts, inner).await
 }
