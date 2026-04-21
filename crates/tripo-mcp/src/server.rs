@@ -165,14 +165,14 @@ impl TripoServer {
             Box::new(|_task: &tripo_api::Task| {})
         };
 
-        let opts = WaitOptions {
+        let mut opts = WaitOptions {
             timeout: p.timeout_seconds.map(Duration::from_secs),
-            max_interval: p
-                .max_interval_seconds
-                .map_or_else(|| Duration::from_secs(30), Duration::from_secs),
             on_progress: Some(callback),
             ..Default::default()
         };
+        if let Some(s) = p.max_interval_seconds {
+            opts.max_interval = Duration::from_secs(s);
+        }
         let task = self
             .client
             .wait_for_task(&p.task_id, opts)
@@ -540,21 +540,12 @@ impl ServerHandler for TripoServer {
     }
 }
 
-/// Map a [`tripo_api::Error`] into a JSON-RPC [`ErrorData`] suitable for
-/// returning from a tool method.
+/// Map a [`tripo_api::Error`] into a JSON-RPC [`ErrorData`]. Takes by value to
+/// pair directly with `Result::map_err`.
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "by-value signature matches Result::map_err"
+)]
 pub(crate) fn to_error_data(err: tripo_api::Error) -> ErrorData {
-    match err {
-        tripo_api::Error::Api {
-            code,
-            message,
-            suggestion,
-        } => {
-            let text = suggestion.map_or_else(
-                || format!("[{code}] {message}"),
-                |s| format!("[{code}] {message} — {s}"),
-            );
-            ErrorData::internal_error(text, None)
-        }
-        other => ErrorData::internal_error(other.to_string(), None),
-    }
+    ErrorData::internal_error(err.to_string(), None)
 }

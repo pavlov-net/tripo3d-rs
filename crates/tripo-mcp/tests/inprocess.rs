@@ -1,51 +1,13 @@
-//! In-process MCP client ↔ server harness. Each test wires a `TripoServer` over
-//! a pair of `tokio::io::duplex` streams, exercising the full rmcp stack
-//! (initialize, tool listing, tool calls) against a `wiremock` Tripo API.
+//! In-process MCP client ↔ server tests. Each test wires a `TripoServer` over
+//! a pair of `tokio::io::duplex` streams against a `wiremock` Tripo API.
 
-use rmcp::{
-    ClientHandler, ServiceExt,
-    model::{CallToolRequestParams, ClientInfo},
-};
+use rmcp::model::CallToolRequestParams;
 use serde_json::json;
-use wiremock::MockServer;
 use wiremock::matchers::{method, path};
-use wiremock::{Mock, ResponseTemplate};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
-#[derive(Clone, Default)]
-struct NoopClient;
-impl ClientHandler for NoopClient {
-    fn get_info(&self) -> ClientInfo {
-        ClientInfo::default()
-    }
-}
-
-/// Spin up a `TripoServer` pointed at `mock` and return a connected MCP client.
-async fn start_server(
-    mock: &MockServer,
-) -> rmcp::service::RunningService<rmcp::RoleClient, NoopClient> {
-    let (server_io, client_io) = tokio::io::duplex(8192);
-    let tripo_client = tripo_api::Client::builder()
-        .api_key("tsk_test")
-        .base_url(mock.uri().parse().unwrap())
-        .build()
-        .unwrap();
-    let server = tripo_mcp::server::TripoServer::new(tripo_client);
-
-    tokio::spawn(async move {
-        if let Ok(svc) = server.serve(server_io).await {
-            let _ = svc.waiting().await;
-        }
-    });
-
-    NoopClient.serve(client_io).await.unwrap()
-}
-
-fn args(v: serde_json::Value) -> rmcp::model::JsonObject {
-    match v {
-        serde_json::Value::Object(m) => m,
-        other => panic!("arguments must be a JSON object, got {other}"),
-    }
-}
+mod common;
+use common::{args, start_server};
 
 #[tokio::test]
 async fn calls_get_balance() {
