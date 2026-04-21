@@ -3,6 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use futures::stream::{FuturesUnordered, StreamExt};
+use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
 
 use crate::client::Client;
@@ -60,7 +61,8 @@ impl Default for DownloadOptions {
 }
 
 /// Paths of all successfully downloaded files.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct DownloadedFiles {
     /// Main model path.
     pub model: Option<PathBuf>,

@@ -180,6 +180,39 @@ impl TripoServer {
             .map_err(to_error_data)?;
         Ok(Json(task))
     }
+
+    /// Download a task's output models into a local directory.
+    #[tool(
+        name = "download_task_models",
+        description = "Download a completed task's output models into a local directory.",
+        annotations(
+            title = "Download Task Models",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn download_task_models(
+        &self,
+        Parameters(p): Parameters<params::DownloadParams>,
+    ) -> Result<Json<tripo_api::DownloadedFiles>, ErrorData> {
+        let task = self
+            .client
+            .get_task(&p.task_id)
+            .await
+            .map_err(to_error_data)?;
+        let opts = tripo_api::DownloadOptions {
+            overwrite: p.overwrite,
+            ..Default::default()
+        };
+        let files = self
+            .client
+            .download_task_models(&task, &p.output_dir, opts)
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(files))
+    }
 }
 
 #[tool_handler]

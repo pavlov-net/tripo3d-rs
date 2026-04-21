@@ -68,6 +68,43 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
+async fn calls_download_task_models() {
+    let server = MockServer::start().await;
+    let model_url = format!("{}/files/abc.glb", server.uri());
+    Mock::given(method("GET"))
+        .and(path("/task/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{
+                "task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0,
+                "output":{"model": model_url}
+            }
+        })))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/files/abc.glb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"glb" as &[u8]))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(
+            CallToolRequestParams::new("download_task_models").with_arguments(args(json!({
+                "task_id":"abc",
+                "output_dir": dir.path(),
+                "overwrite": false,
+            }))),
+        )
+        .await
+        .unwrap();
+    assert!(format!("{result:?}").contains("abc.glb"));
+    assert_eq!(std::fs::read(dir.path().join("abc.glb")).unwrap(), b"glb");
+}
+
+#[tokio::test]
 async fn calls_wait_for_task() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
