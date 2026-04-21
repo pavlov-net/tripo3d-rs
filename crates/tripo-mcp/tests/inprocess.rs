@@ -68,6 +68,44 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
+async fn calls_image_multiview_convert_stylize() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,"data":{"task_id":"x"}
+        })))
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+
+    for (name, argv) in [
+        (
+            "image_to_model",
+            json!({"file":{"type":"jpg","url":"https://e/x.jpg"}}),
+        ),
+        (
+            "multiview_to_model",
+            json!({"files":[{"type":"jpg","url":"https://e/a.jpg"}]}),
+        ),
+        (
+            "convert_model",
+            json!({"original_model_task_id":"m","format":"GLTF"}),
+        ),
+        (
+            "stylize_model",
+            json!({"original_model_task_id":"m","style":"voxel"}),
+        ),
+    ] {
+        let r = client
+            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
+            .await;
+        assert!(r.is_ok(), "{name} failed: {r:?}");
+    }
+}
+
+#[tokio::test]
 async fn calls_text_to_model() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))

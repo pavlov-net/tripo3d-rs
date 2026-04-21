@@ -237,6 +237,102 @@ impl TripoServer {
             .map_err(to_error_data)?;
         Ok(Json(params::TaskCreated { task_id: id }))
     }
+
+    /// Generate a 3D model from a single image.
+    #[tool(
+        name = "image_to_model",
+        description = "Generate a 3D model from a single image reference (URL, file token, or local path).",
+        annotations(
+            title = "Image \u{2192} 3D Model",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn image_to_model(
+        &self,
+        Parameters(req): Parameters<tripo_api::ImageToModelRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::ImageToModel(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Multi-view to 3D model.
+    #[tool(
+        name = "multiview_to_model",
+        description = "Generate a 3D model from multiple images (front/back/left/right views).",
+        annotations(
+            title = "Multi-view \u{2192} 3D Model",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn multiview_to_model(
+        &self,
+        Parameters(req): Parameters<tripo_api::MultiviewToModelRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::MultiviewToModel(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Convert a model to another file format.
+    #[tool(
+        name = "convert_model",
+        description = "Convert a completed model to another file format.",
+        annotations(
+            title = "Convert Model",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn convert_model(
+        &self,
+        Parameters(req): Parameters<tripo_api::ConvertModelRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::ConvertModel(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Stylize a model.
+    #[tool(
+        name = "stylize_model",
+        description = "Apply a stylization preset (lego/voxel/etc) to an existing model.",
+        annotations(
+            title = "Stylize Model",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn stylize_model(
+        &self,
+        Parameters(req): Parameters<tripo_api::StylizeModelRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::Stylize(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
 }
 
 #[tool_handler]
