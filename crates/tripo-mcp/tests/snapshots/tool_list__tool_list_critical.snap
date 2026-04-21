@@ -1,0 +1,539 @@
+---
+source: crates/tripo-mcp/tests/tool_list.rs
+expression: "serde_json::to_value(&critical).unwrap()"
+---
+[
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Account Balance"
+    },
+    "description": "Get the current Tripo account balance.",
+    "inputSchema": {
+      "properties": {},
+      "type": "object"
+    },
+    "name": "get_balance",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "User account balance.",
+      "properties": {
+        "balance": {
+          "description": "Available credit balance.",
+          "format": "double",
+          "type": "number"
+        },
+        "frozen": {
+          "description": "Reserved (in-flight) balance.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "balance",
+        "frozen"
+      ],
+      "title": "Balance",
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Text → 3D Model"
+    },
+    "description": "Generate a 3D model from a text prompt. Returns the created task id.",
+    "inputSchema": {
+      "$defs": {
+        "CompressionMode": {
+          "description": "Compression options. Currently the server only supports `Geometry`.",
+          "oneOf": [
+            {
+              "const": "geometry",
+              "description": "Serializes as the string `\"geometry\"`.",
+              "type": "string"
+            }
+          ]
+        },
+        "Quality": {
+          "description": "Texture / geometry quality level.",
+          "oneOf": [
+            {
+              "const": "standard",
+              "description": "Wire value: `standard`.",
+              "type": "string"
+            },
+            {
+              "const": "detailed",
+              "description": "Wire value: `detailed`.",
+              "type": "string"
+            },
+            {
+              "const": "Unknown",
+              "description": "Unknown value received from a forward-compatible server.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Request body for `text_to_model`. Wire `type`: `text_to_model`.\n\nSee the Python SDK `Client.text_to_model` for the authoritative field list.",
+      "properties": {
+        "auto_size": {
+          "description": "Auto-size the output mesh.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "compress": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CompressionMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Geometry compression option."
+        },
+        "face_limit": {
+          "description": "Target face count.",
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "generate_parts": {
+          "description": "Emit part decomposition.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "geometry_quality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quality"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Geometry quality preset."
+        },
+        "image_seed": {
+          "description": "Seed for the initial reference image.",
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "model_seed": {
+          "description": "Seed for the model generation.",
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "model_version": {
+          "description": "Model version string; see `versions::text_image`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "negative_prompt": {
+          "description": "Negative prompt (things to avoid).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pbr": {
+          "description": "Physically-based shading?",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "prompt": {
+          "description": "Prompt text. Required.",
+          "type": "string"
+        },
+        "quad": {
+          "description": "Produce a quad mesh (subdivision-ready).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "smart_low_poly": {
+          "description": "Route through the smart-lowpoly pipeline after generation.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "texture": {
+          "description": "Generate a texture? (default true server-side)",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "texture_quality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quality"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Texture quality preset."
+        },
+        "texture_seed": {
+          "description": "Seed for texture generation.",
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "title": "TextToModelRequest",
+      "type": "object"
+    },
+    "name": "text_to_model",
+    "outputSchema": {
+      "$defs": {
+        "TaskId": {
+          "description": "Opaque task identifier.",
+          "type": "string"
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "task_id": {
+          "$ref": "#/$defs/TaskId",
+          "description": "Identifier of the newly created task."
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "title": "TaskCreated",
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Wait for Task"
+    },
+    "description": "Poll a task until it reaches a terminal status. Streams MCP progress notifications when the caller sets a progressToken.",
+    "inputSchema": {
+      "$defs": {
+        "TaskId": {
+          "description": "Opaque task identifier.",
+          "type": "string"
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "max_interval_seconds": {
+          "description": "Cap on the polling interval in seconds.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "task_id": {
+          "$ref": "#/$defs/TaskId",
+          "description": "Task identifier."
+        },
+        "timeout_seconds": {
+          "description": "Overall timeout in seconds.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "title": "WaitParams",
+      "type": "object"
+    },
+    "name": "wait_for_task",
+    "outputSchema": {
+      "$defs": {
+        "RigType": {
+          "description": "Biological rig classification.",
+          "oneOf": [
+            {
+              "const": "biped",
+              "description": "Wire value: `biped`.",
+              "type": "string"
+            },
+            {
+              "const": "quadruped",
+              "description": "Wire value: `quadruped`.",
+              "type": "string"
+            },
+            {
+              "const": "hexapod",
+              "description": "Wire value: `hexapod`.",
+              "type": "string"
+            },
+            {
+              "const": "octopod",
+              "description": "Wire value: `octopod`.",
+              "type": "string"
+            },
+            {
+              "const": "avian",
+              "description": "Wire value: `avian`.",
+              "type": "string"
+            },
+            {
+              "const": "serpentine",
+              "description": "Wire value: `serpentine`.",
+              "type": "string"
+            },
+            {
+              "const": "aquatic",
+              "description": "Wire value: `aquatic`.",
+              "type": "string"
+            },
+            {
+              "const": "others",
+              "description": "Wire value: `others`.",
+              "type": "string"
+            },
+            {
+              "const": "Unknown",
+              "description": "Unknown value received from a forward-compatible server.",
+              "type": "string"
+            }
+          ]
+        },
+        "TaskId": {
+          "description": "Opaque task identifier.",
+          "type": "string"
+        },
+        "TaskOutput": {
+          "description": "Download URLs and auxiliary output fields returned on the task object.",
+          "properties": {
+            "base_model": {
+              "default": null,
+              "description": "URL for the base (pre-texture) model.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "model": {
+              "default": null,
+              "description": "URL for the main output model.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "pbr_model": {
+              "default": null,
+              "description": "URL for the PBR-textured model.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "rendered_image": {
+              "default": null,
+              "description": "URL for a rendered preview image.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "rig_type": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RigType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Populated by `check_riggable`."
+            },
+            "riggable": {
+              "default": null,
+              "description": "Populated by `check_riggable`.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "TaskStatus": {
+          "description": "Task lifecycle status.",
+          "oneOf": [
+            {
+              "const": "queued",
+              "description": "Waiting in the queue.",
+              "type": "string"
+            },
+            {
+              "const": "running",
+              "description": "Currently being processed.",
+              "type": "string"
+            },
+            {
+              "const": "success",
+              "description": "Completed successfully.",
+              "type": "string"
+            },
+            {
+              "const": "failed",
+              "description": "Completed with failure.",
+              "type": "string"
+            },
+            {
+              "const": "cancelled",
+              "description": "User or system cancelled.",
+              "type": "string"
+            },
+            {
+              "const": "unknown",
+              "description": "Unknown / uncategorized.",
+              "type": "string"
+            },
+            {
+              "const": "banned",
+              "description": "Banned by moderation.",
+              "type": "string"
+            },
+            {
+              "const": "expired",
+              "description": "Past retention.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Task record returned by `GET /task/{id}`.",
+      "properties": {
+        "create_time": {
+          "default": 0,
+          "description": "Unix seconds.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "error_code": {
+          "default": null,
+          "description": "Non-zero on failure.",
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "error_msg": {
+          "default": null,
+          "description": "Human-readable error message.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input": {
+          "additionalProperties": true,
+          "default": {},
+          "description": "Echo of request parameters.",
+          "type": "object"
+        },
+        "output": {
+          "$ref": "#/$defs/TaskOutput",
+          "default": {
+            "base_model": null,
+            "model": null,
+            "pbr_model": null,
+            "rendered_image": null,
+            "rig_type": null,
+            "riggable": null
+          },
+          "description": "Output URLs and flags."
+        },
+        "progress": {
+          "default": 0,
+          "description": "Progress percent 0–100.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "queuing_num": {
+          "default": null,
+          "description": "Queue depth ahead of this task.",
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "running_left_time": {
+          "default": null,
+          "description": "Estimated seconds until completion; used by the polling backoff.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus",
+          "description": "Current status."
+        },
+        "task_id": {
+          "$ref": "#/$defs/TaskId",
+          "description": "Identifier."
+        },
+        "type": {
+          "description": "Wire-format task type string (e.g. `text_to_model`, `animate_rig`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "type",
+        "status"
+      ],
+      "title": "Task",
+      "type": "object"
+    }
+  }
+]

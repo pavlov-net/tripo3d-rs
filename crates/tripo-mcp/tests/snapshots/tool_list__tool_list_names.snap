@@ -1,0 +1,25 @@
+---
+source: crates/tripo-mcp/tests/tool_list.rs
+expression: names
+---
+[
+    "check_riggable",
+    "convert_model",
+    "create_raw_task",
+    "download_task_models",
+    "get_balance",
+    "get_task",
+    "image_to_model",
+    "mesh_completion",
+    "mesh_segmentation",
+    "multiview_to_model",
+    "refine_model",
+    "retarget_animation",
+    "rig_model",
+    "smart_lowpoly",
+    "stylize_model",
+    "text_to_model",
+    "texture_model",
+    "upload_file",
+    "wait_for_task",
+]
