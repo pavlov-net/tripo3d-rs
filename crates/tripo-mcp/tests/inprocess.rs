@@ -68,6 +68,31 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
+async fn calls_upload_file() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/upload"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,"data":{"image_token":"550e8400-e29b-41d4-a716-446655440000"}
+        })))
+        .mount(&server)
+        .await;
+
+    let tmp = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(tmp.path(), b"jpeg").unwrap();
+
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(
+            CallToolRequestParams::new("upload_file")
+                .with_arguments(args(json!({ "path": tmp.path() }))),
+        )
+        .await
+        .unwrap();
+    assert!(format!("{result:?}").contains("550e8400"));
+}
+
+#[tokio::test]
 async fn calls_get_task() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))

@@ -71,6 +71,30 @@ impl TripoServer {
             .map_err(to_error_data)?;
         Ok(Json(task))
     }
+
+    /// Upload a local file; returns a `file_token` usable as `ImageInput::FileToken`.
+    #[tool(
+        name = "upload_file",
+        description = "Upload a local file to Tripo and return a file token usable as an image reference.",
+        annotations(
+            title = "Upload File",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn upload_file(
+        &self,
+        Parameters(p): Parameters<params::UploadParams>,
+    ) -> Result<Json<tripo_api::UploadedFile>, ErrorData> {
+        let up = self
+            .client
+            .upload_file(&p.path)
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(up))
+    }
 }
 
 #[tool_handler]
