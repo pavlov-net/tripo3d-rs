@@ -68,6 +68,32 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
+async fn calls_text_to_model() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .and(wiremock::matchers::body_partial_json(
+            json!({"type":"text_to_model","prompt":"a red robot"}),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,"data":{"task_id":"t1"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(
+            CallToolRequestParams::new("text_to_model")
+                .with_arguments(args(json!({"prompt":"a red robot"}))),
+        )
+        .await
+        .unwrap();
+    assert!(format!("{result:?}").contains("t1"));
+}
+
+#[tokio::test]
 async fn calls_download_task_models() {
     let server = MockServer::start().await;
     let model_url = format!("{}/files/abc.glb", server.uri());

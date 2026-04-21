@@ -213,6 +213,30 @@ impl TripoServer {
             .map_err(to_error_data)?;
         Ok(Json(files))
     }
+
+    /// Generate a 3D model from a text prompt.
+    #[tool(
+        name = "text_to_model",
+        description = "Generate a 3D model from a text prompt. Returns the created task id.",
+        annotations(
+            title = "Text \u{2192} 3D Model",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn text_to_model(
+        &self,
+        Parameters(req): Parameters<tripo_api::TextToModelRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::TextToModel(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
 }
 
 #[tool_handler]
