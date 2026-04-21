@@ -1,11 +1,11 @@
 //! `rig_model` task variant. Wire `type`: `animate_rig`.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::enums::{RigOutputFormat, RigSpec, RigType};
 
 /// Request body for `rig_model`. Wire `type`: `animate_rig`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct RigModelRequest {

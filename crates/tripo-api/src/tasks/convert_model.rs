@@ -1,11 +1,11 @@
 //! `convert_model` task variant.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::enums::{ExportOrientation, FbxPreset, OutputFormat, TextureFormat};
 
 /// Request body for `convert_model`. Wire `type`: `convert_model`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ConvertModelRequest {

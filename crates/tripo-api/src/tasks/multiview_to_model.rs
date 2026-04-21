@@ -3,19 +3,23 @@
 //! Wire-format note: the images array is sent as `files` (list); `None`
 //! entries serialize as `{}` empty objects (positional "no image at this slot").
 
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::compress::CompressionMode;
 use crate::enums::{Orientation, Quality, TextureAlignment};
 use crate::image::ImageInput;
 
 /// Request body for `multiview_to_model`. Wire `type`: `multiview_to_model`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct MultiviewToModelRequest {
     /// Ordered list of images. `None` entries become `{}` placeholders on the wire.
-    #[serde(rename = "files", serialize_with = "serialize_files")]
+    #[serde(
+        rename = "files",
+        serialize_with = "serialize_files",
+        deserialize_with = "deserialize_files"
+    )]
     pub images: Vec<Option<ImageInput>>,
     /// Model version.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -74,4 +78,21 @@ fn serialize_files<S: Serializer>(v: &[Option<ImageInput>], s: S) -> Result<S::O
         }
     }
     seq.end()
+}
+
+fn deserialize_files<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<Option<ImageInput>>, D::Error> {
+    let entries: Vec<serde_json::Value> = Vec::deserialize(d)?;
+    let mut out = Vec::with_capacity(entries.len());
+    for v in entries {
+        match &v {
+            serde_json::Value::Object(m) if m.is_empty() => out.push(None),
+            serde_json::Value::Null => out.push(None),
+            _ => {
+                let img: ImageInput =
+                    serde_json::from_value(v).map_err(serde::de::Error::custom)?;
+                out.push(Some(img));
+            }
+        }
+    }
+    Ok(out)
 }

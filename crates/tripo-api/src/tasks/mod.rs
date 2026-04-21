@@ -1,6 +1,6 @@
 //! Per-variant task request structs and the top-level `TaskRequest` dispatch enum.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::client::Client;
 use crate::error::Result;
@@ -38,9 +38,13 @@ pub use texture_model::{TextureModelRequest, TexturePrompt};
 ///
 /// Note: four variants have wire-level `type` strings that differ from the
 /// Rust variant name — `#[serde(rename = "...")]` per variant handles this.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
+#[allow(
+    clippy::unsafe_derive_deserialize,
+    reason = "transitive lint via nested types; this enum itself has no unsafe methods"
+)]
 pub enum TaskRequest {
     /// `text_to_model` — generate a 3D model from a text prompt.
     #[serde(rename = "text_to_model")]

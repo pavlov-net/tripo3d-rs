@@ -4,16 +4,16 @@
 //! rolled up into a nested `texture_prompt` object, sent only when at least
 //! one of the three is present.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
 use crate::enums::{Quality, TextureAlignment};
 use crate::image::ImageInput;
 
 /// Sub-object carrying the three texture-prompt inputs.
-#[derive(Debug, Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, default)]
 pub struct TexturePrompt {
     /// Text prompt.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -33,14 +33,14 @@ impl TexturePrompt {
 }
 
 /// Request body for `texture_model`. Wire `type`: `texture_model`.
-#[derive(Debug, Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TextureModelRequest {
     /// Source task id.
     pub original_model_task_id: String,
     /// Nested prompt object; omitted when all sub-fields are None.
-    #[serde(skip_serializing_if = "TexturePrompt::is_empty")]
+    #[serde(default, skip_serializing_if = "TexturePrompt::is_empty")]
     pub texture_prompt: TexturePrompt,
     /// Model version.
     #[serde(skip_serializing_if = "Option::is_none")]

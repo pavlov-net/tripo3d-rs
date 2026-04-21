@@ -1,13 +1,13 @@
 //! `image_to_model` task variant.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
 use crate::enums::{Orientation, Quality, TextureAlignment};
 use crate::image::ImageInput;
 
 /// Request body for `image_to_model`. Wire `type`: `image_to_model`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ImageToModelRequest {

@@ -4,7 +4,7 @@
 //! invariant: a single animation serializes under key `animation`, a list
 //! under `animations`.
 
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::enums::{Animation, RigOutputFormat};
 
@@ -59,6 +59,54 @@ impl Serialize for RetargetAnimationRequest {
             m.serialize_entry("animate_in_place", v)?;
         }
         m.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for RetargetAnimationRequest {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::Error as _;
+
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Wire {
+            original_model_task_id: String,
+            #[serde(default)]
+            animation: Option<Animation>,
+            #[serde(default)]
+            animations: Option<Vec<Animation>>,
+            #[serde(default)]
+            out_format: Option<RigOutputFormat>,
+            #[serde(default)]
+            bake_animation: Option<bool>,
+            #[serde(default)]
+            export_with_geometry: Option<bool>,
+            #[serde(default)]
+            animate_in_place: Option<bool>,
+        }
+
+        let w = Wire::deserialize(d)?;
+        let animation = match (w.animation, w.animations) {
+            (Some(a), None) => AnimationInput::Single(a),
+            (None, Some(list)) => AnimationInput::Many(list),
+            (Some(_), Some(_)) => {
+                return Err(D::Error::custom(
+                    "set either `animation` or `animations`, not both",
+                ));
+            }
+            (None, None) => {
+                return Err(D::Error::custom(
+                    "missing required field `animation` or `animations`",
+                ));
+            }
+        };
+        Ok(Self {
+            original_model_task_id: w.original_model_task_id,
+            animation,
+            out_format: w.out_format,
+            bake_animation: w.bake_animation,
+            export_with_geometry: w.export_with_geometry,
+            animate_in_place: w.animate_in_place,
+        })
     }
 }
 

@@ -7,6 +7,7 @@
 
 use std::path::PathBuf;
 
+use serde::de::{Deserialize, Deserializer, Error as DeError};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use url::Url;
 use uuid::Uuid;
@@ -57,6 +58,35 @@ impl Serialize for ImageInput {
             }
         }
         st.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for ImageInput {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let v = serde_json::Value::deserialize(d)?;
+        match v {
+            serde_json::Value::String(s) => Ok(Self::parse(&s)),
+            serde_json::Value::Object(mut m) => {
+                m.remove("type");
+                if let Some(url) = m.remove("url").and_then(|v| v.as_str().map(str::to_string)) {
+                    Url::parse(&url).map(Self::Url).map_err(DeError::custom)
+                } else if let Some(tok) = m
+                    .remove("file_token")
+                    .and_then(|v| v.as_str().map(str::to_string))
+                {
+                    Uuid::parse_str(&tok)
+                        .map(Self::FileToken)
+                        .map_err(DeError::custom)
+                } else {
+                    Err(DeError::custom(
+                        "expected `url` or `file_token` in ImageInput object",
+                    ))
+                }
+            }
+            other => Err(DeError::custom(format!(
+                "unexpected ImageInput shape: {other}"
+            ))),
+        }
     }
 }
 

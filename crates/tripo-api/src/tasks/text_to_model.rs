@@ -1,6 +1,6 @@
 //! `text_to_model` task variant.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
 use crate::enums::Quality;
@@ -8,7 +8,7 @@ use crate::enums::Quality;
 /// Request body for `text_to_model`. Wire `type`: `text_to_model`.
 ///
 /// See the Python SDK `Client.text_to_model` for the authoritative field list.
-#[derive(Debug, Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TextToModelRequest {

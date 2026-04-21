@@ -1,9 +1,9 @@
 //! `mesh_completion` task variant.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Request body for `mesh_completion`. Wire `type`: `mesh_completion`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct MeshCompletionRequest {

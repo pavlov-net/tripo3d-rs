@@ -1,9 +1,9 @@
 //! `refine_model` task variant.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Request body for `refine_model`. Wire `type`: `refine_model`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct RefineModelRequest {
