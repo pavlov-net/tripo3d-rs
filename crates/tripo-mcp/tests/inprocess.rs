@@ -68,6 +68,36 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
+async fn calls_texture_refine_rigcheck_rig_retarget() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,"data":{"task_id":"y"}
+        })))
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+
+    for (name, argv) in [
+        ("texture_model", json!({"original_model_task_id":"m"})),
+        ("refine_model", json!({"draft_model_task_id":"d"})),
+        ("check_riggable", json!({"original_model_task_id":"m"})),
+        ("rig_model", json!({"original_model_task_id":"m"})),
+        (
+            "retarget_animation",
+            json!({"original_model_task_id":"m","animation":"preset:walk"}),
+        ),
+    ] {
+        let r = client
+            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
+            .await;
+        assert!(r.is_ok(), "{name} failed: {r:?}");
+    }
+}
+
+#[tokio::test]
 async fn calls_image_multiview_convert_stylize() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))

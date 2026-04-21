@@ -333,6 +333,126 @@ impl TripoServer {
             .map_err(to_error_data)?;
         Ok(Json(params::TaskCreated { task_id: id }))
     }
+
+    /// (Re)texture an existing model.
+    #[tool(
+        name = "texture_model",
+        description = "Re-texture an existing model, optionally guided by a text or image prompt.",
+        annotations(
+            title = "Texture Model",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn texture_model(
+        &self,
+        Parameters(req): Parameters<tripo_api::TextureModelRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::TextureModel(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Refine a draft model.
+    #[tool(
+        name = "refine_model",
+        description = "Turn a draft model into a finished one.",
+        annotations(
+            title = "Refine Model",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn refine_model(
+        &self,
+        Parameters(req): Parameters<tripo_api::RefineModelRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::Refine(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Rig compatibility probe.
+    #[tool(
+        name = "check_riggable",
+        description = "Precheck whether a model can be rigged.",
+        annotations(
+            title = "Check Riggable",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn check_riggable(
+        &self,
+        Parameters(req): Parameters<tripo_api::CheckRiggableRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::CheckRiggable(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Generate a skeletal rig.
+    #[tool(
+        name = "rig_model",
+        description = "Generate a skeletal rig for an existing model.",
+        annotations(
+            title = "Rig Model",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn rig_model(
+        &self,
+        Parameters(req): Parameters<tripo_api::RigModelRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::Rig(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Retarget animation presets onto a rigged model.
+    #[tool(
+        name = "retarget_animation",
+        description = "Retarget animation presets onto a rigged model. Pass `animation` (single) or `animations` (list).",
+        annotations(
+            title = "Retarget Animation",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn retarget_animation(
+        &self,
+        Parameters(req): Parameters<tripo_api::RetargetAnimationRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::Retarget(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
 }
 
 #[tool_handler]
