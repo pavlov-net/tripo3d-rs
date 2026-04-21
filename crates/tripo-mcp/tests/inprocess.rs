@@ -40,6 +40,13 @@ async fn start_server(
     NoopClient.serve(client_io).await.unwrap()
 }
 
+fn args(v: serde_json::Value) -> rmcp::model::JsonObject {
+    match v {
+        serde_json::Value::Object(m) => m,
+        other => panic!("arguments must be a JSON object, got {other}"),
+    }
+}
+
 #[tokio::test]
 async fn calls_get_balance() {
     let server = MockServer::start().await;
@@ -58,4 +65,28 @@ async fn calls_get_balance() {
         .unwrap();
     let text = format!("{result:?}");
     assert!(text.contains("10"), "missing balance in {text}");
+}
+
+#[tokio::test]
+async fn calls_get_task() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/task/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0}
+        })))
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(
+            CallToolRequestParams::new("get_task").with_arguments(args(json!({"task_id":"abc"}))),
+        )
+        .await
+        .unwrap();
+    let txt = format!("{result:?}");
+    assert!(txt.contains("abc"));
+    assert!(txt.contains("success"));
 }

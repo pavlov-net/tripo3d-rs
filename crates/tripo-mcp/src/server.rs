@@ -8,9 +8,12 @@ use std::sync::Arc;
 
 use rmcp::{
     ErrorData, Json, ServerHandler,
+    handler::server::wrapper::Parameters,
     model::{Implementation, ProtocolVersion, ServerCapabilities, ServerInfo},
     tool, tool_handler, tool_router,
 };
+
+use crate::params;
 use tripo_api::Client;
 
 #[derive(Clone)]
@@ -44,6 +47,29 @@ impl TripoServer {
     async fn get_balance(&self) -> Result<Json<tripo_api::Balance>, ErrorData> {
         let bal = self.client.get_balance().await.map_err(to_error_data)?;
         Ok(Json(bal))
+    }
+
+    /// Fetch a task's current state.
+    #[tool(
+        name = "get_task",
+        description = "Fetch the current state of a Tripo task by id.",
+        annotations(
+            title = "Get Task",
+            read_only_hint = true,
+            idempotent_hint = true,
+            open_world_hint = true,
+        )
+    )]
+    async fn get_task(
+        &self,
+        Parameters(p): Parameters<params::GetTaskParams>,
+    ) -> Result<Json<tripo_api::Task>, ErrorData> {
+        let task = self
+            .client
+            .get_task(&p.task_id)
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(task))
     }
 }
 
