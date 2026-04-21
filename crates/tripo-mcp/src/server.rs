@@ -7,9 +7,12 @@
 use std::sync::Arc;
 
 use rmcp::{
-    ErrorData, Json, ServerHandler,
+    ErrorData, Json, RoleServer, ServerHandler,
     handler::server::wrapper::Parameters,
-    model::{Implementation, ProtocolVersion, ServerCapabilities, ServerInfo},
+    model::{
+        Implementation, ProgressNotificationParam, ProtocolVersion, ServerCapabilities, ServerInfo,
+    },
+    service::RequestContext,
     tool, tool_handler, tool_router,
 };
 
@@ -119,6 +122,63 @@ impl TripoServer {
             .await
             .map_err(to_error_data)?;
         Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Poll a task until it reaches a terminal status, streaming progress.
+    #[tool(
+        name = "wait_for_task",
+        description = "Poll a task until it reaches a terminal status. Streams MCP progress notifications when the caller sets a progressToken.",
+        annotations(
+            title = "Wait for Task",
+            read_only_hint = true,
+            idempotent_hint = true,
+            open_world_hint = true,
+        )
+    )]
+    async fn wait_for_task(
+        &self,
+        Parameters(p): Parameters<params::WaitParams>,
+        ctx: RequestContext<RoleServer>,
+    ) -> Result<Json<tripo_api::Task>, ErrorData> {
+        use std::time::Duration;
+        use tripo_api::WaitOptions;
+
+        let progress_token = ctx.meta.get_progress_token();
+        let peer = ctx.peer.clone();
+
+        let callback: tripo_api::ProgressCallback = if let Some(token) = progress_token {
+            Box::new(move |task: &tripo_api::Task| {
+                let pct = f64::from(task.progress.clamp(0, 100));
+                let message = format!("{:?} ({pct:.0}%)", task.status);
+                let param = ProgressNotificationParam {
+                    progress_token: token.clone(),
+                    progress: pct,
+                    total: Some(100.0),
+                    message: Some(message),
+                };
+                let peer = peer.clone();
+                tokio::spawn(async move {
+                    let _ = peer.notify_progress(param).await;
+                });
+            })
+        } else {
+            Box::new(|_task: &tripo_api::Task| {})
+        };
+
+        let opts = WaitOptions {
+            timeout: p.timeout_seconds.map(Duration::from_secs),
+            max_interval: p
+                .max_interval_seconds
+                .map_or_else(|| Duration::from_secs(30), Duration::from_secs),
+            on_progress: Some(callback),
+            ..Default::default()
+        };
+        let task = self
+            .client
+            .wait_for_task(&p.task_id, opts)
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(task))
     }
 }
 

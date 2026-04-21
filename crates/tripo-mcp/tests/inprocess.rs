@@ -68,6 +68,39 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
+async fn calls_wait_for_task() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/task/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{"task_id":"abc","type":"text_to_model","status":"running","progress":50,"create_time":0}
+        })))
+        .up_to_n_times(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/task/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0}
+        })))
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(
+            CallToolRequestParams::new("wait_for_task").with_arguments(args(json!({
+                "task_id":"abc","max_interval_seconds":1
+            }))),
+        )
+        .await
+        .unwrap();
+    assert!(format!("{result:?}").contains("success"));
+}
+
+#[tokio::test]
 async fn calls_create_raw_task() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
