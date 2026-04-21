@@ -68,6 +68,36 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
+async fn calls_mesh_seg_completion_smart_lowpoly() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,"data":{"task_id":"z"}
+        })))
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    for (name, argv) in [
+        ("mesh_segmentation", json!({"original_model_task_id":"m"})),
+        (
+            "mesh_completion",
+            json!({"original_model_task_id":"m","part_names":["a"]}),
+        ),
+        (
+            "smart_lowpoly",
+            json!({"original_model_task_id":"m","face_limit":2000}),
+        ),
+    ] {
+        let r = client
+            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
+            .await;
+        assert!(r.is_ok(), "{name} failed: {r:?}");
+    }
+}
+
+#[tokio::test]
 async fn calls_texture_refine_rigcheck_rig_retarget() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))

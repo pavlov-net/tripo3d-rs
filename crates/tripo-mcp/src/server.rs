@@ -453,6 +453,78 @@ impl TripoServer {
             .map_err(to_error_data)?;
         Ok(Json(params::TaskCreated { task_id: id }))
     }
+
+    /// Decompose a model into semantic parts.
+    #[tool(
+        name = "mesh_segmentation",
+        description = "Decompose a model into semantic parts.",
+        annotations(
+            title = "Mesh Segmentation",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn mesh_segmentation(
+        &self,
+        Parameters(req): Parameters<tripo_api::MeshSegmentationRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::MeshSegmentation(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Fill holes in an existing mesh.
+    #[tool(
+        name = "mesh_completion",
+        description = "Complete missing parts of an existing mesh.",
+        annotations(
+            title = "Mesh Completion",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn mesh_completion(
+        &self,
+        Parameters(req): Parameters<tripo_api::MeshCompletionRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::MeshCompletion(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Reduce a high-poly model to a lowpoly one.
+    #[tool(
+        name = "smart_lowpoly",
+        description = "Reduce a high-poly model to a lowpoly one.",
+        annotations(
+            title = "Smart Lowpoly",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn smart_lowpoly(
+        &self,
+        Parameters(req): Parameters<tripo_api::SmartLowpolyRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::SmartLowpoly(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
 }
 
 #[tool_handler]
