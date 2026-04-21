@@ -1,6 +1,7 @@
-//! `tripo-mcp` — MCP server exposing the Tripo 3D Generation API.
+//! `tripo-mcp` entry point.
 
 use anyhow::Result;
+use rmcp::{ServiceExt, transport::stdio};
 use tripo_mcp::server;
 
 #[tokio::main]
@@ -9,8 +10,9 @@ async fn main() -> Result<()> {
     tracing::info!("tripo-mcp starting");
 
     let client = tripo_api::Client::new()?;
-    let _server = server::TripoServer::new(client);
-    // Stdio transport wired in Task 2.
+    let server = server::TripoServer::new(client);
+    let service = server.serve(stdio()).await?;
+    service.waiting().await?;
     Ok(())
 }
 
