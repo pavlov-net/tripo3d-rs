@@ -1,0 +1,39 @@
+[package]
+name        = "tripo-mcp"
+version     = "0.1.0"
+description = "Model Context Protocol server for the Tripo 3D Generation API"
+keywords    = ["tripo", "3d", "mcp", "claude"]
+categories  = ["command-line-utilities"]
+edition     = { workspace = true }
+rust-version = { workspace = true }
+license     = { workspace = true }
+repository  = { workspace = true }
+homepage    = { workspace = true }
+
+[lib]
+name = "tripo_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tripo-mcp"
+path = "src/main.rs"
+
+[dependencies]
+tripo-api          = { path = "../tripo-api", features = ["schemars"] }
+rmcp               = { workspace = true }
+tokio              = { workspace = true }
+anyhow             = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
+schemars           = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+insta    = { workspace = true }
+wiremock = { workspace = true }
+tempfile = { workspace = true }
+tokio    = { workspace = true, features = ["rt-multi-thread", "macros"] }
+
+[lints]
+workspace = true
