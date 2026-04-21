@@ -13,31 +13,36 @@ cargo install --path crates/tripo-mcp
 
 ## Tools
 
-| Tool                   | Purpose                                | read-only | idempotent |
-| ---------------------- | -------------------------------------- | :-------: | :--------: |
-| `get_balance`          | Account balance                        |     Y     |     Y      |
-| `get_task`             | Fetch task state                       |     Y     |     Y      |
-| `wait_for_task`        | Poll until terminal; streams progress  |     Y     |     Y      |
-| `download_task_models` | Download output files                  |           |            |
-| `upload_file`          | Upload a local file, get a file token  |           |            |
-| `create_raw_task`      | Forward-compat escape hatch            |           |            |
-| `text_to_model`        | Text prompt to 3D                      |           |            |
-| `image_to_model`       | Single image to 3D                     |           |            |
-| `multiview_to_model`   | Multi-view to 3D                       |           |            |
-| `convert_model`        | Format/preset conversion               |           |            |
-| `stylize_model`        | Post-style                             |           |            |
-| `texture_model`        | Re-texture                             |           |            |
-| `refine_model`         | Refine draft                           |           |            |
-| `check_riggable`       | Rig compatibility probe                |           |            |
-| `rig_model`            | Rig the model                          |           |            |
-| `retarget_animation`   | Apply animation presets                |           |            |
-| `mesh_segmentation`    | Parts segmentation                     |           |            |
-| `mesh_completion`      | Complete missing parts                 |           |            |
-| `smart_lowpoly`        | High-poly to low-poly                  |           |            |
+Every tool advertises `open_world_hint = true` (they all call the Tripo API),
+so that column is omitted from the table below. The other three MCP
+annotation hints are set explicitly on every tool:
 
-All tools advertise MCP `open_world_hint = true`. Non-read-only tools are
-explicitly `destructive_hint = false` so clients can allow them with
-lightweight approval policies.
+| Tool                   | Purpose                                | read-only | destructive | idempotent |
+| ---------------------- | -------------------------------------- | :-------: | :---------: | :--------: |
+| `get_balance`          | Account balance                        |     Y     |      —      |     Y      |
+| `get_task`             | Fetch task state                       |     Y     |      —      |     Y      |
+| `wait_for_task`        | Poll until terminal; streams progress  |     Y     |      —      |     Y      |
+| `download_task_models` | Download output files                  |     N     |      N      |     N      |
+| `upload_file`          | Upload a local file, get a file token  |     N     |      N      |     N      |
+| `create_raw_task`      | Forward-compat escape hatch            |     N     |      N      |     N      |
+| `text_to_model`        | Text prompt to 3D                      |     N     |      N      |     N      |
+| `image_to_model`       | Single image to 3D                     |     N     |      N      |     N      |
+| `multiview_to_model`   | Multi-view to 3D                       |     N     |      N      |     N      |
+| `convert_model`        | Format/preset conversion               |     N     |      N      |     N      |
+| `stylize_model`        | Post-style                             |     N     |      N      |     N      |
+| `texture_model`        | Re-texture                             |     N     |      N      |     N      |
+| `refine_model`         | Refine draft                           |     N     |      N      |     N      |
+| `check_riggable`       | Rig compatibility probe                |     N     |      N      |     N      |
+| `rig_model`            | Rig the model                          |     N     |      N      |     N      |
+| `retarget_animation`   | Apply animation presets                |     N     |      N      |     N      |
+| `mesh_segmentation`    | Parts segmentation                     |     N     |      N      |     N      |
+| `mesh_completion`      | Complete missing parts                 |     N     |      N      |     N      |
+| `smart_lowpoly`        | High-poly to low-poly                  |     N     |      N      |     N      |
+
+`destructive_hint` is only meaningful on non-read-only tools (`—` in the
+table means the hint is not set). On every non-read-only tool it is set
+explicitly to `false` so MCP clients can allow these tools under lightweight
+approval policies.
 
 ## Claude Code client config
 
