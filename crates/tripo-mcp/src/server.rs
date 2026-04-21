@@ -7,9 +7,9 @@
 use std::sync::Arc;
 
 use rmcp::{
-    ErrorData, ServerHandler,
+    ErrorData, Json, ServerHandler,
     model::{Implementation, ProtocolVersion, ServerCapabilities, ServerInfo},
-    tool_handler, tool_router,
+    tool, tool_handler, tool_router,
 };
 use tripo_api::Client;
 
@@ -28,9 +28,24 @@ impl TripoServer {
     }
 }
 
-// Tool methods are added in subsequent tasks.
 #[tool_router]
-impl TripoServer {}
+impl TripoServer {
+    /// Get the account balance.
+    #[tool(
+        name = "get_balance",
+        description = "Get the current Tripo account balance.",
+        annotations(
+            title = "Account Balance",
+            read_only_hint = true,
+            idempotent_hint = true,
+            open_world_hint = true,
+        )
+    )]
+    async fn get_balance(&self) -> Result<Json<tripo_api::Balance>, ErrorData> {
+        let bal = self.client.get_balance().await.map_err(to_error_data)?;
+        Ok(Json(bal))
+    }
+}
 
 #[tool_handler]
 impl ServerHandler for TripoServer {
@@ -47,10 +62,6 @@ impl ServerHandler for TripoServer {
 
 /// Map a [`tripo_api::Error`] into a JSON-RPC [`ErrorData`] suitable for
 /// returning from a tool method.
-#[allow(
-    dead_code,
-    reason = "wired up as tool methods land in subsequent tasks"
-)]
 pub(crate) fn to_error_data(err: tripo_api::Error) -> ErrorData {
     match err {
         tripo_api::Error::Api {
