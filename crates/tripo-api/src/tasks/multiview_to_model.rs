@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::compress::CompressionMode;
 use crate::enums::{Orientation, Quality, TextureAlignment};
+use crate::error::Result;
 use crate::image::ImageInput;
 
 /// Request body for `multiview_to_model`. Wire `type`: `multiview_to_model`.
@@ -66,6 +67,18 @@ pub struct MultiviewToModelRequest {
     /// Smart lowpoly.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub smart_low_poly: Option<bool>,
+}
+
+impl MultiviewToModelRequest {
+    pub(crate) fn validate(&self) -> Result<()> {
+        super::validate_p1_params(
+            self.model_version.as_deref(),
+            self.quad,
+            self.smart_low_poly,
+            self.generate_parts,
+            self.geometry_quality.as_ref(),
+        )
+    }
 }
 
 fn serialize_files<S: Serializer>(v: &[Option<ImageInput>], s: S) -> Result<S::Ok, S::Error> {

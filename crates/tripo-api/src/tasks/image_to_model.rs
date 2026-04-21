@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
 use crate::enums::{Orientation, Quality, TextureAlignment};
+use crate::error::Result;
 use crate::image::ImageInput;
 
 /// Request body for `image_to_model`. Wire `type`: `image_to_model`.
@@ -59,4 +60,16 @@ pub struct ImageToModelRequest {
     /// Route through smart-lowpoly.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub smart_low_poly: Option<bool>,
+}
+
+impl ImageToModelRequest {
+    pub(crate) fn validate(&self) -> Result<()> {
+        super::validate_p1_params(
+            self.model_version.as_deref(),
+            self.quad,
+            self.smart_low_poly,
+            self.generate_parts,
+            self.geometry_quality.as_ref(),
+        )
+    }
 }

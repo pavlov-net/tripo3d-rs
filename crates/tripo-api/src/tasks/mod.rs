@@ -3,8 +3,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::client::Client;
-use crate::error::Result;
+use crate::enums::Quality;
+use crate::error::{Error, Result};
 use crate::image::ImageInput;
+use crate::versions;
 
 pub mod check_riggable;
 pub mod convert_model;
@@ -88,6 +90,19 @@ pub enum TaskRequest {
 }
 
 impl TaskRequest {
+    /// Client-side request validation. Dispatches to per-variant `validate()`.
+    /// Called from `Client::create_task` before the POST so bad requests cost
+    /// nothing and produce a usable error message.
+    pub fn validate(&self) -> Result<()> {
+        match self {
+            Self::Rig(r) => r.validate(),
+            Self::TextToModel(r) => r.validate(),
+            Self::ImageToModel(r) => r.validate(),
+            Self::MultiviewToModel(r) => r.validate(),
+            _ => Ok(()),
+        }
+    }
+
     /// Walk the request, uploading any `ImageInput::Path` entries to `file_token`s.
     /// Call this before serializing & sending.
     pub async fn upload_images(&mut self, client: &Client) -> Result<()> {
@@ -132,6 +147,44 @@ impl TaskRequest {
     }
 }
 
+/// Reject parameters that aren't supported by `model_version: P1-20260311`.
+/// P1 is a low-poly-optimized pipeline and per the docs rejects `quad`,
+/// `smart_low_poly`, `generate_parts`, and `geometry_quality`. Called from
+/// text/image/multiview `validate()`.
+pub(crate) fn validate_p1_params(
+    model_version: Option<&str>,
+    quad: Option<bool>,
+    smart_low_poly: Option<bool>,
+    generate_parts: Option<bool>,
+    geometry_quality: Option<&Quality>,
+) -> Result<()> {
+    if model_version != Some(versions::text_image::P1) {
+        return Ok(());
+    }
+    let mut unsupported: Vec<&str> = Vec::new();
+    if quad == Some(true) {
+        unsupported.push("quad");
+    }
+    if smart_low_poly == Some(true) {
+        unsupported.push("smart_low_poly");
+    }
+    if generate_parts == Some(true) {
+        unsupported.push("generate_parts");
+    }
+    if geometry_quality.is_some() {
+        unsupported.push("geometry_quality");
+    }
+    if unsupported.is_empty() {
+        Ok(())
+    } else {
+        Err(Error::InvalidRequest(format!(
+            "model_version {} does not support: {}",
+            versions::text_image::P1,
+            unsupported.join(", "),
+        )))
+    }
+}
+
 /// Helper used by variants that consume one image: uploads if the variant is
 /// `ImageInput::Path`, replacing it with `ImageInput::FileToken`.
 pub(crate) async fn upload_image_if_path(client: &Client, img: &mut ImageInput) -> Result<()> {
@@ -140,4 +193,72 @@ pub(crate) async fn upload_image_if_path(client: &Client, img: &mut ImageInput) 
         *img = ImageInput::FileToken(up.file_token);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn non_p1_version_skips_p1_checks() {
+        validate_p1_params(
+            None,
+            Some(true),
+            Some(true),
+            Some(true),
+            Some(&Quality::Detailed),
+        )
+        .unwrap();
+        validate_p1_params(
+            Some(versions::text_image::V3_1),
+            Some(true),
+            Some(true),
+            Some(true),
+            Some(&Quality::Detailed),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn p1_with_no_unsupported_fields_ok() {
+        validate_p1_params(Some(versions::text_image::P1), None, None, None, None).unwrap();
+        validate_p1_params(
+            Some(versions::text_image::P1),
+            Some(false),
+            Some(false),
+            Some(false),
+            None,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn p1_rejects_quad() {
+        let err = validate_p1_params(Some(versions::text_image::P1), Some(true), None, None, None)
+            .unwrap_err();
+        assert!(matches!(err, Error::InvalidRequest(ref m) if m.contains("quad")));
+    }
+
+    #[test]
+    fn p1_rejects_all_unsupported_together() {
+        let err = validate_p1_params(
+            Some(versions::text_image::P1),
+            Some(true),
+            Some(true),
+            Some(true),
+            Some(&Quality::Detailed),
+        )
+        .unwrap_err();
+        let Error::InvalidRequest(msg) = err else {
+            panic!("wrong variant");
+        };
+        for field in [
+            "quad",
+            "smart_low_poly",
+            "generate_parts",
+            "geometry_quality",
+        ] {
+            assert!(msg.contains(field), "missing {field} in {msg}");
+        }
+    }
 }

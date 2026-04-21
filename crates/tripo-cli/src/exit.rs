@@ -27,12 +27,15 @@ pub fn code_for_error(err: &anyhow::Error) -> ExitCode {
         return ExitCode::Interrupted;
     }
     if let Some(api_err) = err.downcast_ref::<tripo_api::Error>() {
+        eprintln!("error: {err:?}");
         return match api_err {
             tripo_api::Error::WaitTimeout(_) => ExitCode::Timeout,
             tripo_api::Error::Api { .. } | tripo_api::Error::Http { .. } => ExitCode::ApiError,
             tripo_api::Error::Io(_) | tripo_api::Error::FileExists(_) => ExitCode::Io,
             tripo_api::Error::TaskFailed(_, _) => ExitCode::TaskNonSuccess,
-            tripo_api::Error::MissingApiKey | tripo_api::Error::InvalidApiKey => ExitCode::Usage,
+            tripo_api::Error::MissingApiKey
+            | tripo_api::Error::InvalidApiKey
+            | tripo_api::Error::InvalidRequest(_) => ExitCode::Usage,
             _ => ExitCode::ApiError,
         };
     }

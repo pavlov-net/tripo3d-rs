@@ -97,7 +97,6 @@ fn build_http(api_key: &str) -> Result<reqwest::Client> {
         .default_headers(headers)
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_mins(1))
-        .http2_prior_knowledge()
         .build()
         .map_err(Error::from)
 }
@@ -206,6 +205,7 @@ impl Client {
         &self,
         mut req: crate::tasks::TaskRequest,
     ) -> Result<crate::types::TaskId> {
+        req.validate()?;
         req.upload_images(self).await?;
         self.create_task_raw(&serde_json::to_value(&req)?).await
     }

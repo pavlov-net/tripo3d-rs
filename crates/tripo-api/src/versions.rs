@@ -6,11 +6,14 @@
 
 /// Versions accepted by `text_to_model`, `image_to_model`.
 pub mod text_image {
-    /// Latest reasonable default (February 2026).
+    /// P1 (March 2026) — low-poly-optimized. Doesn't support `quad`,
+    /// `smart_low_poly`, `generate_parts`, or `geometry_quality`.
+    pub const P1: &str = "P1-20260311";
+    /// v3.1 (February 2026).
     pub const V3_1: &str = "v3.1-20260211";
     /// v3.0 (August 2025).
     pub const V3_0: &str = "v3.0-20250812";
-    /// v2.5 (January 2025). Python SDK's default.
+    /// v2.5 (January 2025). Server default.
     pub const V2_5: &str = "v2.5-20250123";
     /// v2.0 (September 2024).
     pub const V2_0: &str = "v2.0-20240919";
@@ -48,11 +51,14 @@ pub mod texture {
 
 /// Versions accepted by `rig_model`.
 pub mod rig {
-    /// v1.0 (March 2024).
+    /// v1.0 (March 2024). Only supports `rig_type: biped`. Server default.
     pub const V1_0: &str = "v1.0-20240301";
-    /// v2.0 (May 2025).
+    /// v2.0 (May 2025). Supports all `rig_type` values.
     pub const V2_0: &str = "v2.0-20250506";
-    /// Python SDK default.
+    /// v2.5 (February 2026). Supports all `rig_type` values.
+    pub const V2_5: &str = "v2.5-20260210";
+    /// Server default (note: v1.0 is biped-only — use `V2_5` or `V2_0` for
+    /// any non-biped `rig_type`).
     pub const DEFAULT: &str = V1_0;
 }
 

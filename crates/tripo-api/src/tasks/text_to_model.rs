@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
 use crate::enums::Quality;
+use crate::error::Result;
 
 /// Request body for `text_to_model`. Wire `type`: `text_to_model`.
 ///
@@ -59,4 +60,16 @@ pub struct TextToModelRequest {
     /// Route through the smart-lowpoly pipeline after generation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub smart_low_poly: Option<bool>,
+}
+
+impl TextToModelRequest {
+    pub(crate) fn validate(&self) -> Result<()> {
+        super::validate_p1_params(
+            self.model_version.as_deref(),
+            self.quad,
+            self.smart_low_poly,
+            self.generate_parts,
+            self.geometry_quality.as_ref(),
+        )
+    }
 }

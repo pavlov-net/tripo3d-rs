@@ -51,6 +51,10 @@ pub enum Error {
     #[error("file already exists: {0} (use --force to overwrite)")]
     FileExists(PathBuf),
 
+    /// Client-side request validation failed before the request was sent.
+    #[error("invalid request: {0}")]
+    InvalidRequest(String),
+
     /// I/O error.
     #[error(transparent)]
     Io(#[from] std::io::Error),
