@@ -68,6 +68,29 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
+async fn calls_create_raw_task() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/task"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,"data":{"task_id":"raw"}
+        })))
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(
+            CallToolRequestParams::new("create_raw_task").with_arguments(args(json!({
+                "body": {"type":"text_to_model","prompt":"x"}
+            }))),
+        )
+        .await
+        .unwrap();
+    assert!(format!("{result:?}").contains("raw"));
+}
+
+#[tokio::test]
 async fn calls_upload_file() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))

@@ -95,6 +95,31 @@ impl TripoServer {
             .map_err(to_error_data)?;
         Ok(Json(up))
     }
+
+    /// Submit an arbitrary JSON body to `POST /task`. Forward-compatibility
+    /// escape hatch for variants not in the typed surface.
+    #[tool(
+        name = "create_raw_task",
+        description = "Submit a raw JSON task body to POST /task. Use when a variant isn't in the typed surface.",
+        annotations(
+            title = "Create Task (raw)",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn create_raw_task(
+        &self,
+        Parameters(p): Parameters<params::RawTaskParams>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task_raw(&p.body)
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
 }
 
 #[tool_handler]
