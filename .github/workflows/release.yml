@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    environment: ${{ matrix.environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: blacksmith-4vcpu-ubuntu-2404
+            environment: ''
+          - target: aarch64-unknown-linux-gnu
+            os: blacksmith-4vcpu-ubuntu-2404-arm
+            environment: ''
+          - target: x86_64-apple-darwin
+            os: blacksmith-6vcpu-macos-latest
+            environment: ''
+          - target: aarch64-apple-darwin
+            os: blacksmith-6vcpu-macos-latest
+            environment: ''
+          - target: x86_64-pc-windows-msvc
+            os: blacksmith-4vcpu-windows-2025
+            environment: signing
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable @ 2026-04
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.target }}-cargo-
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }} --bin tripo --bin tripo-mcp
+
+      - name: Azure login (OIDC)
+        if: runner.os == 'Windows'
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - name: Sign exes (Windows)
+        if: runner.os == 'Windows'
+        uses: Azure/artifact-signing-action@b443cf8ea4124818d2ea9f043cba29fc3ec47b16 # v1.2.0
+        with:
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_SIGNING_PROFILE }}
+          files: |
+            ${{ github.workspace }}/target/${{ matrix.target }}/release/tripo.exe
+            ${{ github.workspace }}/target/${{ matrix.target }}/release/tripo-mcp.exe
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          cd target/${TARGET}/release
+          tar czf ../../../tripo3d-${TARGET}.tar.gz tripo tripo-mcp
+          cd ../../..
+          sha256sum tripo3d-${TARGET}.tar.gz > tripo3d-${TARGET}.tar.gz.sha256
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        env:
+          TARGET: ${{ matrix.target }}
+        shell: pwsh
+        run: |
+          cd target/$env:TARGET/release
+          Compress-Archive -Path tripo.exe,tripo-mcp.exe -DestinationPath ../../../tripo3d-$env:TARGET.zip
+          cd ../../..
+          (Get-FileHash -Algorithm SHA256 "tripo3d-$env:TARGET.zip").Hash.ToLower() + "  tripo3d-$env:TARGET.zip" | Out-File -Encoding ascii "tripo3d-$env:TARGET.zip.sha256"
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          TARGET: ${{ matrix.target }}
+        run: gh release upload "${TAG}" tripo3d-${TARGET}.* --clobber
+        shell: bash

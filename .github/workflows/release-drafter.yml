@@ -1,0 +1,47 @@
+name: Release Drafter
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-drafter:
+    name: Release Drafter
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    steps:
+      - uses: release-drafter/release-drafter@5de93583980a40bd78603b6dfdcda5b4df377b32 # v7
+        id: drafter
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable @ 2026-04
+        with:
+          toolchain: stable
+
+      - name: Install cargo-edit
+        uses: taiki-e/install-action@055f5df8c3f65ea01cd41e9dc855becd88953486 # v2.75.18
+        with:
+          tool: cargo-edit
+
+      - name: Bump version
+        env:
+          VERSION: ${{ steps.drafter.outputs.resolved_version }}
+        run: cargo set-version "$VERSION"
+
+      - name: Commit changes
+        env:
+          VERSION: ${{ steps.drafter.outputs.resolved_version }}
+        run: |
+          if ! git diff --quiet Cargo.toml Cargo.lock; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add Cargo.toml Cargo.lock
+            git commit -m "Bump version to ${VERSION} [skip ci]"
+            git push
+          fi
