@@ -1,6 +1,6 @@
 [package]
 name        = "tripo-mcp"
-version     = "0.1.2"
+version     = "0.1.3"
 description = "Unofficial Model Context Protocol server for the Tripo 3D Generation API"
 keywords    = ["tripo", "3d", "mcp", "claude"]
 categories  = ["command-line-utilities"]

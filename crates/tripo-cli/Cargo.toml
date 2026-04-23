@@ -1,6 +1,6 @@
 [package]
 name         = "tripo-cli"
-version      = "0.1.2"
+version      = "0.1.3"
 description  = "Unofficial command-line client for the Tripo 3D Generation API"
 keywords     = ["tripo", "3d", "cli"]
 categories   = ["command-line-utilities"]
@@ -15,7 +15,7 @@ name = "tripo"
 path = "src/main.rs"
 
 [dependencies]
-tripo-api          = { path = "../tripo-api", version = "0.1.2" }
+tripo-api          = { path = "../tripo-api", version = "0.1.3" }
 clap               = { workspace = true }
 clap_complete      = { workspace = true }
 tokio              = { workspace = true }
