@@ -3,7 +3,7 @@ source: crates/tripo-cli/tests/help.rs
 assertion_line: 15
 expression: "help_of(&[])"
 ---
-Command-line client for the Tripo 3D Generation API
+Unofficial command-line client for the Tripo 3D Generation API
 
 Usage: tripo [OPTIONS] <COMMAND>
 

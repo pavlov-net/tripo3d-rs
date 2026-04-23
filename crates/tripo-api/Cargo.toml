@@ -1,7 +1,7 @@
 [package]
 name        = "tripo-api"
 version     = "0.1.2"
-description = "Async Rust client for the Tripo 3D Generation API"
+description = "Unofficial async Rust client for the Tripo 3D Generation API"
 keywords    = ["tripo", "3d", "api", "sdk", "async"]
 categories  = ["api-bindings", "asynchronous"]
 edition     = { workspace = true }
@@ -13,6 +13,12 @@ homepage    = { workspace = true }
 [features]
 default  = []
 schemars = ["dep:schemars"]
+
+[package.metadata.docs.rs]
+# Build docs.rs with all features so the `schemars` JsonSchema derives on
+# public types show up in the rendered documentation.
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 tokio      = { workspace = true }

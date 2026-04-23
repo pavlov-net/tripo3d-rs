@@ -1,6 +1,6 @@
 # tripo-mcp
 
-Model Context Protocol server for the [Tripo 3D Generation API](https://platform.tripo3d.ai/docs/).
+Unofficial Model Context Protocol server for the [Tripo 3D Generation API](https://platform.tripo3d.ai/docs/).
 
 Exposes every Tripo operation as an MCP tool. Speaks stdio — works with Claude
 Code or any other MCP-aware client.

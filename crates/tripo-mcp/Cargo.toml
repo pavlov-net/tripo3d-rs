@@ -1,7 +1,7 @@
 [package]
 name        = "tripo-mcp"
 version     = "0.1.2"
-description = "Model Context Protocol server for the Tripo 3D Generation API"
+description = "Unofficial Model Context Protocol server for the Tripo 3D Generation API"
 keywords    = ["tripo", "3d", "mcp", "claude"]
 categories  = ["command-line-utilities"]
 edition     = { workspace = true }
@@ -9,6 +9,7 @@ rust-version = { workspace = true }
 license     = { workspace = true }
 repository  = { workspace = true }
 homepage    = { workspace = true }
+publish     = false
 
 [lib]
 name = "tripo_mcp"
