@@ -1,11 +1,31 @@
-//! Shared typed enums used across multiple request structs.
+//! Shared typed enums used across request and response structs.
 //!
-//! Each enum carries an `Unknown(String)` variant via `#[serde(other)]` so
-//! forward-compatible servers don't break deserialization when new values are added.
+//! Two flavors:
+//! - [`string_enum!`] — strict. Unknown wire values fail to deserialize. Used
+//!   for request payloads so typos in user-supplied config (RON, CLI args)
+//!   surface as errors instead of silently becoming an `Unknown` variant.
+//! - [`string_enum_open!`] — forward-compatible. Adds a `#[serde(other)]
+//!   Unknown` catchall so new server-side values don't break response parsing.
 
 use serde::{Deserialize, Serialize};
 
 macro_rules! string_enum {
+    ($(#[$meta:meta])* $vis:vis enum $name:ident { $($(#[$vmeta:meta])* $variant:ident => $wire:literal),+ $(,)? }) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+        #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+        $vis enum $name {
+            $(
+                #[doc = concat!("Wire value: `", $wire, "`.")]
+                $(#[$vmeta])*
+                #[serde(rename = $wire)]
+                $variant,
+            )+
+        }
+    };
+}
+
+macro_rules! string_enum_open {
     ($(#[$meta:meta])* $vis:vis enum $name:ident { $($(#[$vmeta:meta])* $variant:ident => $wire:literal),+ $(,)? }) => {
         $(#[$meta])*
         #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,8 +66,18 @@ string_enum! {
 }
 
 string_enum! {
-    /// Biological rig classification.
+    /// Biological rig classification. Strict — used in `rig_model` requests.
     pub enum RigType {
+        Biped => "biped", Quadruped => "quadruped", Hexapod => "hexapod",
+        Octopod => "octopod", Avian => "avian", Serpentine => "serpentine",
+        Aquatic => "aquatic", Others => "others",
+    }
+}
+
+string_enum_open! {
+    /// Rig classification reported by `check_riggable`. Forward-compatible —
+    /// unrecognized server values deserialize as `Unknown`.
+    pub enum RigTypeResponse {
         Biped => "biped", Quadruped => "quadruped", Hexapod => "hexapod",
         Octopod => "octopod", Avian => "avian", Serpentine => "serpentine",
         Aquatic => "aquatic", Others => "others",
@@ -155,9 +185,24 @@ mod tests {
     }
 
     #[test]
-    fn unknown_variant_accepted_on_deserialize() {
-        let got: PostStyle = serde_json::from_str("\"brand_new_style\"").unwrap();
-        assert_eq!(got, PostStyle::Unknown);
+    fn strict_enum_rejects_unknown_value() {
+        let err = serde_json::from_str::<PostStyle>("\"brand_new_style\"").unwrap_err();
+        assert!(err.to_string().contains("unknown variant"), "{err}");
+    }
+
+    #[test]
+    fn strict_enum_rejects_wrong_case() {
+        // Guards against the footgun where e.g. `"Detailed"` silently became
+        // `Quality::Unknown` instead of erroring, since the wire value is
+        // lowercase `"detailed"`.
+        let err = serde_json::from_str::<Quality>("\"Detailed\"").unwrap_err();
+        assert!(err.to_string().contains("unknown variant"), "{err}");
+    }
+
+    #[test]
+    fn open_enum_accepts_unknown_value() {
+        let got: RigTypeResponse = serde_json::from_str("\"brand_new_rig\"").unwrap();
+        assert_eq!(got, RigTypeResponse::Unknown);
     }
 
     #[test]
