@@ -32,16 +32,26 @@ jobs:
       - name: Bump version
         env:
           VERSION: ${{ steps.drafter.outputs.resolved_version }}
-        run: cargo set-version "$VERSION"
+        # --offline blocks registry access so this step can only rewrite
+        # workspace member versions and can't opportunistically change any
+        # dependency pins in Cargo.lock.
+        run: cargo set-version --offline "$VERSION"
 
       - name: Commit changes
         env:
           VERSION: ${{ steps.drafter.outputs.resolved_version }}
         run: |
-          if ! git diff --quiet Cargo.toml Cargo.lock; then
+          # Commit exactly the files `cargo set-version` can touch: the root
+          # Cargo.lock plus each workspace member's Cargo.toml. The previous
+          # `git add Cargo.toml Cargo.lock` missed the member manifests since
+          # the root Cargo.toml is virtual (no version). Scoped explicitly so
+          # future workflow steps can't sneak unrelated changes into a "Bump
+          # version" commit.
+          paths=(Cargo.lock crates/*/Cargo.toml)
+          if ! git diff --quiet -- "${paths[@]}"; then
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git add Cargo.toml Cargo.lock
+            git add -- "${paths[@]}"
             git commit -m "Bump version to ${VERSION} [skip ci]"
             git push
           fi
