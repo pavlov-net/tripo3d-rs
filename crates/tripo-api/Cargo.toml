@@ -1,6 +1,6 @@
 [package]
 name        = "tripo-api"
-version     = "0.1.1"
+version     = "0.1.2"
 description = "Async Rust client for the Tripo 3D Generation API"
 keywords    = ["tripo", "3d", "api", "sdk", "async"]
 categories  = ["api-bindings", "asynchronous"]
