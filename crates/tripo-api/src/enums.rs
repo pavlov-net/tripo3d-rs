@@ -1,10 +1,10 @@
 //! Shared typed enums used across request and response structs.
 //!
 //! Two flavors:
-//! - [`string_enum!`] — strict. Unknown wire values fail to deserialize. Used
+//! - `string_enum!` — strict. Unknown wire values fail to deserialize. Used
 //!   for request payloads so typos in user-supplied config (RON, CLI args)
 //!   surface as errors instead of silently becoming an `Unknown` variant.
-//! - [`string_enum_open!`] — forward-compatible. Adds a `#[serde(other)]
+//! - `string_enum_open!` — forward-compatible. Adds a `#[serde(other)]
 //!   Unknown` catchall so new server-side values don't break response parsing.
 
 use serde::{Deserialize, Serialize};
