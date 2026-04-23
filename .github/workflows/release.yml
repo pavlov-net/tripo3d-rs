@@ -109,6 +109,11 @@ jobs:
   publish-crates:
     name: Publish to crates.io
     needs: build
+    # Scoped to a GitHub environment so only workflow runs triggered from a
+    # `v*.*.*` tag can mint a crates.io publish token. Configure the env's
+    # deployment-tag rule in the repo settings; the matching environment name
+    # also has to be set on each crate's Trusted Publisher entry on crates.io.
+    environment: crates-io
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout
