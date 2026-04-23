@@ -113,7 +113,7 @@ pub struct TaskOutput {
     pub riggable: Option<bool>,
     /// Populated by `check_riggable`.
     #[serde(default)]
-    pub rig_type: Option<crate::enums::RigType>,
+    pub rig_type: Option<crate::enums::RigTypeResponse>,
 }
 
 /// Task record returned by `GET /task/{id}`.

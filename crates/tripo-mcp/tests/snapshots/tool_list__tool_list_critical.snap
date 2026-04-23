@@ -1,5 +1,6 @@
 ---
 source: crates/tripo-mcp/tests/tool_list.rs
+assertion_line: 24
 expression: "serde_json::to_value(&critical).unwrap()"
 ---
 [
@@ -71,11 +72,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
             {
               "const": "detailed",
               "description": "Wire value: `detailed`.",
-              "type": "string"
-            },
-            {
-              "const": "Unknown",
-              "description": "Unknown value received from a forward-compatible server.",
               "type": "string"
             }
           ]
@@ -288,8 +284,8 @@ expression: "serde_json::to_value(&critical).unwrap()"
     "name": "wait_for_task",
     "outputSchema": {
       "$defs": {
-        "RigType": {
-          "description": "Biological rig classification.",
+        "RigTypeResponse": {
+          "description": "Rig classification reported by `check_riggable`. Forward-compatible —\nunrecognized server values deserialize as `Unknown`.",
           "oneOf": [
             {
               "const": "biped",
@@ -380,7 +376,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
             "rig_type": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/RigType"
+                  "$ref": "#/$defs/RigTypeResponse"
                 },
                 {
                   "type": "null"
