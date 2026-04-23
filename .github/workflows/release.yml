@@ -105,3 +105,32 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: gh release upload "${TAG}" tripo3d-${TARGET}.* --clobber
         shell: bash
+
+  publish-crates:
+    name: Publish to crates.io
+    needs: build
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable @ 2026-04
+        with:
+          toolchain: stable
+
+      - name: Authenticate with crates.io
+        id: auth
+        uses: rust-lang/crates-io-auth-action@bbd81622f20ce9e2dd9622e3218b975523e45bbe # v1.0.4
+
+      # tripo-api is published first so the sparse index has it by the time
+      # tripo-cli's publish tries to resolve its `tripo-api` dependency.
+      - name: Publish tripo-api
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish -p tripo-api --locked
+
+      - name: Publish tripo-cli
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish -p tripo-cli --locked
