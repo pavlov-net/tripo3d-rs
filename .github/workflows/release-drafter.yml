@@ -32,10 +32,14 @@ jobs:
       - name: Bump version
         env:
           VERSION: ${{ steps.drafter.outputs.resolved_version }}
-        # --offline blocks registry access so this step can only rewrite
-        # workspace member versions and can't opportunistically change any
-        # dependency pins in Cargo.lock.
-        run: cargo set-version --offline "$VERSION"
+        # Note: `cargo set-version` needs network access — it invokes
+        # `cargo metadata` internally, which fails with `--offline` or
+        # `--locked` on a clean CI cache. The tool only rewrites workspace
+        # member version strings in Cargo.toml and the matching entries in
+        # Cargo.lock; it does not change any dependency pins. The scoped
+        # `git add` in the Commit step is what guarantees unrelated files
+        # can't sneak into a release commit.
+        run: cargo set-version "$VERSION"
 
       - name: Commit changes
         env:
