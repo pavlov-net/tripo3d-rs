@@ -32,16 +32,30 @@ jobs:
       - name: Bump version
         env:
           VERSION: ${{ steps.drafter.outputs.resolved_version }}
+        # Note: `cargo set-version` needs network access — it invokes
+        # `cargo metadata` internally, which fails with `--offline` or
+        # `--locked` on a clean CI cache. The tool only rewrites workspace
+        # member version strings in Cargo.toml and the matching entries in
+        # Cargo.lock; it does not change any dependency pins. The scoped
+        # `git add` in the Commit step is what guarantees unrelated files
+        # can't sneak into a release commit.
         run: cargo set-version "$VERSION"
 
       - name: Commit changes
         env:
           VERSION: ${{ steps.drafter.outputs.resolved_version }}
         run: |
-          if ! git diff --quiet Cargo.toml Cargo.lock; then
+          # Commit exactly the files `cargo set-version` can touch: the root
+          # Cargo.lock plus each workspace member's Cargo.toml. The previous
+          # `git add Cargo.toml Cargo.lock` missed the member manifests since
+          # the root Cargo.toml is virtual (no version). Scoped explicitly so
+          # future workflow steps can't sneak unrelated changes into a "Bump
+          # version" commit.
+          paths=(Cargo.lock crates/*/Cargo.toml)
+          if ! git diff --quiet -- "${paths[@]}"; then
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git add Cargo.toml Cargo.lock
+            git add -- "${paths[@]}"
             git commit -m "Bump version to ${VERSION} [skip ci]"
             git push
           fi
