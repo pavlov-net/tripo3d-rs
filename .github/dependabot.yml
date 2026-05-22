@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 2
+    groups:
+      rust-patch:
+        update-types:
+          - "patch"
+      rust-minor:
+        update-types:
+          - "minor"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 2
+    groups:
+      github-actions:
+        update-types:
+          - "patch"
+          - "minor"
