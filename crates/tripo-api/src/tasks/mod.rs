@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::client::Client;
-use crate::enums::Quality;
+use crate::enums::GeometryQuality;
 use crate::error::{Error, Result};
 use crate::image::ImageInput;
 use crate::versions;
@@ -156,7 +156,7 @@ pub(crate) fn validate_p1_params(
     quad: Option<bool>,
     smart_low_poly: Option<bool>,
     generate_parts: Option<bool>,
-    geometry_quality: Option<&Quality>,
+    geometry_quality: Option<&GeometryQuality>,
 ) -> Result<()> {
     if model_version != Some(versions::text_image::P1) {
         return Ok(());
@@ -206,7 +206,7 @@ mod tests {
             Some(true),
             Some(true),
             Some(true),
-            Some(&Quality::Detailed),
+            Some(&GeometryQuality::Detailed),
         )
         .unwrap();
         validate_p1_params(
@@ -214,7 +214,7 @@ mod tests {
             Some(true),
             Some(true),
             Some(true),
-            Some(&Quality::Detailed),
+            Some(&GeometryQuality::Detailed),
         )
         .unwrap();
     }
@@ -246,7 +246,7 @@ mod tests {
             Some(true),
             Some(true),
             Some(true),
-            Some(&Quality::Detailed),
+            Some(&GeometryQuality::Detailed),
         )
         .unwrap_err();
         let Error::InvalidRequest(msg) = err else {

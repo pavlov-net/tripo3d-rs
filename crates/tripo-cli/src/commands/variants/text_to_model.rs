@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use clap::Args;
-use tripo_api::enums::Quality;
+use tripo_api::enums::{GeometryQuality, TextureQuality};
 use tripo_api::{CompressionMode, TaskRequest, TextToModelRequest};
 
 use crate::commands::variants::{VariantArgs, VariantRunOpts};
@@ -38,12 +38,12 @@ pub struct TextToModelArgs {
     /// Seed for texture generation.
     #[arg(long)]
     pub texture_seed: Option<i32>,
-    /// Texture quality preset.
-    #[arg(long, value_parser = super::parsers::quality)]
-    pub texture_quality: Option<Quality>,
-    /// Geometry quality preset.
-    #[arg(long, value_parser = super::parsers::quality)]
-    pub geometry_quality: Option<Quality>,
+    /// Texture quality preset (standard|detailed|extreme).
+    #[arg(long, value_parser = super::parsers::texture_quality)]
+    pub texture_quality: Option<TextureQuality>,
+    /// Geometry quality preset (standard|detailed).
+    #[arg(long, value_parser = super::parsers::geometry_quality)]
+    pub geometry_quality: Option<GeometryQuality>,
     /// Auto-size the output mesh.
     #[arg(long)]
     pub auto_size: Option<bool>,

@@ -54,11 +54,14 @@ pub mod rig {
     /// v1.0 (March 2024). Only supports `rig_type: biped`. Server default.
     pub const V1_0: &str = "v1.0-20240301";
     /// v2.0 (May 2025). Supports all `rig_type` values.
+    ///
+    /// Deprecated by API 1.9.7 (June 2026) in favor of [`V2_5`].
+    #[deprecated(note = "rig v2.0-20250506 is deprecated (API 1.9.7); use V2_5 instead")]
     pub const V2_0: &str = "v2.0-20250506";
-    /// v2.5 (February 2026). Supports all `rig_type` values.
+    /// v2.5 (February 2026). Supports all `rig_type` values. Current recommended rigger.
     pub const V2_5: &str = "v2.5-20260210";
-    /// Server default (note: v1.0 is biped-only — use `V2_5` or `V2_0` for
-    /// any non-biped `rig_type`).
+    /// Server default (note: v1.0 is biped-only — use `V2_5` for any non-biped
+    /// `rig_type`).
     pub const DEFAULT: &str = V1_0;
 }
 

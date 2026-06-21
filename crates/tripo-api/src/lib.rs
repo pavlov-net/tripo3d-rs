@@ -32,8 +32,9 @@ pub use client::{
 pub use compress::CompressionMode;
 pub use download::{DownloadOptions, DownloadedFiles, OutputKind};
 pub use enums::{
-    Animation, ExportOrientation, FbxPreset, Orientation, OutputFormat, PostStyle, Quality,
+    Animation, ExportOrientation, FbxPreset, GeometryQuality, Orientation, OutputFormat, PostStyle,
     RigOutputFormat, RigSpec, RigType, RigTypeResponse, TextureAlignment, TextureFormat,
+    TextureQuality,
 };
 pub use error::{Error, Result};
 pub use image::ImageInput;

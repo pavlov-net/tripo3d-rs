@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use clap::Args;
-use tripo_api::enums::{Quality, TextureAlignment};
+use tripo_api::enums::{TextureAlignment, TextureQuality};
 use tripo_api::{CompressionMode, ImageInput, TaskRequest, TextureModelRequest, TexturePrompt};
 
 use crate::commands::variants::{VariantArgs, VariantRunOpts};
@@ -37,9 +37,9 @@ pub struct TextureModelArgs {
     /// Texture seed.
     #[arg(long)]
     pub texture_seed: Option<i32>,
-    /// Texture quality preset.
-    #[arg(long, value_parser = super::parsers::quality)]
-    pub texture_quality: Option<Quality>,
+    /// Texture quality preset (standard|detailed|extreme).
+    #[arg(long, value_parser = super::parsers::texture_quality)]
+    pub texture_quality: Option<TextureQuality>,
     /// Texture alignment strategy.
     #[arg(long, value_parser = super::parsers::texture_alignment)]
     pub texture_alignment: Option<TextureAlignment>,

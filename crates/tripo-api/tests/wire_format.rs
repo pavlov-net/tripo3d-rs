@@ -4,7 +4,9 @@
 use serde_json::Value;
 use tripo_api::{
     CompressionMode, ConvertModelRequest, FbxPreset, ImageInput, ImageToModelRequest,
-    MultiviewToModelRequest, OutputFormat, TextToModelRequest, enums::Quality, tasks::TaskRequest,
+    MultiviewToModelRequest, OutputFormat, TextToModelRequest,
+    enums::{GeometryQuality, TextureQuality},
+    tasks::TaskRequest,
 };
 
 fn json_of<T: serde::Serialize>(t: &T) -> Value {
@@ -31,8 +33,8 @@ fn text_to_model_full() {
         prompt: "a red robot".into(),
         negative_prompt: Some("low quality".into()),
         model_version: Some("v2.5-20250123".into()),
-        texture_quality: Some(Quality::Detailed),
-        geometry_quality: Some(Quality::Standard),
+        texture_quality: Some(TextureQuality::Detailed),
+        geometry_quality: Some(GeometryQuality::Standard),
         auto_size: Some(true),
         quad: Some(false),
         compress: Some(CompressionMode::Geometry),

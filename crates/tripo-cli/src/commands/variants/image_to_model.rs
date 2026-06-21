@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use clap::Args;
-use tripo_api::enums::{Orientation, Quality, TextureAlignment};
+use tripo_api::enums::{GeometryQuality, Orientation, TextureAlignment, TextureQuality};
 use tripo_api::{CompressionMode, ImageInput, ImageToModelRequest, TaskRequest};
 
 use crate::commands::variants::{VariantArgs, VariantRunOpts};
@@ -32,12 +32,12 @@ pub struct ImageToModelArgs {
     /// Texture seed.
     #[arg(long)]
     pub texture_seed: Option<i32>,
-    /// Texture quality preset.
-    #[arg(long, value_parser = super::parsers::quality)]
-    pub texture_quality: Option<Quality>,
-    /// Geometry quality preset.
-    #[arg(long, value_parser = super::parsers::quality)]
-    pub geometry_quality: Option<Quality>,
+    /// Texture quality preset (standard|detailed|extreme).
+    #[arg(long, value_parser = super::parsers::texture_quality)]
+    pub texture_quality: Option<TextureQuality>,
+    /// Geometry quality preset (standard|detailed).
+    #[arg(long, value_parser = super::parsers::geometry_quality)]
+    pub geometry_quality: Option<GeometryQuality>,
     /// Texture alignment strategy.
     #[arg(long, value_parser = super::parsers::texture_alignment)]
     pub texture_alignment: Option<TextureAlignment>,

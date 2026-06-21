@@ -30,9 +30,10 @@ pub struct RigModelRequest {
 impl RigModelRequest {
     /// Reject non-biped `rig_type` with a rigger version that only supports
     /// biped. The server's default rigger (`v1.0-20240301`) is biped-only, so
-    /// any non-biped `rig_type` requires an explicit `--model-version v2.0-20250506`
-    /// or `v2.5-20260210`. Without this check, the server returns `error_code:
-    /// 1004` ("one or more of your parameter is invalid") with no `error_msg`.
+    /// any non-biped `rig_type` requires an explicit `--model-version v2.5-20260210`
+    /// (v2.0-20250506 still works but is deprecated as of API 1.9.7). Without this
+    /// check, the server returns `error_code: 1004` ("one or more of your parameter
+    /// is invalid") with no `error_msg`.
     pub(crate) fn validate(&self) -> Result<()> {
         let non_biped = matches!(
             self.rig_type,
@@ -52,10 +53,9 @@ impl RigModelRequest {
         };
         if non_biped && biped_only_version {
             return Err(Error::InvalidRequest(format!(
-                "rig_type {:?} requires model_version {} or {} — the default/v1.0 rigger only supports biped",
+                "rig_type {:?} requires model_version {} — the default/v1.0 rigger only supports biped",
                 self.rig_type.as_ref().unwrap(),
                 versions::rig::V2_5,
-                versions::rig::V2_0,
             )));
         }
         Ok(())
@@ -103,6 +103,9 @@ mod tests {
 
     #[test]
     fn avian_with_v2_is_accepted() {
+        // v2.0 is deprecated but still accepted server-side, so validation must
+        // not reject it.
+        #[allow(deprecated)]
         req(Some(RigType::Avian), Some(versions::rig::V2_0))
             .validate()
             .unwrap();

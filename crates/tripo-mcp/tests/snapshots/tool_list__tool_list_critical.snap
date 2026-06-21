@@ -61,8 +61,8 @@ expression: "serde_json::to_value(&critical).unwrap()"
             }
           ]
         },
-        "Quality": {
-          "description": "Texture / geometry quality level.",
+        "GeometryQuality": {
+          "description": "Geometry quality level (`geometry_quality`).\n\nNote: unlike [`TextureQuality`], there is no `extreme` geometry tier.",
           "oneOf": [
             {
               "const": "standard",
@@ -72,6 +72,26 @@ expression: "serde_json::to_value(&critical).unwrap()"
             {
               "const": "detailed",
               "description": "Wire value: `detailed`.",
+              "type": "string"
+            }
+          ]
+        },
+        "TextureQuality": {
+          "description": "Texture quality level (`texture_quality`).\n\n`extreme` (added in API 1.9.7, June 2026) is the top tier — Tripo bills\nit as the highest-resolution PBR texture output. It is valid only for\n`texture_quality`, not `geometry_quality`; see [`GeometryQuality`].",
+          "oneOf": [
+            {
+              "const": "standard",
+              "description": "Wire value: `standard`.",
+              "type": "string"
+            },
+            {
+              "const": "detailed",
+              "description": "Wire value: `detailed`.",
+              "type": "string"
+            },
+            {
+              "const": "extreme",
+              "description": "Wire value: `extreme`.",
               "type": "string"
             }
           ]
@@ -117,7 +137,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
         "geometry_quality": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Quality"
+              "$ref": "#/$defs/GeometryQuality"
             },
             {
               "type": "null"
@@ -190,7 +210,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
         "texture_quality": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Quality"
+              "$ref": "#/$defs/TextureQuality"
             },
             {
               "type": "null"
