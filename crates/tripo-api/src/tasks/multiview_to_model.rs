@@ -6,7 +6,7 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::compress::CompressionMode;
-use crate::enums::{Orientation, Quality, TextureAlignment};
+use crate::enums::{GeometryQuality, Orientation, TextureAlignment, TextureQuality};
 use crate::error::Result;
 use crate::image::ImageInput;
 
@@ -42,10 +42,10 @@ pub struct MultiviewToModelRequest {
     pub texture_seed: Option<i32>,
     /// Texture quality.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub texture_quality: Option<Quality>,
+    pub texture_quality: Option<TextureQuality>,
     /// Geometry quality.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub geometry_quality: Option<Quality>,
+    pub geometry_quality: Option<GeometryQuality>,
     /// Texture alignment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_alignment: Option<TextureAlignment>,

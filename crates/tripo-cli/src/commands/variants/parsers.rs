@@ -2,13 +2,28 @@
 //!
 //! Single-variant parsers stay private to their defining module.
 
-use tripo_api::enums::{Orientation, Quality, RigOutputFormat, TextureAlignment};
+use tripo_api::enums::{
+    GeometryQuality, Orientation, RigOutputFormat, TextureAlignment, TextureQuality,
+};
 
-pub fn quality(s: &str) -> Result<Quality, String> {
+pub fn texture_quality(s: &str) -> Result<TextureQuality, String> {
     match s {
-        "standard" => Ok(Quality::Standard),
-        "detailed" => Ok(Quality::Detailed),
-        o => Err(format!("invalid quality `{o}` — use standard|detailed")),
+        "standard" => Ok(TextureQuality::Standard),
+        "detailed" => Ok(TextureQuality::Detailed),
+        "extreme" => Ok(TextureQuality::Extreme),
+        o => Err(format!(
+            "invalid texture quality `{o}` — use standard|detailed|extreme"
+        )),
+    }
+}
+
+pub fn geometry_quality(s: &str) -> Result<GeometryQuality, String> {
+    match s {
+        "standard" => Ok(GeometryQuality::Standard),
+        "detailed" => Ok(GeometryQuality::Detailed),
+        o => Err(format!(
+            "invalid geometry quality `{o}` — use standard|detailed"
+        )),
     }
 }
 

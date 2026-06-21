@@ -115,8 +115,23 @@ string_enum! {
 }
 
 string_enum! {
-    /// Texture / geometry quality level.
-    pub enum Quality {
+    /// Texture quality level (`texture_quality`).
+    ///
+    /// `extreme` (added in API 1.9.7, June 2026) is the top tier — Tripo bills
+    /// it as the highest-resolution PBR texture output. It is valid only for
+    /// `texture_quality`, not `geometry_quality`; see [`GeometryQuality`].
+    pub enum TextureQuality {
+        Standard => "standard",
+        Detailed => "detailed",
+        Extreme  => "extreme",
+    }
+}
+
+string_enum! {
+    /// Geometry quality level (`geometry_quality`).
+    ///
+    /// Note: unlike [`TextureQuality`], there is no `extreme` geometry tier.
+    pub enum GeometryQuality {
         Standard => "standard",
         Detailed => "detailed",
     }
@@ -193,10 +208,20 @@ mod tests {
     #[test]
     fn strict_enum_rejects_wrong_case() {
         // Guards against the footgun where e.g. `"Detailed"` silently became
-        // `Quality::Unknown` instead of erroring, since the wire value is
-        // lowercase `"detailed"`.
-        let err = serde_json::from_str::<Quality>("\"Detailed\"").unwrap_err();
+        // `TextureQuality::Unknown` instead of erroring, since the wire value
+        // is lowercase `"detailed"`.
+        let err = serde_json::from_str::<TextureQuality>("\"Detailed\"").unwrap_err();
         assert!(err.to_string().contains("unknown variant"), "{err}");
+    }
+
+    #[test]
+    fn texture_quality_has_extreme_tier() {
+        let j = serde_json::to_string(&TextureQuality::Extreme).unwrap();
+        assert_eq!(j, "\"extreme\"");
+        let back: TextureQuality = serde_json::from_str("\"extreme\"").unwrap();
+        assert_eq!(back, TextureQuality::Extreme);
+        // `extreme` is texture-only — it must not deserialize as a geometry tier.
+        assert!(serde_json::from_str::<GeometryQuality>("\"extreme\"").is_err());
     }
 
     #[test]

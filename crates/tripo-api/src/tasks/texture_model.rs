@@ -7,7 +7,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
-use crate::enums::{Quality, TextureAlignment};
+use crate::enums::{TextureAlignment, TextureQuality};
 use crate::image::ImageInput;
 
 /// Sub-object carrying the three texture-prompt inputs.
@@ -59,7 +59,7 @@ pub struct TextureModelRequest {
     pub texture_seed: Option<i32>,
     /// Texture quality.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub texture_quality: Option<Quality>,
+    pub texture_quality: Option<TextureQuality>,
     /// Texture alignment strategy.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_alignment: Option<TextureAlignment>,

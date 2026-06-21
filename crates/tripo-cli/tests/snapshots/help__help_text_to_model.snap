@@ -1,6 +1,6 @@
 ---
 source: crates/tripo-cli/tests/help.rs
-assertion_line: 20
+assertion_line: 28
 expression: "help_of(&[\"text-to-model\"])"
 ---
 Generate a 3D model from a text prompt
@@ -73,10 +73,10 @@ Options:
           Seed for texture generation
 
       --texture-quality <TEXTURE_QUALITY>
-          Texture quality preset
+          Texture quality preset (standard|detailed|extreme)
 
       --geometry-quality <GEOMETRY_QUALITY>
-          Geometry quality preset
+          Geometry quality preset (standard|detailed)
 
       --auto-size <AUTO_SIZE>
           Auto-size the output mesh

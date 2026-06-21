@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
-use crate::enums::{Orientation, Quality, TextureAlignment};
+use crate::enums::{GeometryQuality, Orientation, TextureAlignment, TextureQuality};
 use crate::error::Result;
 use crate::image::ImageInput;
 
@@ -35,10 +35,10 @@ pub struct ImageToModelRequest {
     pub texture_seed: Option<i32>,
     /// Texture quality preset.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub texture_quality: Option<Quality>,
+    pub texture_quality: Option<TextureQuality>,
     /// Geometry quality preset.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub geometry_quality: Option<Quality>,
+    pub geometry_quality: Option<GeometryQuality>,
     /// Texture alignment strategy.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_alignment: Option<TextureAlignment>,

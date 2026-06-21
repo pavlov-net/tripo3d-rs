@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
-use crate::enums::Quality;
+use crate::enums::{GeometryQuality, TextureQuality};
 use crate::error::Result;
 
 /// Request body for `text_to_model`. Wire `type`: `text_to_model`.
@@ -41,10 +41,10 @@ pub struct TextToModelRequest {
     pub texture_seed: Option<i32>,
     /// Texture quality preset.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub texture_quality: Option<Quality>,
+    pub texture_quality: Option<TextureQuality>,
     /// Geometry quality preset.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub geometry_quality: Option<Quality>,
+    pub geometry_quality: Option<GeometryQuality>,
     /// Auto-size the output mesh.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_size: Option<bool>,
