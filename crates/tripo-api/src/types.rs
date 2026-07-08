@@ -88,8 +88,9 @@ pub struct Balance {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct UploadedFile {
-    /// Opaque token to pass back as `ImageInput::FileToken`.
-    pub file_token: uuid::Uuid,
+    /// Opaque token to pass back as `ImageInput::FileToken` or the `input`
+    /// field of other API calls.
+    pub file_token: String,
 }
 
 /// Download URLs and auxiliary output fields returned on the task object.
@@ -98,16 +99,13 @@ pub struct UploadedFile {
 pub struct TaskOutput {
     /// URL for the main output model.
     #[serde(default)]
-    pub model: Option<String>,
-    /// URL for the base (pre-texture) model.
-    #[serde(default)]
-    pub base_model: Option<String>,
-    /// URL for the PBR-textured model.
-    #[serde(default)]
-    pub pbr_model: Option<String>,
+    pub model_url: Option<String>,
     /// URL for a rendered preview image.
     #[serde(default)]
-    pub rendered_image: Option<String>,
+    pub rendered_image_url: Option<String>,
+    /// URL for the intermediate generated image (`text_to_model` only).
+    #[serde(default)]
+    pub generated_image_url: Option<String>,
     /// Populated by `check_riggable`.
     #[serde(default)]
     pub riggable: Option<bool>,
@@ -116,7 +114,7 @@ pub struct TaskOutput {
     pub rig_type: Option<crate::enums::RigTypeResponse>,
 }
 
-/// Task record returned by `GET /task/{id}`.
+/// Task record returned by `GET /tasks/{id}`.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Task {
@@ -136,21 +134,22 @@ pub struct Task {
     /// Progress percent 0–100.
     #[serde(default)]
     pub progress: i32,
-    /// Unix seconds.
+    /// ISO 8601 creation time (e.g. `2026-04-28T12:00:00Z`).
     #[serde(default)]
-    pub create_time: i64,
-    /// Estimated seconds until completion; used by the polling backoff.
+    pub created_at: String,
+    /// ISO 8601 completion time; set once terminal.
+    #[serde(default)]
+    pub completed_at: Option<String>,
+    /// Credits consumed by this task.
+    #[serde(default)]
+    pub credits_consumed: Option<f64>,
+    /// Estimated seconds until completion; used by the polling backoff when
+    /// present.
     #[serde(default)]
     pub running_left_time: Option<i64>,
     /// Queue depth ahead of this task.
     #[serde(default)]
     pub queuing_num: Option<i32>,
-    /// Non-zero on failure.
-    #[serde(default)]
-    pub error_code: Option<i32>,
-    /// Human-readable error message.
-    #[serde(default)]
-    pub error_msg: Option<String>,
 }
 
 #[cfg(test)]
@@ -176,6 +175,23 @@ mod tests {
         assert_eq!(task.task_id.as_str(), "abc123");
         assert_eq!(task.status, TaskStatus::Running);
         assert_eq!(task.progress, 42);
-        assert!(task.output.model.is_none());
+        assert!(task.output.model_url.is_none());
+    }
+
+    #[test]
+    fn deserializes_v3_task_body() {
+        let body = r#"{
+            "task_id":"task_abc123","type":"text_to_model","status":"success",
+            "progress":100,
+            "output":{"model_url":"https://cdn/m.glb","rendered_image_url":"https://cdn/p.png"},
+            "credits_consumed":30.0,
+            "created_at":"2026-04-28T12:00:00Z","completed_at":"2026-04-28T12:01:30Z"
+        }"#;
+        let task: Task = serde_json::from_str(body).unwrap();
+        assert_eq!(task.status, TaskStatus::Success);
+        assert_eq!(task.output.model_url.as_deref(), Some("https://cdn/m.glb"));
+        assert_eq!(task.credits_consumed, Some(30.0));
+        assert_eq!(task.created_at, "2026-04-28T12:00:00Z");
+        assert_eq!(task.completed_at.as_deref(), Some("2026-04-28T12:01:30Z"));
     }
 }

@@ -1,6 +1,6 @@
 # tripo3d-rs
 
-Unofficial Rust tooling for the [Tripo 3D Generation API](https://platform.tripo3d.ai/docs/). Turn a text prompt, a single image, or a few multi-view photos into a 3D model — then convert formats, re-texture, rig, retarget animations, segment meshes, and more.
+Unofficial Rust tooling for the [Tripo 3D Generation API](https://developers.tripo3d.ai/). Turn a text prompt, a single image, or a few multi-view photos into a 3D model — then convert formats, re-texture, rig, retarget animations, segment meshes, and more.
 
 This repo ships three things, layered on one another:
 
@@ -29,8 +29,8 @@ client.download_task_models(&task, "./out".as_ref(), Default::default()).await?;
 ```bash
 export TRIPO_API_KEY=tsk_...
 tripo text-to-model --prompt "a red robot" --output ./out
-tripo image-to-model --image ./photo.jpg --output ./out
-tripo rig-model --original-model-task-id <id> --rig-type biped --spec mixamo
+tripo image-to-model --input ./photo.jpg --output ./out
+tripo rig-model --input <id> --rig-type biped --spec mixamo
 ```
 
 See the [CLI README](crates/tripo-cli) for the full command list and exit codes.

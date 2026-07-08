@@ -20,8 +20,11 @@ pub enum Error {
         message: String,
     },
 
-    /// Structured API error envelope (Tripo returns `{code, message, suggestion}`).
-    #[error("API [{code}] {message}{}", suggestion.as_deref().map(|s| format!(" — {s}")).unwrap_or_default())]
+    /// Structured API error envelope (Tripo returns
+    /// `{code, message, suggestion, request_id}`).
+    #[error("API [{code}] {message}{}{}",
+        suggestion.as_deref().map(|s| format!(" — {s}")).unwrap_or_default(),
+        request_id.as_deref().map(|r| format!(" (request_id: {r})")).unwrap_or_default())]
     Api {
         /// API-specific error code.
         code: i32,
@@ -29,6 +32,8 @@ pub enum Error {
         message: String,
         /// Optional suggestion for how to fix the error.
         suggestion: Option<String>,
+        /// Request identifier for support/troubleshooting.
+        request_id: Option<String>,
     },
 
     /// A task polling loop observed a non-success terminal status.

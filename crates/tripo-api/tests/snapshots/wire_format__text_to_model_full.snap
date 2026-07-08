@@ -6,10 +6,9 @@ expression: json_of(&req)
   "auto_size": true,
   "compress": "geometry",
   "geometry_quality": "standard",
-  "model_version": "v2.5-20250123",
+  "model": "v3.1-20260211",
   "negative_prompt": "low quality",
   "prompt": "a red robot",
   "quad": false,
-  "texture_quality": "detailed",
-  "type": "text_to_model"
+  "texture_quality": "detailed"
 }

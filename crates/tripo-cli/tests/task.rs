@@ -7,13 +7,13 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 async fn task_get_prints_json() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "code": 0,
             "data": {
                 "task_id":"abc","type":"text_to_model","status":"success",
-                "progress":100,"create_time":1_700_000_000,
-                "output":{"model":"https://cdn/abc.glb"}
+                "progress":100,"created_at":"2026-01-01T00:00:00Z",
+                "output":{"model_url":"https://cdn/abc.glb"}
             }
         })))
         .mount(&server)
@@ -42,17 +42,17 @@ async fn task_get_prints_json() {
 async fn task_wait_succeeds() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"running","progress":10,"create_time":0}
+            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"running","progress":10,"created_at":"2026-01-01T00:00:00Z"}
         })))
         .up_to_n_times(1)
         .mount(&server)
         .await;
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0}
+            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"created_at":"2026-01-01T00:00:00Z"}
         })))
         .mount(&server)
         .await;
@@ -84,9 +84,9 @@ async fn task_wait_succeeds() {
 async fn task_wait_non_success_exit_6() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"failed","progress":100,"create_time":0,"error_msg":"boom"}
+            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"failed","progress":100,"created_at":"2026-01-01T00:00:00Z"}
         })))
         .mount(&server)
         .await;
@@ -112,11 +112,11 @@ async fn task_download_writes_model() {
     let server = MockServer::start().await;
     let url = format!("{}/files/abc.glb", server.uri());
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "code":0,"data":{
-                "task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0,
-                "output":{"model": url }
+                "task_id":"abc","type":"text_to_model","status":"success","progress":100,"created_at":"2026-01-01T00:00:00Z",
+                "output":{"model_url": url }
             }
         })))
         .mount(&server)
@@ -156,7 +156,7 @@ async fn task_download_writes_model() {
 async fn task_create_raw_posts_body() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/generation/text-to-model"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "code":0,"data":{"task_id":"newtask"}
         })))
@@ -164,7 +164,7 @@ async fn task_create_raw_posts_body() {
         .await;
 
     let tmp = tempfile::NamedTempFile::new().unwrap();
-    std::fs::write(tmp.path(), r#"{"type":"text_to_model","prompt":"a car"}"#).unwrap();
+    std::fs::write(tmp.path(), r#"{"prompt":"a car"}"#).unwrap();
 
     Command::cargo_bin("tripo")
         .unwrap()
@@ -175,6 +175,8 @@ async fn task_create_raw_posts_body() {
             &server.uri(),
             "task",
             "create",
+            "--endpoint",
+            "generation/text-to-model",
             "--body",
             tmp.path().to_str().unwrap(),
         ])

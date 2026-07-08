@@ -5,11 +5,10 @@ expression: json_of(&req)
 {
   "fbx_preset": "mixamo",
   "format": "FBX",
-  "original_model_task_id": "src-task-1",
+  "input": "task_src1",
   "part_names": [
     "head",
     "body"
   ],
-  "type": "convert_model",
   "with_animation": true
 }

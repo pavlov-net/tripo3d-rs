@@ -1,6 +1,6 @@
 # tripo
 
-Unofficial command-line client for the [Tripo 3D Generation API](https://platform.tripo3d.ai/docs/).
+Unofficial command-line client for the [Tripo 3D Generation API](https://developers.tripo3d.ai/).
 
 ## Install
 
@@ -27,10 +27,10 @@ tripo task wait <task_id>
 tripo task download <task_id> -o ./out
 
 # Variants
-tripo image-to-model --image ./photo.jpg --output ./out
-tripo multiview-to-model --image front.jpg --image "" --image back.jpg
-tripo convert-model --original-model-task-id <id> --format FBX
-tripo rig-model --original-model-task-id <id> --rig-type biped --spec mixamo
+tripo image-to-model --input ./photo.jpg --output ./out
+tripo multiview-to-model --input front.jpg --input "" --input back.jpg
+tripo convert-model --input <id> --format FBX
+tripo rig-model --input <id> --rig-type biped --spec mixamo
 
 # Balance
 tripo balance

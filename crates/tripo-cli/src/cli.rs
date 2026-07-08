@@ -104,6 +104,6 @@ pub enum Command {
     MeshSegmentation(crate::commands::variants::MeshSegmentationArgs),
     /// Fill holes in an existing mesh.
     MeshCompletion(crate::commands::variants::MeshCompletionArgs),
-    /// Reduce a high-poly model to a lowpoly one.
-    SmartLowpoly(crate::commands::variants::SmartLowpolyArgs),
+    /// Reduce model polycount (retopology; replaces v2 smart-lowpoly).
+    MeshDecimate(crate::commands::variants::MeshDecimateArgs),
 }

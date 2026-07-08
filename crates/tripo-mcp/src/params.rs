@@ -41,7 +41,10 @@ pub struct UploadParams {
 
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct RawTaskParams {
-    /// Raw JSON body to POST to `/task`. Use this for variants the SDK doesn't cover yet.
+    /// Task-creation endpoint path relative to the base URL
+    /// (e.g. `generation/text-to-model`).
+    pub endpoint: String,
+    /// Raw JSON body to POST. Use this for variants the SDK doesn't cover yet.
     pub body: serde_json::Value,
 }
 

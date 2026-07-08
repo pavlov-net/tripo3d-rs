@@ -8,8 +8,11 @@ use crate::cli::GlobalArgs;
 /// `task` subcommands: raw task escape hatches.
 #[derive(Debug, Subcommand)]
 pub enum TaskCommand {
-    /// POST arbitrary JSON to /task.
+    /// POST arbitrary JSON to a task-creation endpoint.
     Create {
+        /// Endpoint path relative to the base URL (e.g. `generation/text-to-model`).
+        #[arg(long)]
+        endpoint: String,
         /// Path to the JSON request file (or `-` for stdin).
         #[arg(long, value_name = "FILE")]
         body: std::path::PathBuf,
@@ -43,7 +46,7 @@ pub async fn run(g: &GlobalArgs, cmd: TaskCommand) -> Result<()> {
         TaskCommand::Get { task_id } => get(g, &task_id).await,
         TaskCommand::Wait { task_id, timeout } => wait(g, &task_id, timeout).await,
         TaskCommand::Download { task_id, output } => download(g, &task_id, &output).await,
-        TaskCommand::Create { body } => create(g, &body).await,
+        TaskCommand::Create { endpoint, body } => create(g, &endpoint, &body).await,
     }
 }
 
@@ -106,21 +109,13 @@ async fn download(g: &GlobalArgs, id: &str, out_dir: &std::path::Path) -> Result
             return Err(crate::signals::Interrupted.into());
         }
     };
-    for p in [
-        &files.model,
-        &files.base_model,
-        &files.pbr_model,
-        &files.rendered_image,
-    ]
-    .into_iter()
-    .flatten()
-    {
+    for p in files.paths() {
         println!("{}", p.display());
     }
     Ok(())
 }
 
-async fn create(g: &GlobalArgs, json_path: &std::path::Path) -> Result<()> {
+async fn create(g: &GlobalArgs, endpoint: &str, json_path: &std::path::Path) -> Result<()> {
     let bytes = if json_path == std::path::Path::new("-") {
         use std::io::Read;
         // Single blocking read at command startup before any concurrent work.
@@ -132,7 +127,7 @@ async fn create(g: &GlobalArgs, json_path: &std::path::Path) -> Result<()> {
     };
     let body: serde_json::Value = serde_json::from_slice(&bytes)?;
     let client = crate::resolve::build_client(g)?;
-    let id = client.create_task_raw(&body).await?;
+    let id = client.create_task_raw(endpoint, &body).await?;
     if g.json {
         serde_json::to_writer_pretty(std::io::stdout(), &serde_json::json!({"task_id": id}))?;
         println!();

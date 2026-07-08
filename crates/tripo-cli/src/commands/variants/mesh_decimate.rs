@@ -1,30 +1,31 @@
-//! `smart-lowpoly` subcommand (wire: `highpoly_to_lowpoly`).
+//! `mesh-decimate` subcommand (retopology; replaces v2 `smart-lowpoly`).
 
 use anyhow::Result;
 use clap::Args;
-use tripo_api::{SmartLowpolyRequest, TaskRequest};
+use tripo_api::{MeshDecimateRequest, TaskRequest};
 
 use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
-/// Reduce a high-poly model to a lowpoly one.
+/// Reduce model polycount: smart retopology (v2.0, default) or basic
+/// decimation (v1.0, requires `--face-limit`).
 #[derive(Debug, Args)]
-pub struct SmartLowpolyArgs {
-    /// Source (high-poly) task id.
+pub struct MeshDecimateArgs {
+    /// Model source: task id, file token, or URL.
     #[arg(long)]
-    pub original_model_task_id: String,
-    /// Model version.
+    pub input: String,
+    /// Algorithm version (v2.0|v1.0).
     #[arg(long)]
-    pub model_version: Option<String>,
+    pub model: Option<String>,
     /// Produce a quad mesh.
     #[arg(long)]
     pub quad: Option<bool>,
-    /// Restrict to named parts (comma-separated).
+    /// Restrict to named parts (comma-separated; v2.0 only).
     #[arg(long, value_delimiter = ',')]
     pub part_names: Option<Vec<String>>,
-    /// Face count limit.
+    /// Target face count (required for v1.0).
     #[arg(long)]
     pub face_limit: Option<i32>,
-    /// Bake textures.
+    /// Bake textures onto the low-poly model (v2.0 only).
     #[arg(long)]
     pub bake: Option<bool>,
 
@@ -32,14 +33,14 @@ pub struct SmartLowpolyArgs {
     pub run: VariantRunOpts,
 }
 
-impl VariantArgs for SmartLowpolyArgs {
+impl VariantArgs for MeshDecimateArgs {
     fn take_run_opts(&mut self) -> VariantRunOpts {
         std::mem::take(&mut self.run)
     }
     fn into_request(self) -> Result<TaskRequest> {
-        Ok(TaskRequest::SmartLowpoly(SmartLowpolyRequest {
-            original_model_task_id: self.original_model_task_id,
-            model_version: self.model_version,
+        Ok(TaskRequest::MeshDecimate(MeshDecimateRequest {
+            input: self.input,
+            model: self.model,
             quad: self.quad,
             part_names: self.part_names,
             face_limit: self.face_limit,

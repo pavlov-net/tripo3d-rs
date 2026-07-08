@@ -1,4 +1,4 @@
-//! `image_to_model` task variant.
+//! `image_to_model` task variant. Endpoint: `POST /generation/image-to-model`.
 
 use serde::{Deserialize, Serialize};
 
@@ -7,17 +7,20 @@ use crate::enums::{GeometryQuality, Orientation, TextureAlignment, TextureQualit
 use crate::error::Result;
 use crate::image::ImageInput;
 
-/// Request body for `image_to_model`. Wire `type`: `image_to_model`.
+/// Request body for `POST /generation/image-to-model`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ImageToModelRequest {
-    /// The input image — on the wire this is serialized as `file`, not `image`.
-    #[serde(rename = "file")]
-    pub image: ImageInput,
-    /// Model version string; see `versions::text_image`.
+    /// The input image: URL, `file_token`, or `task_id` of a previous image
+    /// generation task. Serialized as a bare string.
+    pub input: ImageInput,
+    /// AI model version string; see `versions::text_image`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_version: Option<String>,
+    pub model: Option<String>,
+    /// Automatically optimize the input image before generation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enable_image_autofix: Option<bool>,
     /// Target face count.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub face_limit: Option<i32>,
@@ -60,12 +63,15 @@ pub struct ImageToModelRequest {
     /// Route through smart-lowpoly.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub smart_low_poly: Option<bool>,
+    /// UV unwrapping during generation (default true server-side).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub export_uv: Option<bool>,
 }
 
 impl ImageToModelRequest {
     pub(crate) fn validate(&self) -> Result<()> {
         super::validate_p1_params(
-            self.model_version.as_deref(),
+            self.model.as_deref(),
             self.quad,
             self.smart_low_poly,
             self.generate_parts,

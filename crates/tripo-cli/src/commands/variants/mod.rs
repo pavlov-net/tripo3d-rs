@@ -17,13 +17,13 @@ pub mod check_riggable;
 pub mod convert_model;
 pub mod image_to_model;
 pub mod mesh_completion;
+pub mod mesh_decimate;
 pub mod mesh_segmentation;
 pub mod multiview_to_model;
 mod parsers;
 pub mod refine_model;
 pub mod retarget_animation;
 pub mod rig_model;
-pub mod smart_lowpoly;
 pub mod stylize_model;
 pub mod text_to_model;
 pub mod texture_model;
@@ -31,12 +31,12 @@ pub use check_riggable::CheckRiggableArgs;
 pub use convert_model::ConvertModelArgs;
 pub use image_to_model::ImageToModelArgs;
 pub use mesh_completion::MeshCompletionArgs;
+pub use mesh_decimate::MeshDecimateArgs;
 pub use mesh_segmentation::MeshSegmentationArgs;
 pub use multiview_to_model::MultiviewToModelArgs;
 pub use refine_model::RefineModelArgs;
 pub use retarget_animation::RetargetAnimationArgs;
 pub use rig_model::RigModelArgs;
-pub use smart_lowpoly::SmartLowpolyArgs;
 pub use stylize_model::StylizeModelArgs;
 pub use text_to_model::TextToModelArgs;
 pub use texture_model::TextureModelArgs;
@@ -126,15 +126,7 @@ pub async fn run_variant<A: VariantArgs>(g: &GlobalArgs, mut args: A) -> Result<
                 return Err(crate::signals::Interrupted.into());
             }
         };
-        for p in [
-            &files.model,
-            &files.base_model,
-            &files.pbr_model,
-            &files.rendered_image,
-        ]
-        .into_iter()
-        .flatten()
-        {
+        for p in files.paths() {
             println!("{}", p.display());
         }
     } else {

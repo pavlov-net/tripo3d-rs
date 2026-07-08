@@ -1,6 +1,5 @@
 ---
 source: crates/tripo-mcp/tests/tool_list.rs
-assertion_line: 24
 expression: "serde_json::to_value(&critical).unwrap()"
 ---
 [
@@ -99,7 +98,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
       },
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
-      "description": "Request body for `text_to_model`. Wire `type`: `text_to_model`.\n\nSee the Python SDK `Client.text_to_model` for the authoritative field list.",
+      "description": "Request body for `POST /generation/text-to-model`.",
       "properties": {
         "auto_size": {
           "description": "Auto-size the output mesh.",
@@ -118,6 +117,13 @@ expression: "serde_json::to_value(&critical).unwrap()"
             }
           ],
           "description": "Geometry compression option."
+        },
+        "export_uv": {
+          "description": "UV unwrapping during generation (default true server-side).",
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "face_limit": {
           "description": "Target face count.",
@@ -153,18 +159,18 @@ expression: "serde_json::to_value(&critical).unwrap()"
             "null"
           ]
         },
+        "model": {
+          "description": "AI model version string; see `versions::text_image`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "model_seed": {
           "description": "Seed for the model generation.",
           "format": "int32",
           "type": [
             "integer",
-            "null"
-          ]
-        },
-        "model_version": {
-          "description": "Model version string; see `versions::text_image`.",
-          "type": [
-            "string",
             "null"
           ]
         },
@@ -361,15 +367,15 @@ expression: "serde_json::to_value(&critical).unwrap()"
         "TaskOutput": {
           "description": "Download URLs and auxiliary output fields returned on the task object.",
           "properties": {
-            "base_model": {
+            "generated_image_url": {
               "default": null,
-              "description": "URL for the base (pre-texture) model.",
+              "description": "URL for the intermediate generated image (`text_to_model` only).",
               "type": [
                 "string",
                 "null"
               ]
             },
-            "model": {
+            "model_url": {
               "default": null,
               "description": "URL for the main output model.",
               "type": [
@@ -377,15 +383,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
                 "null"
               ]
             },
-            "pbr_model": {
-              "default": null,
-              "description": "URL for the PBR-textured model.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "rendered_image": {
+            "rendered_image_url": {
               "default": null,
               "description": "URL for a rendered preview image.",
               "type": [
@@ -463,28 +461,27 @@ expression: "serde_json::to_value(&critical).unwrap()"
         }
       },
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "Task record returned by `GET /task/{id}`.",
+      "description": "Task record returned by `GET /tasks/{id}`.",
       "properties": {
-        "create_time": {
-          "default": 0,
-          "description": "Unix seconds.",
-          "format": "int64",
-          "type": "integer"
-        },
-        "error_code": {
+        "completed_at": {
           "default": null,
-          "description": "Non-zero on failure.",
-          "format": "int32",
+          "description": "ISO 8601 completion time; set once terminal.",
           "type": [
-            "integer",
+            "string",
             "null"
           ]
         },
-        "error_msg": {
+        "created_at": {
+          "default": "",
+          "description": "ISO 8601 creation time (e.g. `2026-04-28T12:00:00Z`).",
+          "type": "string"
+        },
+        "credits_consumed": {
           "default": null,
-          "description": "Human-readable error message.",
+          "description": "Credits consumed by this task.",
+          "format": "double",
           "type": [
-            "string",
+            "number",
             "null"
           ]
         },
@@ -497,10 +494,9 @@ expression: "serde_json::to_value(&critical).unwrap()"
         "output": {
           "$ref": "#/$defs/TaskOutput",
           "default": {
-            "base_model": null,
-            "model": null,
-            "pbr_model": null,
-            "rendered_image": null,
+            "generated_image_url": null,
+            "model_url": null,
+            "rendered_image_url": null,
             "rig_type": null,
             "riggable": null
           },
@@ -523,7 +519,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
         },
         "running_left_time": {
           "default": null,
-          "description": "Estimated seconds until completion; used by the polling backoff.",
+          "description": "Estimated seconds until completion; used by the polling backoff when\npresent.",
           "format": "int64",
           "type": [
             "integer",

@@ -1,8 +1,8 @@
-//! `texture_model` task variant.
+//! `texture_model` task variant. Endpoint: `POST /models/texture`.
 //!
-//! Wire-format quirk: `text_prompt` / `image_prompt` / `style_image` are
-//! rolled up into a nested `texture_prompt` object, sent only when at least
-//! one of the three is present.
+//! Wire-format quirk: `text` / `image` / `style_image` are rolled up into a
+//! nested `texture_prompt` object, sent only when at least one is present.
+//! `text`/`image` are mutually exclusive; `style_image` may accompany `text`.
 
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +10,7 @@ use crate::compress::CompressionMode;
 use crate::enums::{TextureAlignment, TextureQuality};
 use crate::image::ImageInput;
 
-/// Sub-object carrying the three texture-prompt inputs.
+/// Sub-object carrying the texture-prompt inputs.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, default)]
@@ -21,7 +21,7 @@ pub struct TexturePrompt {
     /// Reference image (uploaded/URL/token).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub image: Option<ImageInput>,
-    /// Style image (uploaded/URL/token).
+    /// Style image (uploaded/URL/token). Only used with `text`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub style_image: Option<ImageInput>,
 }
@@ -32,28 +32,22 @@ impl TexturePrompt {
     }
 }
 
-/// Request body for `texture_model`. Wire `type`: `texture_model`.
+/// Request body for `POST /models/texture`.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TextureModelRequest {
-    /// Source task id.
-    pub original_model_task_id: String,
+    /// Model source: `task_id`, `file_token`, or URL.
+    pub input: String,
     /// Nested prompt object; omitted when all sub-fields are None.
     #[serde(default, skip_serializing_if = "TexturePrompt::is_empty")]
     pub texture_prompt: TexturePrompt,
-    /// Model version.
+    /// Texture model version; see `versions::texture`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_version: Option<String>,
-    /// Texture.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub texture: Option<bool>,
+    pub model: Option<String>,
     /// PBR.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pbr: Option<bool>,
-    /// Model seed.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_seed: Option<i32>,
     /// Texture seed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_seed: Option<i32>,

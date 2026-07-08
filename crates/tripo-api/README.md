@@ -1,6 +1,6 @@
 # tripo-api
 
-Unofficial async Rust client for the [Tripo 3D Generation API](https://platform.tripo3d.ai/docs/).
+Unofficial async Rust client for the [Tripo 3D Generation API](https://developers.tripo3d.ai/).
 
 ## Usage
 

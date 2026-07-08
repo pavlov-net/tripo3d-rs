@@ -9,12 +9,12 @@ use crate::commands::variants::{VariantArgs, VariantRunOpts};
 /// Fill holes in an existing mesh.
 #[derive(Debug, Args)]
 pub struct MeshCompletionArgs {
-    /// Source task id.
+    /// Model source: task id, file token, or URL.
     #[arg(long)]
-    pub original_model_task_id: String,
+    pub input: String,
     /// Model version.
     #[arg(long)]
-    pub model_version: Option<String>,
+    pub model: Option<String>,
     /// Restrict to named parts (comma-separated).
     #[arg(long, value_delimiter = ',')]
     pub part_names: Option<Vec<String>>,
@@ -28,8 +28,8 @@ impl VariantArgs for MeshCompletionArgs {
     }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::MeshCompletion(MeshCompletionRequest {
-            original_model_task_id: self.original_model_task_id,
-            model_version: self.model_version,
+            input: self.input,
+            model: self.model,
             part_names: self.part_names,
         }))
     }

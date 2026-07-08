@@ -99,11 +99,11 @@ impl TripoServer {
         Ok(Json(up))
     }
 
-    /// Submit an arbitrary JSON body to `POST /task`. Forward-compatibility
-    /// escape hatch for variants not in the typed surface.
+    /// Submit an arbitrary JSON body to a task-creation endpoint.
+    /// Forward-compatibility escape hatch for variants not in the typed surface.
     #[tool(
         name = "create_raw_task",
-        description = "Submit a raw JSON task body to POST /task. Use when a variant isn't in the typed surface.",
+        description = "Submit a raw JSON task body to a v3 task-creation endpoint (e.g. generation/text-to-model). Use when a variant isn't in the typed surface.",
         annotations(
             title = "Create Task (raw)",
             read_only_hint = false,
@@ -118,7 +118,7 @@ impl TripoServer {
     ) -> Result<Json<params::TaskCreated>, ErrorData> {
         let id = self
             .client
-            .create_task_raw(&p.body)
+            .create_task_raw(&p.endpoint, &p.body)
             .await
             .map_err(to_error_data)?;
         Ok(Json(params::TaskCreated { task_id: id }))
@@ -502,25 +502,25 @@ impl TripoServer {
         Ok(Json(params::TaskCreated { task_id: id }))
     }
 
-    /// Reduce a high-poly model to a lowpoly one.
+    /// Reduce model polycount (retopology).
     #[tool(
-        name = "smart_lowpoly",
-        description = "Reduce a high-poly model to a lowpoly one.",
+        name = "mesh_decimate",
+        description = "Reduce model polycount: smart retopology (model v2.0, default) or basic decimation (v1.0).",
         annotations(
-            title = "Smart Lowpoly",
+            title = "Mesh Decimate",
             read_only_hint = false,
             destructive_hint = false,
             idempotent_hint = false,
             open_world_hint = true,
         )
     )]
-    async fn smart_lowpoly(
+    async fn mesh_decimate(
         &self,
-        Parameters(req): Parameters<tripo_api::SmartLowpolyRequest>,
+        Parameters(req): Parameters<tripo_api::MeshDecimateRequest>,
     ) -> Result<Json<params::TaskCreated>, ErrorData> {
         let id = self
             .client
-            .create_task(tripo_api::tasks::TaskRequest::SmartLowpoly(req))
+            .create_task(tripo_api::tasks::TaskRequest::MeshDecimate(req))
             .await
             .map_err(to_error_data)?;
         Ok(Json(params::TaskCreated { task_id: id }))

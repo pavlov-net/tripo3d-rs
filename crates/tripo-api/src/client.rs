@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderName, HeaderValue, USER_AGENT};
+use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
 use url::Url;
 
 use crate::error::{Error, Result};
@@ -15,10 +15,10 @@ pub const API_KEY_ENV: &str = "TRIPO_API_KEY";
 /// Env var name for the region selector (`global` | `cn`).
 pub const REGION_ENV: &str = "TRIPO_REGION";
 
-/// Global v2 openapi base URL.
-pub const BASE_URL_GLOBAL: &str = "https://api.tripo3d.ai/v2/openapi";
-/// China mainland v2 openapi base URL.
-pub const BASE_URL_CN: &str = "https://api.tripo3d.com/v2/openapi";
+/// Global v3 base URL.
+pub const BASE_URL_GLOBAL: &str = "https://openapi.tripo3d.ai/v3";
+/// China mainland v3 base URL.
+pub const BASE_URL_CN: &str = "https://openapi.tripo3d.com/v3";
 
 /// Region selector.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -26,7 +26,7 @@ pub enum Region {
     /// Global endpoint (default).
     #[default]
     Global,
-    /// China mainland endpoint. Adds `X-Tripo-Region: rg2` on GETs.
+    /// China mainland endpoint.
     Cn,
 }
 
@@ -154,25 +154,11 @@ impl Client {
         u
     }
 
-    /// Extra headers attached to every request. `X-Tripo-Region: rg2` for CN.
-    pub(crate) fn region_headers(&self) -> HeaderMap {
-        let mut h = HeaderMap::new();
-        if self.region == Region::Cn {
-            h.insert(
-                HeaderName::from_static("x-tripo-region"),
-                HeaderValue::from_static("rg2"),
-            );
-        }
-        h
-    }
-
-    /// `GET /user/balance` — current account balance.
+    /// `GET /account/balance` — current account balance.
     #[tracing::instrument(skip(self))]
     pub async fn get_balance(&self) -> Result<crate::types::Balance> {
-        let url = self.url(&["user", "balance"]);
-        let resp = self
-            .send_with_retry(|| self.http.get(url.clone()).headers(self.region_headers()))
-            .await?;
+        let url = self.url(&["account", "balance"]);
+        let resp = self.send_with_retry(|| self.http.get(url.clone())).await?;
         let status = resp.status();
         let bytes = resp.bytes().await?;
         if !status.is_success() {
@@ -182,13 +168,11 @@ impl Client {
         env.into_result()
     }
 
-    /// `GET /task/{id}` — current state of an existing task.
+    /// `GET /tasks/{id}` — current state of an existing task.
     #[tracing::instrument(skip(self), fields(task_id = %id))]
     pub async fn get_task(&self, id: &crate::types::TaskId) -> Result<crate::types::Task> {
-        let url = self.url(&["task", id.as_str()]);
-        let resp = self
-            .send_with_retry(|| self.http.get(url.clone()).headers(self.region_headers()))
-            .await?;
+        let url = self.url(&["tasks", id.as_str()]);
+        let resp = self.send_with_retry(|| self.http.get(url.clone())).await?;
         let status = resp.status();
         let bytes = resp.bytes().await?;
         if !status.is_success() {
@@ -198,7 +182,8 @@ impl Client {
         env.into_result()
     }
 
-    /// `POST /task` — submit a task. Any `ImageInput::Path` in the request is
+    /// Submit a task to its v3 capability endpoint (e.g. `POST
+    /// /generation/text-to-model`). Any `ImageInput::Path` in the request is
     /// uploaded first and replaced with a `FileToken`.
     #[tracing::instrument(skip(self, req))]
     pub async fn create_task(
@@ -207,25 +192,27 @@ impl Client {
     ) -> Result<crate::types::TaskId> {
         req.validate()?;
         req.upload_images(self).await?;
-        self.create_task_raw(&serde_json::to_value(&req)?).await
+        self.create_task_raw(req.endpoint(), &serde_json::to_value(&req)?)
+            .await
     }
 
-    /// Submit an already-built JSON body to `/task`. Used by `create_task` and
-    /// the CLI's `task create --json <FILE>` escape hatch.
-    pub async fn create_task_raw(&self, body: &serde_json::Value) -> Result<crate::types::TaskId> {
+    /// Submit an already-built JSON body to a task-creation endpoint given as
+    /// a path relative to the base URL (e.g. `generation/text-to-model`).
+    /// Used by `create_task` and the CLI's `task create --body <FILE>` escape
+    /// hatch.
+    pub async fn create_task_raw(
+        &self,
+        endpoint: &str,
+        body: &serde_json::Value,
+    ) -> Result<crate::types::TaskId> {
         #[derive(serde::Deserialize)]
         struct TaskIdBody {
             task_id: String,
         }
-        let url = self.url(&["task"]);
-        let body = body.clone();
+        let segments: Vec<&str> = endpoint.split('/').filter(|s| !s.is_empty()).collect();
+        let url = self.url(&segments);
         let resp = self
-            .send_with_retry(|| {
-                self.http
-                    .post(url.clone())
-                    .headers(self.region_headers())
-                    .json(&body)
-            })
+            .send_with_retry(|| self.http.post(url.clone()).json(body))
             .await?;
         let status = resp.status();
         let bytes = resp.bytes().await?;
@@ -292,7 +279,7 @@ impl ClientBuilder {
         self.api_key = Some(k.into());
         self
     }
-    /// Set the region (determines default base URL and `X-Tripo-Region` header).
+    /// Set the region (determines the default base URL).
     #[must_use]
     pub fn region(mut self, r: Region) -> Self {
         self.region = Some(r);
@@ -349,7 +336,7 @@ mod tests {
     fn region_defaults_global() {
         let c = Client::builder().api_key("tsk_abc").build().unwrap();
         assert_eq!(c.region(), Region::Global);
-        assert_eq!(c.base_url().as_str(), "https://api.tripo3d.ai/v2/openapi");
+        assert_eq!(c.base_url().as_str(), "https://openapi.tripo3d.ai/v3");
     }
 
     #[test]
@@ -359,14 +346,13 @@ mod tests {
             .region(Region::Cn)
             .build()
             .unwrap();
-        assert_eq!(c.base_url().as_str(), "https://api.tripo3d.com/v2/openapi");
-        assert!(c.region_headers().contains_key("x-tripo-region"));
+        assert_eq!(c.base_url().as_str(), "https://openapi.tripo3d.com/v3");
     }
 
     #[test]
     fn url_joins_segments() {
         let c = Client::builder().api_key("tsk_abc").build().unwrap();
-        let u = c.url(&["task", "abc123"]);
-        assert_eq!(u.as_str(), "https://api.tripo3d.ai/v2/openapi/task/abc123");
+        let u = c.url(&["tasks", "abc123"]);
+        assert_eq!(u.as_str(), "https://openapi.tripo3d.ai/v3/tasks/abc123");
     }
 }

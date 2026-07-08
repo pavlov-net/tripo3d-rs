@@ -1,6 +1,5 @@
 ---
 source: crates/tripo-cli/tests/help.rs
-assertion_line: 28
 expression: "help_of(&[\"text-to-model\"])"
 ---
 Generate a 3D model from a text prompt
@@ -32,7 +31,7 @@ Options:
       --base-url <BASE_URL>
           Override the API base URL (testing / staging)
 
-      --model-version <MODEL_VERSION>
+      --model <MODEL>
           Model version
 
       --face-limit <FACE_LIMIT>
@@ -98,6 +97,11 @@ Options:
 
       --smart-low-poly <SMART_LOW_POLY>
           Route through smart-lowpoly after generation
+
+          [possible values: true, false]
+
+      --export-uv <EXPORT_UV>
+          UV unwrapping during generation
 
           [possible values: true, false]
 

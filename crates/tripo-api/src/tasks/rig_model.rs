@@ -1,4 +1,4 @@
-//! `rig_model` task variant. Wire `type`: `animate_rig`.
+//! `rig_model` task variant. Endpoint: `POST /animations/rig`.
 
 use serde::{Deserialize, Serialize};
 
@@ -6,16 +6,16 @@ use crate::enums::{RigOutputFormat, RigSpec, RigType};
 use crate::error::{Error, Result};
 use crate::versions;
 
-/// Request body for `rig_model`. Wire `type`: `animate_rig`.
+/// Request body for `POST /animations/rig`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct RigModelRequest {
-    /// Source task id.
-    pub original_model_task_id: String,
-    /// Model version.
+    /// Model source: `task_id`, `file_token`, or URL.
+    pub input: String,
+    /// Rigging model version; see `versions::rig`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_version: Option<String>,
+    pub model: Option<String>,
     /// Output file format.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub out_format: Option<RigOutputFormat>,
@@ -30,10 +30,9 @@ pub struct RigModelRequest {
 impl RigModelRequest {
     /// Reject non-biped `rig_type` with a rigger version that only supports
     /// biped. The server's default rigger (`v1.0-20240301`) is biped-only, so
-    /// any non-biped `rig_type` requires an explicit `--model-version v2.5-20260210`
-    /// (v2.0-20250506 still works but is deprecated as of API 1.9.7). Without this
-    /// check, the server returns `error_code: 1004` ("one or more of your parameter
-    /// is invalid") with no `error_msg`.
+    /// any non-biped `rig_type` requires an explicit `--model v2.5-20260210`.
+    /// Without this check, the server returns `code: 1004` ("one or more of
+    /// your parameter is invalid") with no useful detail.
     pub(crate) fn validate(&self) -> Result<()> {
         let non_biped = matches!(
             self.rig_type,
@@ -47,13 +46,13 @@ impl RigModelRequest {
                     | RigType::Others
             )
         );
-        let biped_only_version = match self.model_version.as_deref() {
+        let biped_only_version = match self.model.as_deref() {
             None | Some(versions::rig::V1_0) => true,
             Some(_) => false,
         };
         if non_biped && biped_only_version {
             return Err(Error::InvalidRequest(format!(
-                "rig_type {:?} requires model_version {} — the default/v1.0 rigger only supports biped",
+                "rig_type {:?} requires model {} — the default/v1.0 rigger only supports biped",
                 self.rig_type.as_ref().unwrap(),
                 versions::rig::V2_5,
             )));
@@ -66,10 +65,10 @@ impl RigModelRequest {
 mod tests {
     use super::*;
 
-    fn req(rig_type: Option<RigType>, model_version: Option<&str>) -> RigModelRequest {
+    fn req(rig_type: Option<RigType>, model: Option<&str>) -> RigModelRequest {
         RigModelRequest {
-            original_model_task_id: "task_id".into(),
-            model_version: model_version.map(str::to_owned),
+            input: "task_id".into(),
+            model: model.map(str::to_owned),
             out_format: None,
             rig_type,
             spec: None,
@@ -102,13 +101,7 @@ mod tests {
     }
 
     #[test]
-    fn avian_with_v2_is_accepted() {
-        // v2.0 is deprecated but still accepted server-side, so validation must
-        // not reject it.
-        #[allow(deprecated)]
-        req(Some(RigType::Avian), Some(versions::rig::V2_0))
-            .validate()
-            .unwrap();
+    fn avian_with_v2_5_is_accepted() {
         req(Some(RigType::Avian), Some(versions::rig::V2_5))
             .validate()
             .unwrap();

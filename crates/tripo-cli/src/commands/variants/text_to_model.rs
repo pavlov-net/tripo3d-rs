@@ -19,7 +19,7 @@ pub struct TextToModelArgs {
     pub negative_prompt: Option<String>,
     /// Model version.
     #[arg(long)]
-    pub model_version: Option<String>,
+    pub model: Option<String>,
     /// Target face count.
     #[arg(long)]
     pub face_limit: Option<i32>,
@@ -59,6 +59,9 @@ pub struct TextToModelArgs {
     /// Route through smart-lowpoly after generation.
     #[arg(long)]
     pub smart_low_poly: Option<bool>,
+    /// UV unwrapping during generation.
+    #[arg(long)]
+    pub export_uv: Option<bool>,
 
     #[command(flatten)]
     pub run: VariantRunOpts,
@@ -72,7 +75,7 @@ impl VariantArgs for TextToModelArgs {
         Ok(TaskRequest::TextToModel(TextToModelRequest {
             prompt: self.prompt,
             negative_prompt: self.negative_prompt,
-            model_version: self.model_version,
+            model: self.model,
             face_limit: self.face_limit,
             texture: self.texture,
             pbr: self.pbr,
@@ -86,6 +89,7 @@ impl VariantArgs for TextToModelArgs {
             compress: self.compress.then_some(CompressionMode::Geometry),
             generate_parts: self.generate_parts,
             smart_low_poly: self.smart_low_poly,
+            export_uv: self.export_uv,
         }))
     }
 }

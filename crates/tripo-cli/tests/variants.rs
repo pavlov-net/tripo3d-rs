@@ -7,9 +7,9 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 async fn text_to_model_submit_only() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/generation/text-to-model"))
         .and(body_partial_json(serde_json::json!({
-            "type": "text_to_model", "prompt": "a red robot"
+            "prompt": "a red robot"
         })))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "code":0, "data": {"task_id":"new-id"}
@@ -38,10 +38,9 @@ async fn text_to_model_submit_only() {
 async fn image_to_model_with_url() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/generation/image-to-model"))
         .and(body_partial_json(serde_json::json!({
-            "type":"image_to_model",
-            "file":{"type":"jpg","url":"https://example.com/x.jpg"}
+            "input": "https://example.com/x.jpg"
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -59,7 +58,7 @@ async fn image_to_model_with_url() {
             "--base-url",
             &server.uri(),
             "image-to-model",
-            "--image",
+            "--input",
             "https://example.com/x.jpg",
         ])
         .assert()
@@ -70,18 +69,17 @@ async fn image_to_model_with_url() {
 async fn image_to_model_with_local_path_uploads_first() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/upload"))
+        .and(path("/files"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0,"data":{"image_token":"550e8400-e29b-41d4-a716-446655440000"}
+            "code":0,"data":{"file_token":"file_abc123"}
         })))
         .expect(1)
         .mount(&server)
         .await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/generation/image-to-model"))
         .and(body_partial_json(serde_json::json!({
-            "type":"image_to_model",
-            "file":{"type":"jpg","file_token":"550e8400-e29b-41d4-a716-446655440000"}
+            "input": "file_abc123"
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -102,7 +100,7 @@ async fn image_to_model_with_local_path_uploads_first() {
             "--base-url",
             &server.uri(),
             "image-to-model",
-            "--image",
+            "--input",
             tmp.path().to_str().unwrap(),
         ])
         .assert()
@@ -110,16 +108,15 @@ async fn image_to_model_with_local_path_uploads_first() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn multiview_sends_files_array_with_empty_slot() {
+async fn multiview_sends_inputs_array_with_empty_slot() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/generation/multiview-to-model"))
         .and(body_partial_json(serde_json::json!({
-            "type":"multiview_to_model",
-            "files":[
-                {"type":"jpg","url":"https://example.com/front.jpg"},
-                {},
-                {"type":"jpg","url":"https://example.com/back.jpg"}
+            "inputs":[
+                "https://example.com/front.jpg",
+                "",
+                "https://example.com/back.jpg"
             ]
         })))
         .respond_with(
@@ -138,11 +135,11 @@ async fn multiview_sends_files_array_with_empty_slot() {
             "--base-url",
             &server.uri(),
             "multiview-to-model",
-            "--image",
+            "--input",
             "https://example.com/front.jpg",
-            "--image",
+            "--input",
             "",
-            "--image",
+            "--input",
             "https://example.com/back.jpg",
         ])
         .assert()
@@ -153,9 +150,9 @@ async fn multiview_sends_files_array_with_empty_slot() {
 async fn convert_model_to_fbx() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/models/convert"))
         .and(body_partial_json(serde_json::json!({
-            "type":"convert_model","original_model_task_id":"src","format":"FBX","fbx_preset":"mixamo"
+            "input":"task_src","format":"FBX","fbx_preset":"mixamo"
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -173,8 +170,8 @@ async fn convert_model_to_fbx() {
             "--base-url",
             &server.uri(),
             "convert-model",
-            "--original-model-task-id",
-            "src",
+            "--input",
+            "task_src",
             "--format",
             "FBX",
             "--fbx-preset",
@@ -188,9 +185,9 @@ async fn convert_model_to_fbx() {
 async fn stylize_voxel() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/models/stylize"))
         .and(body_partial_json(serde_json::json!({
-            "type":"stylize_model","original_model_task_id":"src","style":"voxel","block_size":64
+            "original_model_task_id":"task_src","style":"voxel","block_size":64
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -207,8 +204,8 @@ async fn stylize_voxel() {
             "--base-url",
             &server.uri(),
             "stylize-model",
-            "--original-model-task-id",
-            "src",
+            "--input",
+            "task_src",
             "--style",
             "voxel",
             "--block-size",
@@ -222,11 +219,10 @@ async fn stylize_voxel() {
 async fn texture_model_nests_prompt() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/models/texture"))
         .and(body_partial_json(serde_json::json!({
-            "type":"texture_model",
-            "original_model_task_id":"src",
-            "texture_prompt":{"text":"brass","style_image":{"type":"jpg","url":"https://cdn/s.jpg"}}
+            "input":"task_src",
+            "texture_prompt":{"text":"brass","style_image":"https://cdn/s.jpg"}
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -243,8 +239,8 @@ async fn texture_model_nests_prompt() {
             "--base-url",
             &server.uri(),
             "texture-model",
-            "--original-model-task-id",
-            "src",
+            "--input",
+            "task_src",
             "--text-prompt",
             "brass",
             "--style-image",
@@ -258,9 +254,9 @@ async fn texture_model_nests_prompt() {
 async fn refine_and_check_riggable_wire_names_match() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/models/refine"))
         .and(body_partial_json(serde_json::json!({
-            "type":"refine_model","draft_model_task_id":"d"
+            "draft_model_task_id":"task_d"
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -270,9 +266,9 @@ async fn refine_and_check_riggable_wire_names_match() {
         .mount(&server)
         .await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/animations/rig-check"))
         .and(body_partial_json(serde_json::json!({
-            "type":"animate_prerigcheck","original_model_task_id":"m"
+            "input":"task_m"
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -290,8 +286,8 @@ async fn refine_and_check_riggable_wire_names_match() {
             "--base-url",
             &server.uri(),
             "refine-model",
-            "--draft-model-task-id",
-            "d",
+            "--input",
+            "task_d",
         ])
         .assert()
         .success();
@@ -303,20 +299,20 @@ async fn refine_and_check_riggable_wire_names_match() {
             "--base-url",
             &server.uri(),
             "check-riggable",
-            "--original-model-task-id",
-            "m",
+            "--input",
+            "task_m",
         ])
         .assert()
         .success();
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn rig_model_animate_rig() {
+async fn rig_model_posts_animations_rig() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/animations/rig"))
         .and(body_partial_json(serde_json::json!({
-            "type":"animate_rig","original_model_task_id":"m","rig_type":"biped","spec":"mixamo"
+            "input":"task_m","rig_type":"biped","spec":"mixamo"
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -333,8 +329,8 @@ async fn rig_model_animate_rig() {
             "--base-url",
             &server.uri(),
             "rig-model",
-            "--original-model-task-id",
-            "m",
+            "--input",
+            "task_m",
             "--rig-type",
             "biped",
             "--spec",
@@ -348,9 +344,9 @@ async fn rig_model_animate_rig() {
 async fn retarget_single_vs_many() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/animations/retarget"))
         .and(body_partial_json(serde_json::json!({
-            "type":"animate_retarget","original_model_task_id":"m","animation":"preset:walk"
+            "input":"task_m","animation":"preset:walk"
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -360,9 +356,9 @@ async fn retarget_single_vs_many() {
         .mount(&server)
         .await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/animations/retarget"))
         .and(body_partial_json(serde_json::json!({
-            "type":"animate_retarget","original_model_task_id":"m",
+            "input":"task_m",
             "animations":["preset:walk","preset:run"]
         })))
         .respond_with(
@@ -381,8 +377,8 @@ async fn retarget_single_vs_many() {
             "--base-url",
             &server.uri(),
             "retarget-animation",
-            "--original-model-task-id",
-            "m",
+            "--input",
+            "task_m",
             "--animation",
             "preset:walk",
         ])
@@ -396,8 +392,8 @@ async fn retarget_single_vs_many() {
             "--base-url",
             &server.uri(),
             "retarget-animation",
-            "--original-model-task-id",
-            "m",
+            "--input",
+            "task_m",
             "--animation",
             "preset:walk,preset:run",
         ])
@@ -409,9 +405,9 @@ async fn retarget_single_vs_many() {
 async fn mesh_seg_and_completion() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/mesh/segment"))
         .and(body_partial_json(serde_json::json!({
-            "type":"mesh_segmentation","original_model_task_id":"m"
+            "input":"task_m"
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -421,9 +417,9 @@ async fn mesh_seg_and_completion() {
         .mount(&server)
         .await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/mesh/complete"))
         .and(body_partial_json(serde_json::json!({
-            "type":"mesh_completion","original_model_task_id":"m","part_names":["head","arm"]
+            "input":"task_m","part_names":["head","arm"]
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -440,8 +436,8 @@ async fn mesh_seg_and_completion() {
             "--base-url",
             &server.uri(),
             "mesh-segmentation",
-            "--original-model-task-id",
-            "m",
+            "--input",
+            "task_m",
         ])
         .assert()
         .success();
@@ -453,8 +449,8 @@ async fn mesh_seg_and_completion() {
             "--base-url",
             &server.uri(),
             "mesh-completion",
-            "--original-model-task-id",
-            "m",
+            "--input",
+            "task_m",
             "--part-names",
             "head,arm",
         ])
@@ -463,12 +459,12 @@ async fn mesh_seg_and_completion() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn smart_lowpoly_highpoly_to_lowpoly() {
+async fn mesh_decimate_posts_body() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/mesh/decimate"))
         .and(body_partial_json(serde_json::json!({
-            "type":"highpoly_to_lowpoly","original_model_task_id":"m","face_limit":2000
+            "input":"task_m","face_limit":2000
         })))
         .respond_with(
             ResponseTemplate::new(200)
@@ -484,9 +480,9 @@ async fn smart_lowpoly_highpoly_to_lowpoly() {
             "tsk_test",
             "--base-url",
             &server.uri(),
-            "smart-lowpoly",
-            "--original-model-task-id",
-            "m",
+            "mesh-decimate",
+            "--input",
+            "task_m",
             "--face-limit",
             "2000",
         ])
@@ -500,7 +496,7 @@ async fn text_to_model_wait_output_end_to_end() {
     let model_url = format!("{}/files/abc.glb", server.uri());
 
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/generation/text-to-model"))
         .respond_with(
             ResponseTemplate::new(200)
                 .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"abc"}})),
@@ -509,18 +505,18 @@ async fn text_to_model_wait_output_end_to_end() {
         .mount(&server)
         .await;
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"running","progress":10,"create_time":0}
+            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"running","progress":10,"created_at":"2026-01-01T00:00:00Z"}
         })))
         .up_to_n_times(1)
         .mount(&server)
         .await;
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0,
-                              "output":{"model": model_url }}
+            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"created_at":"2026-01-01T00:00:00Z",
+                              "output":{"model_url": model_url }}
         })))
         .mount(&server)
         .await;

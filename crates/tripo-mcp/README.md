@@ -1,6 +1,6 @@
 # tripo-mcp
 
-Unofficial Model Context Protocol server for the [Tripo 3D Generation API](https://platform.tripo3d.ai/docs/).
+Unofficial Model Context Protocol server for the [Tripo 3D Generation API](https://developers.tripo3d.ai/).
 
 Exposes every Tripo operation as an MCP tool. Speaks stdio — works with Claude
 Code or any other MCP-aware client.
@@ -37,7 +37,7 @@ annotation hints are set explicitly on every tool:
 | `retarget_animation`   | Apply animation presets                |     N     |      N      |     N      |
 | `mesh_segmentation`    | Parts segmentation                     |     N     |      N      |     N      |
 | `mesh_completion`      | Complete missing parts                 |     N     |      N      |     N      |
-| `smart_lowpoly`        | High-poly to low-poly                  |     N     |      N      |     N      |
+| `mesh_decimate`        | Retopology (high-poly to low-poly)     |     N     |      N      |     N      |
 
 `destructive_hint` is only meaningful on non-read-only tools (`—` in the
 table means the hint is not set). On every non-read-only tool it is set
