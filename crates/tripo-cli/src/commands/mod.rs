@@ -28,6 +28,6 @@ pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
         Command::RetargetAnimation(a) => variants::run_variant(g, a).await,
         Command::MeshSegmentation(a) => variants::run_variant(g, a).await,
         Command::MeshCompletion(a) => variants::run_variant(g, a).await,
-        Command::SmartLowpoly(a) => variants::run_variant(g, a).await,
+        Command::MeshDecimate(a) => variants::run_variant(g, a).await,
     }
 }

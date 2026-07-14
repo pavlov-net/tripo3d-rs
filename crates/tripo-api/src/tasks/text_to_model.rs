@@ -1,4 +1,4 @@
-//! `text_to_model` task variant.
+//! `text_to_model` task variant. Endpoint: `POST /generation/text-to-model`.
 
 use serde::{Deserialize, Serialize};
 
@@ -6,9 +6,7 @@ use crate::compress::CompressionMode;
 use crate::enums::{GeometryQuality, TextureQuality};
 use crate::error::Result;
 
-/// Request body for `text_to_model`. Wire `type`: `text_to_model`.
-///
-/// See the Python SDK `Client.text_to_model` for the authoritative field list.
+/// Request body for `POST /generation/text-to-model`.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
@@ -18,9 +16,9 @@ pub struct TextToModelRequest {
     /// Negative prompt (things to avoid).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub negative_prompt: Option<String>,
-    /// Model version string; see `versions::text_image`.
+    /// AI model version string; see `versions::text_image`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_version: Option<String>,
+    pub model: Option<String>,
     /// Target face count.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub face_limit: Option<i32>,
@@ -60,12 +58,15 @@ pub struct TextToModelRequest {
     /// Route through the smart-lowpoly pipeline after generation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub smart_low_poly: Option<bool>,
+    /// UV unwrapping during generation (default true server-side).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub export_uv: Option<bool>,
 }
 
 impl TextToModelRequest {
     pub(crate) fn validate(&self) -> Result<()> {
         super::validate_p1_params(
-            self.model_version.as_deref(),
+            self.model.as_deref(),
             self.quad,
             self.smart_low_poly,
             self.generate_parts,

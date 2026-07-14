@@ -1,5 +1,6 @@
-//! Snapshot tests for the serialized JSON body of every `TaskRequest` variant.
-//! These lock down byte-exact wire-format compatibility with the Python SDK.
+//! Snapshot tests for the serialized JSON body of every `TaskRequest` variant,
+//! plus its endpoint path. These lock down byte-exact wire-format compatibility
+//! with the Tripo v3 API.
 
 use serde_json::Value;
 use tripo_api::{
@@ -19,10 +20,10 @@ fn text_to_model_minimal() {
         prompt: "a red robot".into(),
         ..Default::default()
     });
+    assert_eq!(req.endpoint(), "generation/text-to-model");
     insta::assert_json_snapshot!(json_of(&req), @r###"
     {
-      "prompt": "a red robot",
-      "type": "text_to_model"
+      "prompt": "a red robot"
     }
     "###);
 }
@@ -32,7 +33,7 @@ fn text_to_model_full() {
     let req = TaskRequest::TextToModel(TextToModelRequest {
         prompt: "a red robot".into(),
         negative_prompt: Some("low quality".into()),
-        model_version: Some("v2.5-20250123".into()),
+        model: Some("v3.1-20260211".into()),
         texture_quality: Some(TextureQuality::Detailed),
         geometry_quality: Some(GeometryQuality::Standard),
         auto_size: Some(true),
@@ -46,21 +47,20 @@ fn text_to_model_full() {
 #[test]
 fn image_to_model_file_token() {
     let req = TaskRequest::ImageToModel(ImageToModelRequest {
-        image: ImageInput::FileToken(
-            uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
-        ),
+        input: ImageInput::FileToken("file_abc123".into()),
         texture: Some(true),
         pbr: Some(false),
         quad: Some(true),
         ..default_image_to_model()
     });
+    assert_eq!(req.endpoint(), "generation/image-to-model");
     insta::assert_json_snapshot!(json_of(&req));
 }
 
 #[test]
 fn image_to_model_url() {
     let req = TaskRequest::ImageToModel(ImageToModelRequest {
-        image: ImageInput::Url("https://example.com/x.jpg".parse().unwrap()),
+        input: ImageInput::Url("https://example.com/x.jpg".parse().unwrap()),
         ..default_image_to_model()
     });
     insta::assert_json_snapshot!(json_of(&req));
@@ -68,8 +68,9 @@ fn image_to_model_url() {
 
 fn default_image_to_model() -> ImageToModelRequest {
     ImageToModelRequest {
-        image: ImageInput::FileToken(uuid::Uuid::nil()),
-        model_version: None,
+        input: ImageInput::FileToken("file_default".into()),
+        model: None,
+        enable_image_autofix: None,
         face_limit: None,
         texture: None,
         pbr: None,
@@ -84,22 +85,23 @@ fn default_image_to_model() -> ImageToModelRequest {
         compress: None,
         generate_parts: None,
         smart_low_poly: None,
+        export_uv: None,
     }
 }
 
 #[test]
 fn multiview_to_model_with_empty_slot() {
     let req = TaskRequest::MultiviewToModel(MultiviewToModelRequest {
-        images: vec![
+        inputs: vec![
             Some(ImageInput::Url(
                 "https://example.com/front.jpg".parse().unwrap(),
             )),
             None,
             Some(ImageInput::FileToken(
-                uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
+                "550e8400-e29b-41d4-a716-446655440000".into(),
             )),
         ],
-        model_version: None,
+        model: None,
         face_limit: None,
         texture: None,
         pbr: None,
@@ -114,14 +116,16 @@ fn multiview_to_model_with_empty_slot() {
         compress: None,
         generate_parts: None,
         smart_low_poly: None,
+        export_uv: None,
     });
+    assert_eq!(req.endpoint(), "generation/multiview-to-model");
     insta::assert_json_snapshot!(json_of(&req));
 }
 
 #[test]
 fn convert_model_minimal_gltf() {
     let req = TaskRequest::ConvertModel(ConvertModelRequest {
-        original_model_task_id: "src-task-1".into(),
+        input: "task_src1".into(),
         format: OutputFormat::Gltf,
         quad: None,
         force_symmetry: None,
@@ -141,13 +145,14 @@ fn convert_model_minimal_gltf() {
         export_orientation: None,
         animate_in_place: None,
     });
+    assert_eq!(req.endpoint(), "models/convert");
     insta::assert_json_snapshot!(json_of(&req));
 }
 
 #[test]
 fn convert_model_fbx_with_preset() {
     let req = TaskRequest::ConvertModel(ConvertModelRequest {
-        original_model_task_id: "src-task-1".into(),
+        input: "task_src1".into(),
         format: OutputFormat::Fbx,
         fbx_preset: Some(FbxPreset::Mixamo),
         part_names: Some(vec!["head".into(), "body".into()]),
@@ -174,11 +179,13 @@ use tripo_api::{PostStyle, StylizeModelRequest};
 
 #[test]
 fn stylize_model_voxel() {
+    // Legacy endpoint — keeps the v2 `original_model_task_id` field name.
     let req = TaskRequest::Stylize(StylizeModelRequest {
         original_model_task_id: "src-task".into(),
         style: PostStyle::Voxel,
         block_size: Some(80),
     });
+    assert_eq!(req.endpoint(), "models/stylize");
     insta::assert_json_snapshot!(json_of(&req));
 }
 
@@ -187,22 +194,22 @@ use tripo_api::{TextureModelRequest, TexturePrompt};
 #[test]
 fn texture_model_no_prompt() {
     let req = TaskRequest::TextureModel(TextureModelRequest {
-        original_model_task_id: "src".into(),
+        input: "task_src".into(),
         ..Default::default()
     });
+    assert_eq!(req.endpoint(), "models/texture");
     insta::assert_json_snapshot!(json_of(&req));
 }
 
 #[test]
 fn texture_model_with_text_and_style_image() {
     let req = TaskRequest::TextureModel(TextureModelRequest {
-        original_model_task_id: "src".into(),
+        input: "task_src".into(),
         texture_prompt: TexturePrompt {
             text: Some("brass and copper".into()),
             image: None,
             style_image: Some(ImageInput::Url("https://cdn/s.jpg".parse().unwrap())),
         },
-        texture: Some(true),
         pbr: Some(true),
         ..Default::default()
     });
@@ -213,26 +220,27 @@ use tripo_api::{CheckRiggableRequest, RefineModelRequest};
 
 #[test]
 fn refine_model() {
+    // Legacy endpoint — keeps the v2 `draft_model_task_id` field name.
     let req = TaskRequest::Refine(RefineModelRequest {
-        draft_model_task_id: "draft-1".into(),
+        draft_model_task_id: "task_draft1".into(),
     });
+    assert_eq!(req.endpoint(), "models/refine");
     insta::assert_json_snapshot!(json_of(&req), @r###"
     {
-      "draft_model_task_id": "draft-1",
-      "type": "refine_model"
+      "draft_model_task_id": "task_draft1"
     }
     "###);
 }
 
 #[test]
-fn check_riggable_uses_rename() {
+fn check_riggable_body_and_endpoint() {
     let req = TaskRequest::CheckRiggable(CheckRiggableRequest {
-        original_model_task_id: "src".into(),
+        input: "task_src".into(),
     });
+    assert_eq!(req.endpoint(), "animations/rig-check");
     insta::assert_json_snapshot!(json_of(&req), @r###"
     {
-      "original_model_task_id": "src",
-      "type": "animate_prerigcheck"
+      "input": "task_src"
     }
     "###);
 }
@@ -242,12 +250,13 @@ use tripo_api::{RigModelRequest, RigOutputFormat, RigSpec, RigType};
 #[test]
 fn rig_model_with_spec() {
     let req = TaskRequest::Rig(RigModelRequest {
-        original_model_task_id: "src".into(),
-        model_version: Some("v2.0-20250506".into()),
+        input: "task_src".into(),
+        model: Some("v2.5-20260210".into()),
         out_format: Some(RigOutputFormat::Fbx),
         rig_type: Some(RigType::Quadruped),
         spec: Some(RigSpec::Mixamo),
     });
+    assert_eq!(req.endpoint(), "animations/rig");
     insta::assert_json_snapshot!(json_of(&req));
 }
 
@@ -255,12 +264,15 @@ use tripo_api::{Animation, RetargetAnimationRequest};
 
 #[test]
 fn retarget_single_animation() {
-    let req = TaskRequest::Retarget(RetargetAnimationRequest::single("src", Animation::Walk));
+    let req = TaskRequest::Retarget(RetargetAnimationRequest::single(
+        "task_src",
+        Animation::Walk,
+    ));
+    assert_eq!(req.endpoint(), "animations/retarget");
     insta::assert_json_snapshot!(json_of(&req), @r###"
     {
       "animation": "preset:walk",
-      "original_model_task_id": "src",
-      "type": "animate_retarget"
+      "input": "task_src"
     }
     "###);
 }
@@ -268,7 +280,7 @@ fn retarget_single_animation() {
 #[test]
 fn retarget_multi_animation() {
     let req = TaskRequest::Retarget(RetargetAnimationRequest::many(
-        "src",
+        "task_src",
         vec![Animation::Walk, Animation::Run],
     ));
     insta::assert_json_snapshot!(json_of(&req), @r###"
@@ -277,8 +289,7 @@ fn retarget_multi_animation() {
         "preset:walk",
         "preset:run"
       ],
-      "original_model_task_id": "src",
-      "type": "animate_retarget"
+      "input": "task_src"
     }
     "###);
 }
@@ -288,13 +299,13 @@ use tripo_api::{MeshCompletionRequest, MeshSegmentationRequest};
 #[test]
 fn mesh_segmentation_minimal() {
     let req = TaskRequest::MeshSegmentation(MeshSegmentationRequest {
-        original_model_task_id: "src".into(),
-        model_version: None,
+        input: "task_src".into(),
+        model: None,
     });
+    assert_eq!(req.endpoint(), "mesh/segment");
     insta::assert_json_snapshot!(json_of(&req), @r###"
     {
-      "original_model_task_id": "src",
-      "type": "mesh_segmentation"
+      "input": "task_src"
     }
     "###);
 }
@@ -302,26 +313,26 @@ fn mesh_segmentation_minimal() {
 #[test]
 fn mesh_completion_with_parts() {
     let req = TaskRequest::MeshCompletion(MeshCompletionRequest {
-        original_model_task_id: "src".into(),
-        model_version: Some("v1.0-20250506".into()),
+        input: "task_src".into(),
+        model: Some("v1.0-20250506".into()),
         part_names: Some(vec!["head".into()]),
     });
+    assert_eq!(req.endpoint(), "mesh/complete");
     insta::assert_json_snapshot!(json_of(&req));
 }
 
-use tripo_api::SmartLowpolyRequest;
+use tripo_api::MeshDecimateRequest;
 
 #[test]
-fn smart_lowpoly_uses_highpoly_to_lowpoly_wire_name() {
-    let req = TaskRequest::SmartLowpoly(SmartLowpolyRequest {
-        original_model_task_id: "src".into(),
+fn mesh_decimate_body_and_endpoint() {
+    let req = TaskRequest::MeshDecimate(MeshDecimateRequest {
+        input: "task_src".into(),
         quad: Some(true),
         face_limit: Some(2000),
         bake: Some(true),
-        model_version: None,
+        model: None,
         part_names: None,
     });
-    let v = serde_json::to_value(&req).unwrap();
-    assert_eq!(v["type"], "highpoly_to_lowpoly");
-    insta::assert_json_snapshot!(v);
+    assert_eq!(req.endpoint(), "mesh/decimate");
+    insta::assert_json_snapshot!(json_of(&req));
 }

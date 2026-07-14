@@ -10,12 +10,12 @@ use crate::commands::variants::{VariantArgs, VariantRunOpts};
 /// Generate a skeletal rig for an existing model.
 #[derive(Debug, Args)]
 pub struct RigModelArgs {
-    /// Source task id.
+    /// Model source: task id, file token, or URL.
     #[arg(long)]
-    pub original_model_task_id: String,
+    pub input: String,
     /// Model version.
     #[arg(long)]
-    pub model_version: Option<String>,
+    pub model: Option<String>,
     /// Output file format (glb|fbx).
     #[arg(long, value_parser = super::parsers::rig_out_format)]
     pub out_format: Option<RigOutputFormat>,
@@ -58,8 +58,8 @@ impl VariantArgs for RigModelArgs {
     }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::Rig(RigModelRequest {
-            original_model_task_id: self.original_model_task_id,
-            model_version: self.model_version,
+            input: self.input,
+            model: self.model,
             out_format: self.out_format,
             rig_type: self.rig_type,
             spec: self.spec,

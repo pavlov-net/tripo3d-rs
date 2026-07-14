@@ -1,16 +1,16 @@
-//! `convert_model` task variant.
+//! `convert_model` task variant. Endpoint: `POST /models/convert`.
 
 use serde::{Deserialize, Serialize};
 
 use crate::enums::{ExportOrientation, FbxPreset, OutputFormat, TextureFormat};
 
-/// Request body for `convert_model`. Wire `type`: `convert_model`.
+/// Request body for `POST /models/convert`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ConvertModelRequest {
-    /// Source task id.
-    pub original_model_task_id: String,
+    /// Model source: `task_id`, `file_token`, or URL.
+    pub input: String,
     /// Target mesh format.
     pub format: OutputFormat,
     /// Quad output.

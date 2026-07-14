@@ -1,6 +1,6 @@
 //! Per-variant task request structs and the top-level `TaskRequest` dispatch enum.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::client::Client;
 use crate::enums::GeometryQuality;
@@ -12,12 +12,12 @@ pub mod check_riggable;
 pub mod convert_model;
 pub mod image_to_model;
 pub mod mesh_completion;
+pub mod mesh_decimate;
 pub mod mesh_segmentation;
 pub mod multiview_to_model;
 pub mod refine_model;
 pub mod retarget_animation;
 pub mod rig_model;
-pub mod smart_lowpoly;
 pub mod stylize_model;
 pub mod text_to_model;
 pub mod texture_model;
@@ -26,70 +26,72 @@ pub use check_riggable::CheckRiggableRequest;
 pub use convert_model::ConvertModelRequest;
 pub use image_to_model::ImageToModelRequest;
 pub use mesh_completion::MeshCompletionRequest;
+pub use mesh_decimate::MeshDecimateRequest;
 pub use mesh_segmentation::MeshSegmentationRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
 pub use refine_model::RefineModelRequest;
 pub use retarget_animation::{AnimationInput, RetargetAnimationRequest};
 pub use rig_model::RigModelRequest;
-pub use smart_lowpoly::SmartLowpolyRequest;
 pub use stylize_model::StylizeModelRequest;
 pub use text_to_model::TextToModelRequest;
 pub use texture_model::{TextureModelRequest, TexturePrompt};
 
-/// Task creation request body. `type` tag is set by serde.
-///
-/// Note: four variants have wire-level `type` strings that differ from the
-/// Rust variant name — `#[serde(rename = "...")]` per variant handles this.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Task creation request body. Each variant maps to a dedicated v3 endpoint
+/// (see [`TaskRequest::endpoint`]); the body is the inner struct serialized
+/// as-is — v3 has no `type` discriminator field.
+#[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-#[serde(tag = "type")]
-#[allow(
-    clippy::unsafe_derive_deserialize,
-    reason = "transitive lint via nested types; this enum itself has no unsafe methods"
-)]
+#[serde(untagged)]
 pub enum TaskRequest {
-    /// `text_to_model` — generate a 3D model from a text prompt.
-    #[serde(rename = "text_to_model")]
+    /// `POST /generation/text-to-model` — generate a 3D model from a text prompt.
     TextToModel(TextToModelRequest),
-    /// `image_to_model` — generate a 3D model from a single image.
-    #[serde(rename = "image_to_model")]
+    /// `POST /generation/image-to-model` — generate a 3D model from a single image.
     ImageToModel(ImageToModelRequest),
-    /// `multiview_to_model` — generate from multiple images (front/back/left/right).
-    #[serde(rename = "multiview_to_model")]
+    /// `POST /generation/multiview-to-model` — generate from multiple images (front/back/left/right).
     MultiviewToModel(MultiviewToModelRequest),
-    /// `convert_model` — convert a completed model to another file format.
-    #[serde(rename = "convert_model")]
+    /// `POST /models/convert` — convert a completed model to another file format.
     ConvertModel(ConvertModelRequest),
-    /// `stylize_model` — apply a stylization preset (lego/voxel/etc).
-    #[serde(rename = "stylize_model")]
+    /// `POST /models/stylize` — apply a stylization preset (lego/voxel/etc).
     Stylize(StylizeModelRequest),
-    /// `texture_model` — (re)texture an existing model.
-    #[serde(rename = "texture_model")]
+    /// `POST /models/texture` — (re)texture an existing model.
     TextureModel(TextureModelRequest),
-    /// `refine_model` — turn a draft model into a finished one.
-    #[serde(rename = "refine_model")]
+    /// `POST /models/refine` — turn a draft model into a finished one.
     Refine(RefineModelRequest),
-    /// `check_riggable` — precheck whether a model can be rigged.
-    #[serde(rename = "animate_prerigcheck")]
+    /// `POST /animations/rig-check` — precheck whether a model can be rigged.
     CheckRiggable(CheckRiggableRequest),
-    /// `rig_model` — generate a skeletal rig for an existing model.
-    #[serde(rename = "animate_rig")]
+    /// `POST /animations/rig` — generate a skeletal rig for an existing model.
     Rig(RigModelRequest),
-    /// `retarget_animation` — retarget animations onto a rigged model.
-    #[serde(rename = "animate_retarget")]
+    /// `POST /animations/retarget` — retarget animations onto a rigged model.
     Retarget(RetargetAnimationRequest),
-    /// `mesh_segmentation` — decompose a model into semantic parts.
-    #[serde(rename = "mesh_segmentation")]
+    /// `POST /mesh/segment` — decompose a model into semantic parts.
     MeshSegmentation(MeshSegmentationRequest),
-    /// `mesh_completion` — fill holes in an existing mesh.
-    #[serde(rename = "mesh_completion")]
+    /// `POST /mesh/complete` — fill holes in an existing mesh.
     MeshCompletion(MeshCompletionRequest),
-    /// `smart_lowpoly` — reduce a high-poly model to a lowpoly one. Wire: `highpoly_to_lowpoly`.
-    #[serde(rename = "highpoly_to_lowpoly")]
-    SmartLowpoly(SmartLowpolyRequest),
+    /// `POST /mesh/decimate` — retopology: reduce polycount (smart v2.0 or basic v1.0).
+    MeshDecimate(MeshDecimateRequest),
 }
 
 impl TaskRequest {
+    /// The v3 endpoint path for this variant, relative to the base URL.
+    #[must_use]
+    pub fn endpoint(&self) -> &'static str {
+        match self {
+            Self::TextToModel(_) => "generation/text-to-model",
+            Self::ImageToModel(_) => "generation/image-to-model",
+            Self::MultiviewToModel(_) => "generation/multiview-to-model",
+            Self::ConvertModel(_) => "models/convert",
+            Self::Stylize(_) => "models/stylize",
+            Self::TextureModel(_) => "models/texture",
+            Self::Refine(_) => "models/refine",
+            Self::CheckRiggable(_) => "animations/rig-check",
+            Self::Rig(_) => "animations/rig",
+            Self::Retarget(_) => "animations/retarget",
+            Self::MeshSegmentation(_) => "mesh/segment",
+            Self::MeshCompletion(_) => "mesh/complete",
+            Self::MeshDecimate(_) => "mesh/decimate",
+        }
+    }
+
     /// Client-side request validation. Dispatches to per-variant `validate()`.
     /// Called from `Client::create_task` before the POST so bad requests cost
     /// nothing and produce a usable error message.
@@ -107,10 +109,10 @@ impl TaskRequest {
     /// Call this before serializing & sending.
     pub async fn upload_images(&mut self, client: &Client) -> Result<()> {
         match self {
-            Self::ImageToModel(r) => upload_image_if_path(client, &mut r.image).await,
+            Self::ImageToModel(r) => upload_image_if_path(client, &mut r.input).await,
             Self::MultiviewToModel(r) => {
                 let futs = r
-                    .images
+                    .inputs
                     .iter_mut()
                     .flatten()
                     .map(|img| upload_image_if_path(client, img));
@@ -142,23 +144,23 @@ impl TaskRequest {
             | Self::Retarget(_)
             | Self::MeshSegmentation(_)
             | Self::MeshCompletion(_)
-            | Self::SmartLowpoly(_) => Ok(()),
+            | Self::MeshDecimate(_) => Ok(()),
         }
     }
 }
 
-/// Reject parameters that aren't supported by `model_version: P1-20260311`.
+/// Reject parameters that aren't supported by `model: P1-20260311`.
 /// P1 is a low-poly-optimized pipeline and per the docs rejects `quad`,
 /// `smart_low_poly`, `generate_parts`, and `geometry_quality`. Called from
 /// text/image/multiview `validate()`.
 pub(crate) fn validate_p1_params(
-    model_version: Option<&str>,
+    model: Option<&str>,
     quad: Option<bool>,
     smart_low_poly: Option<bool>,
     generate_parts: Option<bool>,
     geometry_quality: Option<&GeometryQuality>,
 ) -> Result<()> {
-    if model_version != Some(versions::text_image::P1) {
+    if model != Some(versions::text_image::P1) {
         return Ok(());
     }
     let mut unsupported: Vec<&str> = Vec::new();
@@ -178,7 +180,7 @@ pub(crate) fn validate_p1_params(
         Ok(())
     } else {
         Err(Error::InvalidRequest(format!(
-            "model_version {} does not support: {}",
+            "model {} does not support: {}",
             versions::text_image::P1,
             unsupported.join(", "),
         )))

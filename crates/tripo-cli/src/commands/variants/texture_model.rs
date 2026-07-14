@@ -10,9 +10,9 @@ use crate::commands::variants::{VariantArgs, VariantRunOpts};
 /// (Re-)texture an existing model.
 #[derive(Debug, Args)]
 pub struct TextureModelArgs {
-    /// Source task id.
+    /// Model source: task id, file token, or URL.
     #[arg(long)]
-    pub original_model_task_id: String,
+    pub input: String,
     /// Text prompt (maps into `texture_prompt.text`).
     #[arg(long)]
     pub text_prompt: Option<String>,
@@ -24,16 +24,10 @@ pub struct TextureModelArgs {
     pub style_image: Option<String>,
     /// Model version.
     #[arg(long)]
-    pub model_version: Option<String>,
-    /// Generate a texture.
-    #[arg(long)]
-    pub texture: Option<bool>,
+    pub model: Option<String>,
     /// PBR shading.
     #[arg(long)]
     pub pbr: Option<bool>,
-    /// Model seed.
-    #[arg(long)]
-    pub model_seed: Option<i32>,
     /// Texture seed.
     #[arg(long)]
     pub texture_seed: Option<i32>,
@@ -68,12 +62,10 @@ impl VariantArgs for TextureModelArgs {
             style_image: self.style_image.as_deref().map(ImageInput::parse),
         };
         Ok(TaskRequest::TextureModel(TextureModelRequest {
-            original_model_task_id: self.original_model_task_id,
+            input: self.input,
             texture_prompt: prompt,
-            model_version: self.model_version,
-            texture: self.texture,
+            model: self.model,
             pbr: self.pbr,
-            model_seed: self.model_seed,
             texture_seed: self.texture_seed,
             texture_quality: self.texture_quality,
             texture_alignment: self.texture_alignment,

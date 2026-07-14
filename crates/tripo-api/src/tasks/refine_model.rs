@@ -1,8 +1,9 @@
-//! `refine_model` task variant.
+//! `refine_model` task variant. Endpoint: `POST /models/refine` (legacy, undocumented in v3).
 
 use serde::{Deserialize, Serialize};
 
-/// Request body for `refine_model`. Wire `type`: `refine_model`.
+/// Request body for `POST /models/refine`. Note: this legacy endpoint keeps
+/// v2 field names (`draft_model_task_id`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]

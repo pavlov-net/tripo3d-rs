@@ -9,13 +9,13 @@ async fn retries_on_500_then_succeeds() {
 
     // First response: 500. Subsequent: 200.
     Mock::given(method("GET"))
-        .and(path("/user/balance"))
+        .and(path("/account/balance"))
         .respond_with(ResponseTemplate::new(500).set_body_string("boom"))
         .up_to_n_times(1)
         .mount(&server)
         .await;
     Mock::given(method("GET"))
-        .and(path("/user/balance"))
+        .and(path("/account/balance"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "code":0,"data":{"balance":1.0,"frozen":0.0}
         })))
@@ -40,7 +40,7 @@ async fn retries_on_500_then_succeeds() {
 async fn no_retry_on_400() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/user/balance"))
+        .and(path("/account/balance"))
         .respond_with(ResponseTemplate::new(400).set_body_json(serde_json::json!({
             "code": 4000, "message": "bad"
         })))

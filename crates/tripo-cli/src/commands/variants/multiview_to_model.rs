@@ -7,16 +7,18 @@ use tripo_api::{CompressionMode, ImageInput, MultiviewToModelRequest, TaskReques
 
 use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
-/// Multi-view to 3D model. Pass `--image` once per view (empty slots: `--image=""`).
+/// Multi-view to 3D model. Pass `--input` once per view in order
+/// front,left,back,right (empty slots: `--input=""`).
 #[derive(Debug, Args)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct MultiviewToModelArgs {
-    /// Repeated; one per view. Empty string inserts a blank slot.
+    /// Repeated; one per view in order [front, left, back, right]. Empty
+    /// string inserts a blank slot.
     #[arg(long, action = clap::ArgAction::Append, required = true)]
-    pub image: Vec<String>,
+    pub input: Vec<String>,
     /// Model version.
     #[arg(long)]
-    pub model_version: Option<String>,
+    pub model: Option<String>,
     /// Target face count.
     #[arg(long)]
     pub face_limit: Option<i32>,
@@ -59,6 +61,9 @@ pub struct MultiviewToModelArgs {
     /// Route through smart-lowpoly.
     #[arg(long)]
     pub smart_low_poly: Option<bool>,
+    /// UV unwrapping during generation.
+    #[arg(long)]
+    pub export_uv: Option<bool>,
 
     #[command(flatten)]
     pub run: VariantRunOpts,
@@ -69,8 +74,8 @@ impl VariantArgs for MultiviewToModelArgs {
         std::mem::take(&mut self.run)
     }
     fn into_request(self) -> Result<TaskRequest> {
-        let images: Vec<Option<ImageInput>> = self
-            .image
+        let inputs: Vec<Option<ImageInput>> = self
+            .input
             .iter()
             .map(|s| {
                 if s.is_empty() {
@@ -81,8 +86,8 @@ impl VariantArgs for MultiviewToModelArgs {
             })
             .collect();
         Ok(TaskRequest::MultiviewToModel(MultiviewToModelRequest {
-            images,
-            model_version: self.model_version,
+            inputs,
+            model: self.model,
             face_limit: self.face_limit,
             texture: self.texture,
             pbr: self.pbr,
@@ -97,6 +102,7 @@ impl VariantArgs for MultiviewToModelArgs {
             compress: self.compress.then_some(CompressionMode::Geometry),
             generate_parts: self.generate_parts,
             smart_low_poly: self.smart_low_poly,
+            export_uv: self.export_uv,
         }))
     }
 }

@@ -4,6 +4,5 @@ expression: json_of(&req)
 ---
 {
   "format": "GLTF",
-  "original_model_task_id": "src-task-1",
-  "type": "convert_model"
+  "input": "task_src1"
 }

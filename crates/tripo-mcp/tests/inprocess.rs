@@ -13,7 +13,7 @@ use common::{args, start_server};
 async fn calls_get_balance() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/user/balance"))
+        .and(path("/account/balance"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,"data":{"balance":10.0,"frozen":0.0}
         })))
@@ -30,10 +30,9 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
-async fn calls_mesh_seg_completion_smart_lowpoly() {
+async fn calls_mesh_seg_completion_decimate() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,"data":{"task_id":"z"}
         })))
@@ -42,15 +41,12 @@ async fn calls_mesh_seg_completion_smart_lowpoly() {
 
     let client = start_server(&server).await;
     for (name, argv) in [
-        ("mesh_segmentation", json!({"original_model_task_id":"m"})),
+        ("mesh_segmentation", json!({"input":"task_m"})),
         (
             "mesh_completion",
-            json!({"original_model_task_id":"m","part_names":["a"]}),
+            json!({"input":"task_m","part_names":["a"]}),
         ),
-        (
-            "smart_lowpoly",
-            json!({"original_model_task_id":"m","face_limit":2000}),
-        ),
+        ("mesh_decimate", json!({"input":"task_m","face_limit":2000})),
     ] {
         let r = client
             .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
@@ -63,7 +59,6 @@ async fn calls_mesh_seg_completion_smart_lowpoly() {
 async fn calls_texture_refine_rigcheck_rig_retarget() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,"data":{"task_id":"y"}
         })))
@@ -73,13 +68,13 @@ async fn calls_texture_refine_rigcheck_rig_retarget() {
     let client = start_server(&server).await;
 
     for (name, argv) in [
-        ("texture_model", json!({"original_model_task_id":"m"})),
+        ("texture_model", json!({"input":"task_m"})),
         ("refine_model", json!({"draft_model_task_id":"d"})),
-        ("check_riggable", json!({"original_model_task_id":"m"})),
-        ("rig_model", json!({"original_model_task_id":"m"})),
+        ("check_riggable", json!({"input":"task_m"})),
+        ("rig_model", json!({"input":"task_m"})),
         (
             "retarget_animation",
-            json!({"original_model_task_id":"m","animation":"preset:walk"}),
+            json!({"input":"task_m","animation":"preset:walk"}),
         ),
     ] {
         let r = client
@@ -93,7 +88,6 @@ async fn calls_texture_refine_rigcheck_rig_retarget() {
 async fn calls_image_multiview_convert_stylize() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,"data":{"task_id":"x"}
         })))
@@ -103,21 +97,12 @@ async fn calls_image_multiview_convert_stylize() {
     let client = start_server(&server).await;
 
     for (name, argv) in [
-        (
-            "image_to_model",
-            json!({"file":{"type":"jpg","url":"https://e/x.jpg"}}),
-        ),
-        (
-            "multiview_to_model",
-            json!({"files":[{"type":"jpg","url":"https://e/a.jpg"}]}),
-        ),
-        (
-            "convert_model",
-            json!({"original_model_task_id":"m","format":"GLTF"}),
-        ),
+        ("image_to_model", json!({"input":"https://e/x.jpg"})),
+        ("multiview_to_model", json!({"inputs":["https://e/a.jpg"]})),
+        ("convert_model", json!({"input":"task_m","format":"GLTF"})),
         (
             "stylize_model",
-            json!({"original_model_task_id":"m","style":"voxel"}),
+            json!({"original_model_task_id":"task_m","style":"voxel"}),
         ),
     ] {
         let r = client
@@ -131,9 +116,9 @@ async fn calls_image_multiview_convert_stylize() {
 async fn calls_text_to_model() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/generation/text-to-model"))
         .and(wiremock::matchers::body_partial_json(
-            json!({"type":"text_to_model","prompt":"a red robot"}),
+            json!({"prompt":"a red robot"}),
         ))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,"data":{"task_id":"t1"}
@@ -158,12 +143,12 @@ async fn calls_download_task_models() {
     let server = MockServer::start().await;
     let model_url = format!("{}/files/abc.glb", server.uri());
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,
             "data":{
-                "task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0,
-                "output":{"model": model_url}
+                "task_id":"abc","type":"text_to_model","status":"success","progress":100,"created_at":"2026-01-01T00:00:00Z",
+                "output":{"model_url": model_url}
             }
         })))
         .mount(&server)
@@ -194,19 +179,19 @@ async fn calls_download_task_models() {
 async fn calls_wait_for_task() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,
-            "data":{"task_id":"abc","type":"text_to_model","status":"running","progress":50,"create_time":0}
+            "data":{"task_id":"abc","type":"text_to_model","status":"running","progress":50,"created_at":"2026-01-01T00:00:00Z"}
         })))
         .up_to_n_times(1)
         .mount(&server)
         .await;
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,
-            "data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0}
+            "data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"created_at":"2026-01-01T00:00:00Z"}
         })))
         .mount(&server)
         .await;
@@ -227,7 +212,7 @@ async fn calls_wait_for_task() {
 async fn calls_create_raw_task() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/task"))
+        .and(path("/generation/text-to-model"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,"data":{"task_id":"raw"}
         })))
@@ -238,7 +223,8 @@ async fn calls_create_raw_task() {
     let result = client
         .call_tool(
             CallToolRequestParams::new("create_raw_task").with_arguments(args(json!({
-                "body": {"type":"text_to_model","prompt":"x"}
+                "endpoint": "generation/text-to-model",
+                "body": {"prompt":"x"}
             }))),
         )
         .await
@@ -250,9 +236,9 @@ async fn calls_create_raw_task() {
 async fn calls_upload_file() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/upload"))
+        .and(path("/files"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "code":0,"data":{"image_token":"550e8400-e29b-41d4-a716-446655440000"}
+            "code":0,"data":{"file_token":"file_abc123"}
         })))
         .mount(&server)
         .await;
@@ -268,17 +254,17 @@ async fn calls_upload_file() {
         )
         .await
         .unwrap();
-    assert!(format!("{result:?}").contains("550e8400"));
+    assert!(format!("{result:?}").contains("file_abc123"));
 }
 
 #[tokio::test]
 async fn calls_get_task() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/task/abc"))
+        .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code":0,
-            "data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0}
+            "data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"created_at":"2026-01-01T00:00:00Z"}
         })))
         .mount(&server)
         .await;

@@ -1,6 +1,5 @@
 ---
 source: crates/tripo-cli/tests/help.rs
-assertion_line: 25
 expression: "help_of(&[\"task\"])"
 ---
 Raw task escape hatches: create from JSON, get, wait, download
@@ -8,7 +7,7 @@ Raw task escape hatches: create from JSON, get, wait, download
 Usage: tripo task [OPTIONS] <COMMAND>
 
 Commands:
-  create    POST arbitrary JSON to /task
+  create    POST arbitrary JSON to a task-creation endpoint
   get       Fetch a task's current state
   wait      Wait for a task to reach a terminal status
   download  Download a task's output models into `--output`

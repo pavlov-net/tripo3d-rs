@@ -10,9 +10,9 @@ use crate::commands::variants::{VariantArgs, VariantRunOpts};
 /// Convert a model to a different file format.
 #[derive(Debug, Args)]
 pub struct ConvertModelArgs {
-    /// Source task id.
+    /// Model source: task id, file token, or URL.
     #[arg(long)]
-    pub original_model_task_id: String,
+    pub input: String,
     /// Output mesh format.
     #[arg(long, value_parser = parse_format)]
     pub format: OutputFormat,
@@ -124,7 +124,7 @@ impl VariantArgs for ConvertModelArgs {
     }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::ConvertModel(ConvertModelRequest {
-            original_model_task_id: self.original_model_task_id,
+            input: self.input,
             format: self.format,
             quad: self.quad,
             force_symmetry: self.force_symmetry,

@@ -1,4 +1,4 @@
-//! `retarget_animation` task variant. Wire `type`: `animate_retarget`.
+//! `retarget_animation` task variant. Endpoint: `POST /animations/retarget`.
 //!
 //! Uses `AnimationInput` to type-enforce the single-or-many wire-format
 //! invariant: a single animation serializes under key `animation`, a list
@@ -19,12 +19,12 @@ pub enum AnimationInput {
     Many(Vec<Animation>),
 }
 
-/// Request body for `retarget_animation`. Wire `type`: `animate_retarget`.
+/// Request body for `POST /animations/retarget`.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct RetargetAnimationRequest {
-    /// Source rigged task id.
-    pub original_model_task_id: String,
+    /// `task_id` of the rigged model.
+    pub input: String,
     /// Animation(s) to retarget; serializes as `animation` (single) or `animations` (list).
     pub animation: AnimationInput,
     /// Output file format.
@@ -41,7 +41,7 @@ impl Serialize for RetargetAnimationRequest {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeMap;
         let mut m = s.serialize_map(None)?;
-        m.serialize_entry("original_model_task_id", &self.original_model_task_id)?;
+        m.serialize_entry("input", &self.input)?;
         match &self.animation {
             AnimationInput::Single(a) => m.serialize_entry("animation", a)?,
             AnimationInput::Many(list) => m.serialize_entry("animations", list)?,
@@ -69,7 +69,7 @@ impl<'de> Deserialize<'de> for RetargetAnimationRequest {
         #[derive(Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Wire {
-            original_model_task_id: String,
+            input: String,
             #[serde(default)]
             animation: Option<Animation>,
             #[serde(default)]
@@ -100,7 +100,7 @@ impl<'de> Deserialize<'de> for RetargetAnimationRequest {
             }
         };
         Ok(Self {
-            original_model_task_id: w.original_model_task_id,
+            input: w.input,
             animation,
             out_format: w.out_format,
             bake_animation: w.bake_animation,
@@ -113,9 +113,9 @@ impl<'de> Deserialize<'de> for RetargetAnimationRequest {
 impl RetargetAnimationRequest {
     /// Build with a single animation preset.
     #[must_use]
-    pub fn single(original_model_task_id: impl Into<String>, animation: Animation) -> Self {
+    pub fn single(input: impl Into<String>, animation: Animation) -> Self {
         Self {
-            original_model_task_id: original_model_task_id.into(),
+            input: input.into(),
             animation: AnimationInput::Single(animation),
             out_format: None,
             bake_animation: None,
@@ -125,9 +125,9 @@ impl RetargetAnimationRequest {
     }
     /// Build with multiple animations (list).
     #[must_use]
-    pub fn many(original_model_task_id: impl Into<String>, animations: Vec<Animation>) -> Self {
+    pub fn many(input: impl Into<String>, animations: Vec<Animation>) -> Self {
         Self {
-            original_model_task_id: original_model_task_id.into(),
+            input: input.into(),
             animation: AnimationInput::Many(animations),
             out_format: None,
             bake_animation: None,

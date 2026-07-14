@@ -11,12 +11,15 @@ use crate::commands::variants::{VariantArgs, VariantRunOpts};
 #[derive(Debug, Args)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct ImageToModelArgs {
-    /// URL, `file_token` (UUID), or local path.
+    /// URL, `file_token`, `task_id`, or local path.
     #[arg(long)]
-    pub image: String,
+    pub input: String,
+    /// Automatically optimize the input image before generation.
+    #[arg(long)]
+    pub enable_image_autofix: Option<bool>,
     /// Model version.
     #[arg(long)]
-    pub model_version: Option<String>,
+    pub model: Option<String>,
     /// Target face count.
     #[arg(long)]
     pub face_limit: Option<i32>,
@@ -59,6 +62,9 @@ pub struct ImageToModelArgs {
     /// Route through smart-lowpoly.
     #[arg(long)]
     pub smart_low_poly: Option<bool>,
+    /// UV unwrapping during generation.
+    #[arg(long)]
+    pub export_uv: Option<bool>,
 
     #[command(flatten)]
     pub run: VariantRunOpts,
@@ -70,8 +76,9 @@ impl VariantArgs for ImageToModelArgs {
     }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::ImageToModel(ImageToModelRequest {
-            image: ImageInput::parse(&self.image),
-            model_version: self.model_version,
+            input: ImageInput::parse(&self.input),
+            enable_image_autofix: self.enable_image_autofix,
+            model: self.model,
             face_limit: self.face_limit,
             texture: self.texture,
             pbr: self.pbr,
@@ -86,6 +93,7 @@ impl VariantArgs for ImageToModelArgs {
             compress: self.compress.then_some(CompressionMode::Geometry),
             generate_parts: self.generate_parts,
             smart_low_poly: self.smart_low_poly,
+            export_uv: self.export_uv,
         }))
     }
 }

@@ -11,7 +11,7 @@ use crate::commands::variants::{VariantArgs, VariantRunOpts};
 pub struct RefineModelArgs {
     /// Draft (pre-refinement) task id.
     #[arg(long)]
-    pub draft_model_task_id: String,
+    pub input: String,
     #[command(flatten)]
     pub run: VariantRunOpts,
 }
@@ -22,7 +22,7 @@ impl VariantArgs for RefineModelArgs {
     }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::Refine(RefineModelRequest {
-            draft_model_task_id: self.draft_model_task_id,
+            draft_model_task_id: self.input,
         }))
     }
 }

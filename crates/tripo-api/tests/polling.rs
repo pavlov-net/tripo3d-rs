@@ -16,16 +16,16 @@ fn client(server: &MockServer) -> Client {
 #[tokio::test(flavor = "current_thread")]
 async fn waits_until_terminal() {
     let server = MockServer::start().await;
-    Mock::given(method("GET")).and(path("/task/abc"))
+    Mock::given(method("GET")).and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0, "data":{"task_id":"abc","type":"text_to_model","status":"running","progress":10,"create_time":0}
+            "code":0, "data":{"task_id":"abc","type":"text_to_model","status":"running","progress":10,"created_at":"2026-01-01T00:00:00Z"}
         })))
         .up_to_n_times(2)
         .mount(&server).await;
-    Mock::given(method("GET")).and(path("/task/abc"))
+    Mock::given(method("GET")).and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0, "data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"create_time":0,
-                              "output":{"model":"https://cdn/abc.glb"}}
+            "code":0, "data":{"task_id":"abc","type":"text_to_model","status":"success","progress":100,"created_at":"2026-01-01T00:00:00Z",
+                              "output":{"model_url":"https://cdn/abc.glb"}}
         })))
         .mount(&server).await;
 
@@ -43,16 +43,19 @@ async fn waits_until_terminal() {
     };
     let task = c.wait_for_task(&TaskId::new("abc"), opts).await.unwrap();
     assert_eq!(task.status, TaskStatus::Success);
-    assert_eq!(task.output.model.as_deref(), Some("https://cdn/abc.glb"));
+    assert_eq!(
+        task.output.model_url.as_deref(),
+        Some("https://cdn/abc.glb")
+    );
     assert!(*seen.lock().unwrap() >= 3);
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn times_out() {
     let server = MockServer::start().await;
-    Mock::given(method("GET")).and(path("/task/abc"))
+    Mock::given(method("GET")).and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0, "data":{"task_id":"abc","type":"text_to_model","status":"running","progress":0,"create_time":0}
+            "code":0, "data":{"task_id":"abc","type":"text_to_model","status":"running","progress":0,"created_at":"2026-01-01T00:00:00Z"}
         })))
         .mount(&server).await;
 

@@ -5,7 +5,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn mock_balance(server: &MockServer) {
     Mock::given(method("GET"))
-        .and(path("/user/balance"))
+        .and(path("/account/balance"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "code": 0, "data": { "balance": 42.5, "frozen": 1.5 }
         })))

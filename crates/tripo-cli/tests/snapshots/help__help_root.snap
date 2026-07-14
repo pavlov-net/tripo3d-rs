@@ -1,6 +1,5 @@
 ---
 source: crates/tripo-cli/tests/help.rs
-assertion_line: 15
 expression: "help_of(&[])"
 ---
 Unofficial command-line client for the Tripo 3D Generation API
@@ -24,7 +23,7 @@ Commands:
   retarget-animation  Retarget one or more animations onto a rigged model
   mesh-segmentation   Decompose a model into semantic parts
   mesh-completion     Fill holes in an existing mesh
-  smart-lowpoly       Reduce a high-poly model to a lowpoly one
+  mesh-decimate       Reduce model polycount (retopology; replaces v2 smart-lowpoly)
   help                Print this message or the help of the given subcommand(s)
 
 Options:

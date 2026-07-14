@@ -10,9 +10,9 @@ use crate::commands::variants::{VariantArgs, VariantRunOpts};
 /// Retarget one or more animations onto a rigged model.
 #[derive(Debug, Args)]
 pub struct RetargetAnimationArgs {
-    /// Source rigged task id.
+    /// Task id of the rigged model.
     #[arg(long)]
-    pub original_model_task_id: String,
+    pub input: String,
     /// One or more animation presets (comma-separated). If one: `animation` field. If many: `animations`.
     #[arg(long, value_delimiter = ',', value_parser = parse_animation, required = true)]
     pub animation: Vec<Animation>,
@@ -70,7 +70,7 @@ impl VariantArgs for RetargetAnimationArgs {
             AnimationInput::Many(self.animation)
         };
         Ok(TaskRequest::Retarget(RetargetAnimationRequest {
-            original_model_task_id: self.original_model_task_id,
+            input: self.input,
             animation,
             out_format: self.out_format,
             bake_animation: self.bake_animation,

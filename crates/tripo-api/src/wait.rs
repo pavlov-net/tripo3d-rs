@@ -63,7 +63,7 @@ pub(crate) fn next_interval(
 }
 
 impl Client {
-    /// Poll `GET /task/{id}` until the status is terminal or `opts.timeout` is reached.
+    /// Poll `GET /tasks/{id}` until the status is terminal or `opts.timeout` is reached.
     ///
     /// Returns the final `Task` even for non-success terminal statuses; callers can check
     /// `task.status`. Use `Error::WaitTimeout` if you want an error on timeout (returned here).
@@ -112,11 +112,11 @@ mod tests {
             input: BTreeMap::new(),
             output: TaskOutput::default(),
             progress: 0,
-            create_time: 0,
+            created_at: String::new(),
+            completed_at: None,
+            credits_consumed: None,
             running_left_time: eta,
             queuing_num: None,
-            error_code: None,
-            error_msg: None,
         }
     }
 

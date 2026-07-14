@@ -1,10 +1,11 @@
-//! `stylize_model` task variant.
+//! `stylize_model` task variant. Endpoint: `POST /models/stylize` (legacy, undocumented in v3).
 
 use serde::{Deserialize, Serialize};
 
 use crate::enums::PostStyle;
 
-/// Request body for `stylize_model`. Wire `type`: `stylize_model`.
+/// Request body for `POST /models/stylize`. Note: this legacy endpoint keeps
+/// v2 field names (`original_model_task_id`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]

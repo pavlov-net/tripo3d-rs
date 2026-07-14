@@ -9,9 +9,9 @@ use crate::commands::variants::{VariantArgs, VariantRunOpts};
 /// Pre-check whether a model can be rigged.
 #[derive(Debug, Args)]
 pub struct CheckRiggableArgs {
-    /// Source task id.
+    /// Model source: task id, file token, or URL.
     #[arg(long)]
-    pub original_model_task_id: String,
+    pub input: String,
     #[command(flatten)]
     pub run: VariantRunOpts,
 }
@@ -22,7 +22,7 @@ impl VariantArgs for CheckRiggableArgs {
     }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::CheckRiggable(CheckRiggableRequest {
-            original_model_task_id: self.original_model_task_id,
+            input: self.input,
         }))
     }
 }

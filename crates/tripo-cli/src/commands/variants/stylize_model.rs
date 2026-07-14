@@ -10,9 +10,9 @@ use crate::commands::variants::{VariantArgs, VariantRunOpts};
 /// Apply a stylization preset to an existing model.
 #[derive(Debug, Args)]
 pub struct StylizeModelArgs {
-    /// Source task id.
+    /// Source task id (or file token).
     #[arg(long)]
-    pub original_model_task_id: String,
+    pub input: String,
     /// Stylization preset.
     #[arg(long, value_parser = parse_style)]
     pub style: PostStyle,
@@ -40,7 +40,7 @@ impl VariantArgs for StylizeModelArgs {
     }
     fn into_request(self) -> Result<TaskRequest> {
         Ok(TaskRequest::Stylize(StylizeModelRequest {
-            original_model_task_id: self.original_model_task_id,
+            original_model_task_id: self.input,
             style: self.style,
             block_size: self.block_size,
         }))

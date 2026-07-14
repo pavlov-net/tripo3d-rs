@@ -5,6 +5,5 @@ expression: json_of(&req)
 {
   "block_size": 80,
   "original_model_task_id": "src-task",
-  "style": "voxel",
-  "type": "stylize_model"
+  "style": "voxel"
 }

@@ -41,8 +41,8 @@ pub use image::ImageInput;
 pub use retry::RetryPolicy;
 pub use tasks::{
     AnimationInput, CheckRiggableRequest, ConvertModelRequest, ImageToModelRequest,
-    MeshCompletionRequest, MeshSegmentationRequest, MultiviewToModelRequest, RefineModelRequest,
-    RetargetAnimationRequest, RigModelRequest, SmartLowpolyRequest, StylizeModelRequest,
+    MeshCompletionRequest, MeshDecimateRequest, MeshSegmentationRequest, MultiviewToModelRequest,
+    RefineModelRequest, RetargetAnimationRequest, RigModelRequest, StylizeModelRequest,
     TaskRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
 };
 pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};

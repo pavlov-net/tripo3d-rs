@@ -7,9 +7,9 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 async fn upload_prints_file_token() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/upload"))
+        .and(path("/files"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code": 0, "data": { "image_token": "550e8400-e29b-41d4-a716-446655440000" }
+            "code": 0, "data": { "file_token": "file_abc123" }
         })))
         .mount(&server)
         .await;
@@ -29,7 +29,5 @@ async fn upload_prints_file_token() {
         ])
         .assert()
         .success()
-        .stdout(predicate::str::contains(
-            "550e8400-e29b-41d4-a716-446655440000",
-        ));
+        .stdout(predicate::str::contains("file_abc123"));
 }

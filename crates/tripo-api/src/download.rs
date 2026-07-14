@@ -13,23 +13,20 @@ use crate::types::{Task, TaskId};
 /// Which outputs to consider.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutputKind {
-    /// `output.model` — main mesh.
+    /// `output.model_url` — main mesh.
     Model,
-    /// `output.base_model` — pre-texture mesh.
-    BaseModel,
-    /// `output.pbr_model` — PBR-textured mesh.
-    PbrModel,
-    /// `output.rendered_image` — preview render.
+    /// `output.rendered_image_url` — preview render.
     RenderedImage,
+    /// `output.generated_image_url` — intermediate text-to-image result.
+    GeneratedImage,
 }
 
 impl OutputKind {
     fn filename(self, id: &TaskId, ext: &str) -> String {
         match self {
             Self::Model => format!("{id}.{ext}"),
-            Self::BaseModel => format!("{id}_base.{ext}"),
-            Self::PbrModel => format!("{id}_pbr.{ext}"),
             Self::RenderedImage => format!("{id}_rendered.{ext}"),
+            Self::GeneratedImage => format!("{id}_generated.{ext}"),
         }
     }
 }
@@ -41,7 +38,7 @@ pub struct DownloadOptions {
     pub max_concurrency: usize,
     /// If true, overwrite existing files at target paths. If false, return `Error::FileExists`.
     pub overwrite: bool,
-    /// Output kinds to include (default: all four).
+    /// Output kinds to include (default: all).
     pub kinds: Vec<OutputKind>,
 }
 
@@ -52,9 +49,8 @@ impl Default for DownloadOptions {
             overwrite: false,
             kinds: vec![
                 OutputKind::Model,
-                OutputKind::BaseModel,
-                OutputKind::PbrModel,
                 OutputKind::RenderedImage,
+                OutputKind::GeneratedImage,
             ],
         }
     }
@@ -66,12 +62,20 @@ impl Default for DownloadOptions {
 pub struct DownloadedFiles {
     /// Main model path.
     pub model: Option<PathBuf>,
-    /// Base model path.
-    pub base_model: Option<PathBuf>,
-    /// PBR model path.
-    pub pbr_model: Option<PathBuf>,
     /// Rendered preview image path.
     pub rendered_image: Option<PathBuf>,
+    /// Intermediate generated image path.
+    pub generated_image: Option<PathBuf>,
+}
+
+impl DownloadedFiles {
+    /// Iterate over the paths that were actually written, in a stable order.
+    pub fn paths(&self) -> impl Iterator<Item = &Path> {
+        [&self.model, &self.rendered_image, &self.generated_image]
+            .into_iter()
+            .flatten()
+            .map(PathBuf::as_path)
+    }
 }
 
 fn extension_of(url: &str, default_ext: &str) -> String {
@@ -98,10 +102,9 @@ impl Client {
         let mut jobs: Vec<(OutputKind, String, PathBuf)> = Vec::new();
         for kind in &opts.kinds {
             let (url, default_ext) = match kind {
-                OutputKind::Model => (&task.output.model, "glb"),
-                OutputKind::BaseModel => (&task.output.base_model, "glb"),
-                OutputKind::PbrModel => (&task.output.pbr_model, "glb"),
-                OutputKind::RenderedImage => (&task.output.rendered_image, "jpg"),
+                OutputKind::Model => (&task.output.model_url, "glb"),
+                OutputKind::RenderedImage => (&task.output.rendered_image_url, "jpg"),
+                OutputKind::GeneratedImage => (&task.output.generated_image_url, "jpg"),
             };
             let Some(url) = url.clone() else { continue };
             let ext = extension_of(&url, default_ext);
@@ -126,9 +129,8 @@ impl Client {
             let (kind, path) = done?;
             match kind {
                 OutputKind::Model => out.model = Some(path),
-                OutputKind::BaseModel => out.base_model = Some(path),
-                OutputKind::PbrModel => out.pbr_model = Some(path),
                 OutputKind::RenderedImage => out.rendered_image = Some(path),
+                OutputKind::GeneratedImage => out.generated_image = Some(path),
             }
             if let Some(job) = pending.next() {
                 in_flight.push(download_one(self, job));

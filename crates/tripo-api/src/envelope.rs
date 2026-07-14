@@ -1,4 +1,5 @@
-//! Tripo response envelope: `{code, data}` on success or `{code, message, suggestion}` on error.
+//! Tripo response envelope: `{code, data}` on success or
+//! `{code, message, suggestion, request_id}` on error.
 
 use serde::Deserialize;
 
@@ -14,6 +15,8 @@ pub(crate) struct Envelope<T> {
     pub message: Option<String>,
     #[serde(default)]
     pub suggestion: Option<String>,
+    #[serde(default)]
+    pub request_id: Option<String>,
 }
 
 impl<T> Envelope<T> {
@@ -24,12 +27,14 @@ impl<T> Envelope<T> {
                 code: 0,
                 message: "missing `data` field in success envelope".into(),
                 suggestion: None,
+                request_id: self.request_id,
             })
         } else {
             Err(Error::Api {
                 code: self.code,
                 message: self.message.unwrap_or_else(|| "no message".into()),
                 suggestion: self.suggestion,
+                request_id: self.request_id,
             })
         }
     }
@@ -45,6 +50,7 @@ pub(crate) fn map_http_error(status: reqwest::StatusCode, bytes: &[u8]) -> Error
             code: env.code,
             message: env.message.unwrap_or_else(|| status.to_string()),
             suggestion: env.suggestion,
+            request_id: env.request_id,
         };
     }
     Error::Http {
@@ -66,14 +72,25 @@ mod tests {
     }
 
     #[test]
+    fn parses_success_envelope_with_status_field() {
+        // v3 adds "status":"success" alongside code/data.
+        let json = r#"{"code":0,"status":"success","data":{"balance":90.0,"frozen":0.0}}"#;
+        let env: Envelope<serde_json::Value> = serde_json::from_str(json).unwrap();
+        let data = env.into_result().unwrap();
+        assert_eq!(data["balance"], 90.0);
+    }
+
+    #[test]
     fn parses_error_envelope() {
-        let json = r#"{"code":1001,"message":"bad key","suggestion":"regenerate"}"#;
+        let json =
+            r#"{"code":1001,"message":"bad key","suggestion":"regenerate","request_id":"req_1"}"#;
         let env: Envelope<serde_json::Value> = serde_json::from_str(json).unwrap();
         let err = env.into_result().unwrap_err();
         let crate::Error::Api {
             code,
             message,
             suggestion,
+            request_id,
         } = err
         else {
             panic!("wrong variant");
@@ -81,6 +98,7 @@ mod tests {
         assert_eq!(code, 1001);
         assert_eq!(message, "bad key");
         assert_eq!(suggestion.as_deref(), Some("regenerate"));
+        assert_eq!(request_id.as_deref(), Some("req_1"));
     }
 
     #[test]
