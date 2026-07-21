@@ -7,13 +7,12 @@
 use std::sync::Arc;
 
 use rmcp::{
-    ErrorData, Json, RoleServer, ServerHandler,
     handler::server::wrapper::Parameters,
     model::{
         Implementation, ProgressNotificationParam, ProtocolVersion, ServerCapabilities, ServerInfo,
     },
     service::RequestContext,
-    tool, tool_handler, tool_router,
+    tool, tool_handler, tool_router, ErrorData, Json, RoleServer, ServerHandler,
 };
 
 use crate::params;
@@ -150,12 +149,9 @@ impl TripoServer {
             Box::new(move |task: &tripo_api::Task| {
                 let pct = f64::from(task.progress.clamp(0, 100));
                 let message = format!("{:?} ({pct:.0}%)", task.status);
-                let param = ProgressNotificationParam {
-                    progress_token: token.clone(),
-                    progress: pct,
-                    total: Some(100.0),
-                    message: Some(message),
-                };
+                let param = ProgressNotificationParam::new(token.clone(), pct)
+                    .with_total(100.0)
+                    .with_message(message);
                 let peer = peer.clone();
                 tokio::spawn(async move {
                     let _ = peer.notify_progress(param).await;
@@ -531,7 +527,7 @@ impl TripoServer {
 impl ServerHandler for TripoServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-            .with_protocol_version(ProtocolVersion::V_2025_06_18)
+            .with_protocol_version(ProtocolVersion::V_2026_07_28)
             .with_server_info(Implementation::from_build_env())
             .with_instructions(
                 "Tools for submitting, polling, downloading, and managing Tripo 3D generation tasks."

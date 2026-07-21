@@ -18,7 +18,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
     "name": "get_balance",
     "outputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "User account balance.",
       "properties": {
         "balance": {
           "description": "Available credit balance.",
@@ -35,7 +34,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
         "balance",
         "frozen"
       ],
-      "title": "Balance",
       "type": "object"
     }
   },
@@ -98,7 +96,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
       },
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
-      "description": "Request body for `POST /generation/text-to-model`.",
       "properties": {
         "auto_size": {
           "description": "Auto-size the output mesh.",
@@ -236,7 +233,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
       "required": [
         "prompt"
       ],
-      "title": "TextToModelRequest",
       "type": "object"
     },
     "name": "text_to_model",
@@ -257,7 +253,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
       "required": [
         "task_id"
       ],
-      "title": "TaskCreated",
       "type": "object"
     }
   },
@@ -304,7 +299,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
       "required": [
         "task_id"
       ],
-      "title": "WaitParams",
       "type": "object"
     },
     "name": "wait_for_task",
@@ -461,7 +455,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
         }
       },
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "Task record returned by `GET /tasks/{id}`.",
       "properties": {
         "completed_at": {
           "default": null,
@@ -544,7 +537,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
         "type",
         "status"
       ],
-      "title": "Task",
       "type": "object"
     }
   }
