@@ -21,7 +21,7 @@ bytes         = "1"
 futures       = "0.3"
 reqwest       = { version = "0.13", default-features = false, features = ["rustls", "gzip", "brotli", "json", "multipart", "stream", "http2"] }
 schemars      = { version = "1", features = ["uuid1", "url2"] }
-rmcp          = { version = "2.2", features = ["server", "macros", "schemars", "transport-io"] }
+rmcp          = { version = "3.1", features = ["server", "macros", "schemars", "transport-io"] }
 clap               = { version = "4", features = ["derive", "env", "wrap_help"] }
 clap_complete      = "4"
 anyhow             = "1"
