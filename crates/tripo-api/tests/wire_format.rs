@@ -86,6 +86,7 @@ fn default_image_to_model() -> ImageToModelRequest {
         generate_parts: None,
         smart_low_poly: None,
         export_uv: None,
+        export_orientation: None,
     }
 }
 
@@ -117,6 +118,7 @@ fn multiview_to_model_with_empty_slot() {
         generate_parts: None,
         smart_low_poly: None,
         export_uv: None,
+        export_orientation: None,
     });
     assert_eq!(req.endpoint(), "generation/multiview-to-model");
     insta::assert_json_snapshot!(json_of(&req));

@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
-use crate::enums::{GeometryQuality, TextureQuality};
+use crate::enums::{ExportOrientation, GeometryQuality, TextureQuality};
 use crate::error::Result;
 
 /// Request body for `POST /generation/text-to-model`.
@@ -61,6 +61,11 @@ pub struct TextToModelRequest {
     /// UV unwrapping during generation (default true server-side).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub export_uv: Option<bool>,
+    /// Forward axis for this generation only (server default: `+x`).
+    /// Leave unset when post-processing; set orientation in the final convert
+    /// step instead to avoid incorrectly oriented downstream results.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub export_orientation: Option<ExportOrientation>,
 }
 
 impl TextToModelRequest {

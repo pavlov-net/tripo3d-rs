@@ -160,6 +160,7 @@ async fn create_task_uploads_local_image_first() {
         generate_parts: None,
         smart_low_poly: None,
         export_uv: None,
+        export_orientation: None,
     });
     let c = client(&server);
     let id = c.create_task(req).await.unwrap();

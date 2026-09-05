@@ -161,7 +161,7 @@ string_enum! {
 }
 
 string_enum! {
-    /// Export orientation vector (`convert_model`).
+    /// Export forward axis for generation and model conversion.
     pub enum ExportOrientation {
         PlusX => "+x", PlusY => "+y", MinusX => "-x", MinusY => "-y",
     }

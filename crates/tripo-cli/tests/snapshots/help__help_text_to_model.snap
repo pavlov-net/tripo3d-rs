@@ -105,6 +105,9 @@ Options:
 
           [possible values: true, false]
 
+      --export-orientation <EXPORT_ORIENTATION>
+          Forward axis (+x|+y|-x|-y). Leave unset if post-processing; orient at final conversion
+
       --wait
           Poll until the task reaches a terminal status
 
