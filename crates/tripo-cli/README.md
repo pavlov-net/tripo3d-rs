@@ -68,6 +68,26 @@ Add to `.claude/settings.local.json` to auto-allow read-only commands:
 }
 ```
 
+### P2 low-poly generation
+
+P2 (`P2-20260801`, preview) supports text, image, and multiview generation,
+including quad meshes:
+
+```sh
+tripo text-to-model --prompt "A low-poly wooden chair" \
+  --model P2-20260801 --quad true --face-limit 5000
+```
+
+Use the same `--model`, `--quad`, and `--face-limit` options with
+`image-to-model` and `multiview-to-model`. P2 accepts 48–50,000 triangle faces
+or 48–25,000 quad faces; omit `--face-limit` for adaptive sizing. P1 remains
+available and cannot generate quads. The default model is unchanged.
+
+Per the [August 2026 changelog](https://developers.tripo3d.ai/en/docs/changelog),
+P2 costs 100 credits without texture, or 110 / 120 / 130 credits with
+standard / detailed / extreme textures. For bare geometry, set both
+`--texture false` and `--pbr false` (PBR forces texture generation).
+
 ## License
 
 MIT

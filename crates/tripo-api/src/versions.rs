@@ -8,6 +8,8 @@
 
 /// Versions accepted by `generation/text-to-model`, `generation/image-to-model`.
 pub mod text_image {
+    /// P2 (August 2026, preview) — low-poly generation with optional quad output.
+    pub const P2: &str = "P2-20260801";
     /// P1 (March 2026) — low-poly-optimized P series. Doesn't support `quad`,
     /// `smart_low_poly`, `generate_parts`, or `geometry_quality`.
     pub const P1: &str = "P1-20260311";
@@ -23,6 +25,8 @@ pub mod text_image {
 
 /// Versions accepted by `generation/multiview-to-model`.
 pub mod multiview {
+    /// P2 (August 2026, preview) — low-poly generation with optional quad output.
+    pub const P2: &str = super::text_image::P2;
     /// v3.1 (February 2026). Latest, best quality. Server default.
     pub const V3_1: &str = "v3.1-20260211";
     /// v3.0 (August 2025).

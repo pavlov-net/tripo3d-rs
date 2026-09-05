@@ -65,6 +65,7 @@ pub struct TextToModelRequest {
 
 impl TextToModelRequest {
     pub(crate) fn validate(&self) -> Result<()> {
+        super::validate_p2_face_limit(self.model.as_deref(), self.quad, self.face_limit)?;
         super::validate_p1_params(
             self.model.as_deref(),
             self.quad,

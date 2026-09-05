@@ -160,7 +160,7 @@ pub(crate) fn validate_p1_params(
     generate_parts: Option<bool>,
     geometry_quality: Option<&GeometryQuality>,
 ) -> Result<()> {
-    if model != Some(versions::text_image::P1) {
+    if !matches!(model, Some(versions::text_image::P1 | "tripo-p1")) {
         return Ok(());
     }
     let mut unsupported: Vec<&str> = Vec::new();
@@ -185,6 +185,27 @@ pub(crate) fn validate_p1_params(
             unsupported.join(", "),
         )))
     }
+}
+
+/// Validate the documented P2 polycount ranges, leaving other models to the server.
+pub(crate) fn validate_p2_face_limit(
+    model: Option<&str>,
+    quad: Option<bool>,
+    face_limit: Option<i32>,
+) -> Result<()> {
+    if model != Some(versions::text_image::P2) {
+        return Ok(());
+    }
+    let maximum = if quad == Some(true) { 25_000 } else { 50_000 };
+    if let Some(limit) = face_limit
+        && !(48..=maximum).contains(&limit)
+    {
+        return Err(Error::InvalidRequest(format!(
+            "model {} requires face_limit between 48 and {maximum}; omit it for adaptive sizing",
+            versions::text_image::P2,
+        )));
+    }
+    Ok(())
 }
 
 /// Helper used by variants that consume one image: uploads if the variant is
