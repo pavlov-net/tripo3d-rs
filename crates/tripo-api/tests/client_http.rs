@@ -240,3 +240,26 @@ async fn download_errors_on_existing_file_without_overwrite() {
         .unwrap_err();
     assert!(matches!(err, tripo_api::Error::FileExists(_)));
 }
+
+#[tokio::test]
+#[allow(clippy::float_cmp)] // compare JSON numbers against the same parsed literals
+async fn task_credits_preserve_fractional_and_whole_numbers() {
+    let server = MockServer::start().await;
+    for (index, credits) in ["48.00", "48.27", "48", "0.01", "0"].iter().enumerate() {
+        let id = format!("credits-{index}");
+        Mock::given(method("GET"))
+            .and(path(format!("/tasks/{id}")))
+            // Keep the original number spelling to cover whole-valued decimal JSON.
+            .respond_with(ResponseTemplate::new(200).set_body_raw(format!(
+                r#"{{"code":0,"data":{{"task_id":"{id}","type":"text_to_model","status":"success","progress":100,"created_at":"2026-08-01T00:00:00Z","credits_consumed":{credits}}}}}"#
+            ), "application/json"))
+            .expect(1).mount(&server).await;
+        let task = client(&server).get_task(&id.into()).await.unwrap();
+        let expected: f64 = credits.parse().unwrap();
+        assert_eq!(task.credits_consumed, Some(expected));
+        assert_eq!(
+            serde_json::to_value(task).unwrap()["credits_consumed"],
+            expected
+        );
+    }
+}
