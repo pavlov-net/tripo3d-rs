@@ -58,6 +58,31 @@ expression: "serde_json::to_value(&critical).unwrap()"
             }
           ]
         },
+        "ExportOrientation": {
+          "description": "Export forward axis for generation and model conversion.",
+          "oneOf": [
+            {
+              "const": "+x",
+              "description": "Wire value: `+x`.",
+              "type": "string"
+            },
+            {
+              "const": "+y",
+              "description": "Wire value: `+y`.",
+              "type": "string"
+            },
+            {
+              "const": "-x",
+              "description": "Wire value: `-x`.",
+              "type": "string"
+            },
+            {
+              "const": "-y",
+              "description": "Wire value: `-y`.",
+              "type": "string"
+            }
+          ]
+        },
         "GeometryQuality": {
           "description": "Geometry quality level (`geometry_quality`).\n\nNote: unlike [`TextureQuality`], there is no `extreme` geometry tier.",
           "oneOf": [
@@ -114,6 +139,17 @@ expression: "serde_json::to_value(&critical).unwrap()"
             }
           ],
           "description": "Geometry compression option."
+        },
+        "export_orientation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExportOrientation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Forward axis for this generation only (server default: `+x`).\nLeave unset when post-processing; set orientation in the final convert\nstep instead to avoid incorrectly oriented downstream results."
         },
         "export_uv": {
           "description": "UV unwrapping during generation (default true server-side).",

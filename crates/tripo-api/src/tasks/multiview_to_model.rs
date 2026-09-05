@@ -7,7 +7,9 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::compress::CompressionMode;
-use crate::enums::{GeometryQuality, Orientation, TextureAlignment, TextureQuality};
+use crate::enums::{
+    ExportOrientation, GeometryQuality, Orientation, TextureAlignment, TextureQuality,
+};
 use crate::error::Result;
 use crate::image::ImageInput;
 
@@ -71,6 +73,11 @@ pub struct MultiviewToModelRequest {
     /// UV unwrapping during generation (default true server-side).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub export_uv: Option<bool>,
+    /// Forward axis for this generation only (server default: `+x`).
+    /// Leave unset when post-processing; set orientation in the final convert
+    /// step instead to avoid incorrectly oriented downstream results.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub export_orientation: Option<ExportOrientation>,
 }
 
 impl MultiviewToModelRequest {

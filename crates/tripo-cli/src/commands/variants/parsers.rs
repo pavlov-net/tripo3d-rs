@@ -3,7 +3,8 @@
 //! Single-variant parsers stay private to their defining module.
 
 use tripo_api::enums::{
-    GeometryQuality, Orientation, RigOutputFormat, TextureAlignment, TextureQuality,
+    ExportOrientation, GeometryQuality, Orientation, RigOutputFormat, TextureAlignment,
+    TextureQuality,
 };
 
 pub fn texture_quality(s: &str) -> Result<TextureQuality, String> {
@@ -49,4 +50,14 @@ pub fn rig_out_format(s: &str) -> Result<RigOutputFormat, String> {
         "fbx" => Ok(RigOutputFormat::Fbx),
         o => Err(format!("invalid out_format `{o}`")),
     }
+}
+
+pub fn export_orientation(s: &str) -> Result<ExportOrientation, String> {
+    Ok(match s {
+        "+x" => ExportOrientation::PlusX,
+        "+y" => ExportOrientation::PlusY,
+        "-x" => ExportOrientation::MinusX,
+        "-y" => ExportOrientation::MinusY,
+        o => return Err(format!("invalid orientation `{o}`")),
+    })
 }

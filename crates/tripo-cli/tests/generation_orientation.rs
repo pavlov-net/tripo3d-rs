@@ -1,0 +1,76 @@
+use assert_cmd::Command;
+use wiremock::matchers::{body_partial_json, method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
+
+#[tokio::test(flavor = "current_thread")]
+async fn generation_options_reach_all_endpoints() {
+    let server = MockServer::start().await;
+    for (command, input_flag, input) in [
+        ("text-to-model", "--prompt", "chair"),
+        ("image-to-model", "--input", "https://example.com/front.png"),
+        (
+            "multiview-to-model",
+            "--input",
+            "https://example.com/front.png",
+        ),
+    ] {
+        Mock::given(method("POST"))
+            .and(path(format!("/generation/{command}")))
+            .and(body_partial_json(
+                serde_json::json!({"export_orientation":"-y"}),
+            ))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "code": 0, "data": {"task_id": "created"}
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+        Command::cargo_bin("tripo")
+            .unwrap()
+            .args([
+                "--api-key",
+                "tsk_test",
+                "--base-url",
+                &server.uri(),
+                command,
+                input_flag,
+                input,
+            ])
+            .args(["--export-orientation", "-y"])
+            .assert()
+            .success();
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn final_conversion_accepts_negative_forward_axis() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/models/convert"))
+        .and(body_partial_json(
+            serde_json::json!({"export_orientation":"-y"}),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0,"data":{"task_id":"converted"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "convert-model",
+            "--input",
+            "task_src",
+            "--format",
+            "GLTF",
+            "--export-orientation",
+            "-y",
+        ])
+        .assert()
+        .success();
+}

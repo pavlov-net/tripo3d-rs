@@ -2,7 +2,9 @@
 
 use anyhow::Result;
 use clap::Args;
-use tripo_api::enums::{GeometryQuality, Orientation, TextureAlignment, TextureQuality};
+use tripo_api::enums::{
+    ExportOrientation, GeometryQuality, Orientation, TextureAlignment, TextureQuality,
+};
 use tripo_api::{CompressionMode, ImageInput, MultiviewToModelRequest, TaskRequest};
 
 use crate::commands::variants::{VariantArgs, VariantRunOpts};
@@ -64,6 +66,9 @@ pub struct MultiviewToModelArgs {
     /// UV unwrapping during generation.
     #[arg(long)]
     pub export_uv: Option<bool>,
+    /// Forward axis (+x|+y|-x|-y). Leave unset if post-processing; orient at final conversion.
+    #[arg(long, allow_hyphen_values = true, value_parser = super::parsers::export_orientation)]
+    pub export_orientation: Option<ExportOrientation>,
 
     #[command(flatten)]
     pub run: VariantRunOpts,
@@ -103,6 +108,7 @@ impl VariantArgs for MultiviewToModelArgs {
             generate_parts: self.generate_parts,
             smart_low_poly: self.smart_low_poly,
             export_uv: self.export_uv,
+            export_orientation: self.export_orientation,
         }))
     }
 }

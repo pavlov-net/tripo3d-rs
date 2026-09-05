@@ -62,7 +62,7 @@ pub struct ConvertModelArgs {
     #[arg(long, value_parser = parse_fbx_preset)]
     pub fbx_preset: Option<FbxPreset>,
     /// Output axis orientation.
-    #[arg(long, value_parser = parse_export_orientation)]
+    #[arg(long, allow_hyphen_values = true, value_parser = super::parsers::export_orientation)]
     pub export_orientation: Option<ExportOrientation>,
     /// Keep animated character in place.
     #[arg(long)]
@@ -105,16 +105,6 @@ fn parse_fbx_preset(s: &str) -> Result<FbxPreset, String> {
         "mixamo" => FbxPreset::Mixamo,
         "3dsmax" => FbxPreset::ThreeDsMax,
         o => return Err(format!("invalid fbx preset `{o}`")),
-    })
-}
-
-fn parse_export_orientation(s: &str) -> Result<ExportOrientation, String> {
-    Ok(match s {
-        "+x" => ExportOrientation::PlusX,
-        "+y" => ExportOrientation::PlusY,
-        "-x" => ExportOrientation::MinusX,
-        "-y" => ExportOrientation::MinusY,
-        o => return Err(format!("invalid orientation `{o}`")),
     })
 }
 
