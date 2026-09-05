@@ -39,6 +39,21 @@ tripo balance
 tripo completions bash > /etc/bash_completion.d/tripo
 ```
 
+### Generation export orientation
+
+Text, image, and multiview generation accept `--export-orientation` with
+`+x`, `+y`, `-x`, or `-y`. For example:
+
+```sh
+tripo text-to-model --prompt "A wooden chair" --export-orientation -y
+```
+
+This changes the forward axis for this generation only. If you plan to texture,
+rig, retarget, or otherwise post-process the result, leave it unset and use
+`convert-model --export-orientation` as the final step. Tripo documents that
+setting it during generation can produce wrongly oriented downstream results
+without reporting an error. Omitting the option preserves the server default.
+
 ## Exit codes
 
 | Code | Meaning                                         |
@@ -67,21 +82,6 @@ Add to `.claude/settings.local.json` to auto-allow read-only commands:
   }
 }
 ```
-
-### Generation export orientation
-
-Text, image, and multiview generation accept `--export-orientation` with
-`+x`, `+y`, `-x`, or `-y`. For example:
-
-```sh
-tripo text-to-model --prompt "A wooden chair" --export-orientation -y
-```
-
-This changes the forward axis for this generation only. If you plan to texture,
-rig, retarget, or otherwise post-process the result, leave it unset and use
-`convert-model --export-orientation` as the final step. Tripo documents that
-setting it during generation can produce wrongly oriented downstream results
-without reporting an error. Omitting the option preserves the server default.
 
 ## License
 
