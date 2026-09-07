@@ -2255,7 +2255,7 @@ dependencies = [
 
 [[package]]
 name = "tripo-api"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "bytes",
  "futures",
@@ -2276,7 +2276,7 @@ dependencies = [
 
 [[package]]
 name = "tripo-cli"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -2300,7 +2300,7 @@ dependencies = [
 
 [[package]]
 name = "tripo-mcp"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "insta",
