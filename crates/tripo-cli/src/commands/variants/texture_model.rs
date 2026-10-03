@@ -26,8 +26,7 @@ pub struct TextureModelArgs {
     /// Style image (`URL`, `file_token`, or path); maps into `texture_prompt.style_image`.
     #[arg(long)]
     pub style_image: Option<String>,
-    /// Texture model version (see `tripo_api::versions::texture`); fast
-    /// quality requires v3.5.
+    /// Texture model version (see `tripo_api::versions::texture`).
     #[arg(long)]
     pub model: Option<String>,
     /// PBR shading.
@@ -51,7 +50,7 @@ pub struct TextureModelArgs {
     /// Bake textures.
     #[arg(long)]
     pub bake: Option<bool>,
-    /// Remove baked-in lighting before texturing (texture v3.5 only).
+    /// Strip baked-in lighting before texturing (v3.5 texture only).
     #[arg(long)]
     pub delight: Option<bool>,
 

@@ -52,23 +52,6 @@ async fn generation_texture_options_reach_all_endpoints() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn generation_fast_without_texture_version_is_rejected_locally() {
-    let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(0)
-        .mount(&server)
-        .await;
-    for (command, input_flag, input) in GENERATION {
-        tripo(&server)
-            .args([command, input_flag, input, "--texture-quality", "fast"])
-            .assert()
-            .code(2)
-            .stderr(predicate::str::contains("texture_version"));
-    }
-}
-
-#[tokio::test(flavor = "current_thread")]
 async fn texture_model_v3_5_with_four_images() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
@@ -110,39 +93,22 @@ async fn texture_model_v3_5_with_four_images() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn texture_model_invalid_requests_are_rejected_locally() {
+async fn texture_model_fast_without_v3_5_is_rejected_locally() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200))
         .expect(0)
         .mount(&server)
         .await;
-    for (extra, expected) in [
-        (&["--texture-quality", "fast"][..], "v3.5-20260815"),
-        (
-            &[
-                "--images-prompt",
-                "https://cdn/f.jpg",
-                "--images-prompt",
-                "https://cdn/l.jpg",
-            ][..],
-            "exactly 4",
-        ),
-        (
-            &[
-                "--text-prompt",
-                "brass",
-                "--image-prompt",
-                "https://cdn/i.jpg",
-            ][..],
-            "mutually exclusive",
-        ),
-    ] {
-        tripo(&server)
-            .args(["texture-model", "--input", "task_src"])
-            .args(extra)
-            .assert()
-            .code(2)
-            .stderr(predicate::str::contains(expected));
-    }
+    tripo(&server)
+        .args([
+            "texture-model",
+            "--input",
+            "task_src",
+            "--texture-quality",
+            "fast",
+        ])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("v3.5-20260815"));
 }

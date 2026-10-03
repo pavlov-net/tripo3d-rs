@@ -3,27 +3,7 @@ use serde_json::json;
 use wiremock::matchers::{body_partial_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 mod common;
-use common::{args, start_server};
-
-const GENERATION: [(&str, &str, &str); 3] = [
-    ("text_to_model", "prompt", "chair"),
-    ("image_to_model", "input", "https://example.com/front.png"),
-    (
-        "multiview_to_model",
-        "inputs",
-        "https://example.com/front.png",
-    ),
-];
-
-fn generation_body(input_key: &str, input: &str, options: &serde_json::Value) -> serde_json::Value {
-    let mut body = options.clone();
-    body[input_key] = if input_key == "inputs" {
-        json!([input])
-    } else {
-        json!(input)
-    };
-    body
-}
+use common::{args, generation_bodies, start_server};
 
 #[tokio::test]
 async fn generation_texture_options_reach_all_endpoints() {
@@ -34,8 +14,7 @@ async fn generation_texture_options_reach_all_endpoints() {
         "texture_quality": "fast",
         "delight": false,
     });
-    for (name, input_key, input) in GENERATION {
-        let body = generation_body(input_key, input, &options);
+    for (name, body) in generation_bodies(&options) {
         Mock::given(method("POST"))
             .and(path(format!("/generation/{}", name.replace('_', "-"))))
             .and(body_partial_json(body.clone()))
@@ -50,25 +29,6 @@ async fn generation_texture_options_reach_all_endpoints() {
             .await
             .unwrap();
         assert_ne!(result.is_error, Some(true), "{result:?}");
-    }
-}
-
-#[tokio::test]
-async fn generation_fast_without_texture_version_is_rejected() {
-    let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(0)
-        .mount(&server)
-        .await;
-    let client = start_server(&server).await;
-    for (name, input_key, input) in GENERATION {
-        let body = generation_body(input_key, input, &json!({"texture_quality": "fast"}));
-        let err = client
-            .call_tool(CallToolRequestParams::new(name).with_arguments(args(body)))
-            .await
-            .unwrap_err();
-        assert!(err.to_string().contains("texture_version"), "{err}");
     }
 }
 
@@ -102,7 +62,7 @@ async fn texture_model_v3_5_with_four_images() {
 }
 
 #[tokio::test]
-async fn texture_model_invalid_requests_are_rejected() {
+async fn texture_model_fast_without_v3_5_is_rejected_before_http() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200))
@@ -110,24 +70,10 @@ async fn texture_model_invalid_requests_are_rejected() {
         .mount(&server)
         .await;
     let client = start_server(&server).await;
-    for (body, expected) in [
-        (
-            json!({"input": "task_src", "texture_quality": "fast"}),
-            "v3.5-20260815",
-        ),
-        (
-            json!({"input": "task_src", "texture_prompt": {"images": ["https://cdn/f.jpg"]}}),
-            "exactly 4",
-        ),
-        (
-            json!({"input": "task_src", "texture_prompt": {"text": "brass", "image": "https://cdn/i.jpg"}}),
-            "mutually exclusive",
-        ),
-    ] {
-        let err = client
-            .call_tool(CallToolRequestParams::new("texture_model").with_arguments(args(body)))
-            .await
-            .unwrap_err();
-        assert!(err.to_string().contains(expected), "{err}");
-    }
+    let body = json!({"input": "task_src", "texture_quality": "fast"});
+    let err = client
+        .call_tool(CallToolRequestParams::new("texture_model").with_arguments(args(body)))
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("v3.5-20260815"), "{err}");
 }

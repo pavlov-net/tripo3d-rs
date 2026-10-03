@@ -49,10 +49,8 @@ status; a failed task includes `error_code` and `error_message` when the
 server reports them.
 
 Generation and texture tools accept the request fields of the corresponding
-`tripo-api` structs, including texture model v3.5 (`v3.5-20260815`):
-`texture_quality: "fast"`, `delight`, `texture_version` on the generation
-tools, and `texture_prompt.images` (exactly 4, [front, left, back, right]) on
-`texture_model`. Invalid combinations are rejected before any API call.
+`tripo-api` structs (including texture model v3.5 options) and reject invalid
+combinations before any API call.
 
 ## Claude Code client config
 

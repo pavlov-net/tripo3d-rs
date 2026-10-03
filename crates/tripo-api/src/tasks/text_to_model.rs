@@ -37,17 +37,13 @@ pub struct TextToModelRequest {
     /// Seed for texture generation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_seed: Option<i32>,
-    /// Texture quality preset. `fast` requires `texture_version: v3.5-20260815`.
+    /// Texture quality preset; see [`TextureQuality::Fast`] for `fast`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_quality: Option<TextureQuality>,
-    /// Texture model version, pinned independently of the geometry `model`;
-    /// see `versions::texture_version`. Derived from `model` when omitted
-    /// (v2.5 geometry: v2.5, otherwise v3.0). `v3.5-20260815` is required for
-    /// `texture_quality: fast` and `delight`.
+    /// Texture model version, independent of `model`; see [`crate::versions::texture`].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_version: Option<String>,
-    /// Remove baked-in lighting from the reference image before texturing
-    /// (default true server-side). Only texture version v3.5 reads it.
+    /// Strip baked-in lighting before texturing (v3.5 texture only).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub delight: Option<bool>,
     /// Geometry quality preset.
@@ -80,18 +76,15 @@ pub struct TextToModelRequest {
 
 impl TextToModelRequest {
     pub(crate) fn validate(&self) -> Result<()> {
-        super::validate_p2_face_limit(self.model.as_deref(), self.quad, self.face_limit)?;
-        super::validate_fast_texture(
-            self.texture_quality.as_ref(),
-            "texture_version",
-            self.texture_version.as_deref(),
-        )?;
-        super::validate_p1_params(
-            self.model.as_deref(),
-            self.quad,
-            self.smart_low_poly,
-            self.generate_parts,
-            self.geometry_quality.as_ref(),
-        )
+        super::validate_generation(&super::GenerationParams {
+            model: self.model.as_deref(),
+            quad: self.quad,
+            face_limit: self.face_limit,
+            smart_low_poly: self.smart_low_poly,
+            generate_parts: self.generate_parts,
+            geometry_quality: self.geometry_quality.as_ref(),
+            texture_quality: self.texture_quality.as_ref(),
+            texture_version: self.texture_version.as_deref(),
+        })
     }
 }

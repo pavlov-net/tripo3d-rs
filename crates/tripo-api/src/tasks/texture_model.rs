@@ -74,8 +74,7 @@ pub struct TextureModelRequest {
     /// Nested prompt object; omitted when all sub-fields are None.
     #[serde(default, skip_serializing_if = "TexturePrompt::is_empty")]
     pub texture_prompt: TexturePrompt,
-    /// Texture model version; see `versions::texture`. `v3.5-20260815` is
-    /// required for `texture_quality: fast` and `delight`.
+    /// Texture model version; see [`crate::versions::texture`].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     /// PBR.
@@ -84,7 +83,7 @@ pub struct TextureModelRequest {
     /// Texture seed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_seed: Option<i32>,
-    /// Texture quality. `fast` requires `model: v3.5-20260815`.
+    /// Texture quality; see [`TextureQuality::Fast`] for `fast`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_quality: Option<TextureQuality>,
     /// Texture alignment strategy.
@@ -99,8 +98,7 @@ pub struct TextureModelRequest {
     /// Bake textures.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bake: Option<bool>,
-    /// Remove baked-in lighting from the reference image before texturing
-    /// (default true server-side). Only texture model v3.5 reads it.
+    /// Strip baked-in lighting before texturing (v3.5 texture only).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub delight: Option<bool>,
 }

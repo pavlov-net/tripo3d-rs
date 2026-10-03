@@ -37,10 +37,19 @@ pub mod multiview {
     pub const DEFAULT: &str = V3_1;
 }
 
-/// Versions accepted by `models/texture` (`model`).
+/// Texture model versions. Accepted as `model` on `models/texture` and as
+/// `texture_version` on the generation endpoints (`generation/text-to-model`,
+/// `image-to-model`, `multiview-to-model`), where it pins the texture model
+/// independently of the geometry `model`.
+///
+/// When a generation request omits `texture_version`, the server derives it
+/// from `model`: v2.5 geometry uses [`V2_5`](texture::V2_5), every other
+/// geometry version (v3.x, P1, P2) uses [`V3_0`](texture::V3_0). Features that
+/// need [`V3_5`](texture::V3_5) therefore need it set explicitly.
 pub mod texture {
-    /// v3.5 (August 2026). Newest texture model. Required for
-    /// `texture_quality: fast`; the only version that reads `delight`.
+    /// v3.5 (August 2026). Required for
+    /// [`TextureQuality::Fast`](crate::enums::TextureQuality::Fast); the only
+    /// version that reads `delight`.
     pub const V3_5: &str = "v3.5-20260815";
     /// v3.0 (August 2025). Server default; recommended for models generated
     /// with v3.0 or v3.1.
@@ -49,23 +58,6 @@ pub mod texture {
     pub const V2_5: &str = "v2.5-20250123";
     /// Server default.
     pub const DEFAULT: &str = V3_0;
-}
-
-/// Values for the generation endpoints' `texture_version` field
-/// (`generation/text-to-model`, `image-to-model`, `multiview-to-model`).
-///
-/// `texture_version` pins the texture model independently of the geometry
-/// `model`. When omitted, the server derives it from `model`: v2.5 geometry
-/// uses [`V2_5`], every other geometry version (v3.x, P1, P2) uses [`V3_0`].
-/// `texture_quality: fast` therefore needs an explicit [`V3_5`].
-pub mod texture_version {
-    /// v3.5 (August 2026). Required for `texture_quality: fast`; the only
-    /// version that reads `delight`.
-    pub const V3_5: &str = super::texture::V3_5;
-    /// v3.0 (August 2025). Derived default for v3.x and P-series geometry.
-    pub const V3_0: &str = super::texture::V3_0;
-    /// v2.5 (January 2025). Derived default for v2.5 geometry.
-    pub const V2_5: &str = super::texture::V2_5;
 }
 
 /// Versions accepted by `animations/rig`.

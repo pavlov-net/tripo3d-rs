@@ -41,14 +41,14 @@ fn invalid_message(req: &TaskRequest) -> String {
 fn generation_fast_requires_texture_version_v3_5() {
     for texture_version in [
         None,
-        Some(versions::texture_version::V3_0),
-        Some(versions::texture_version::V2_5),
+        Some(versions::texture::V3_0),
+        Some(versions::texture::V2_5),
     ] {
         let options = json!({"texture_quality": "fast", "texture_version": texture_version});
         for req in generation_requests(&options) {
             let msg = invalid_message(&req);
             assert!(
-                msg.contains("texture_version") && msg.contains("v3.5-20260815"),
+                msg.contains("texture_version") && msg.contains(versions::texture::V3_5),
                 "{msg}"
             );
         }
@@ -60,23 +60,34 @@ fn generation_fast_with_v3_5_serializes_texture_fields() {
     let options = json!({
         "model": versions::text_image::P2,
         "texture_quality": "fast",
-        "texture_version": versions::texture_version::V3_5,
+        "texture_version": versions::texture::V3_5,
         "delight": false,
     });
     for req in generation_requests(&options) {
         req.validate().unwrap();
         let body = serde_json::to_value(&req).unwrap();
         assert_eq!(body["texture_quality"], "fast");
-        assert_eq!(body["texture_version"], "v3.5-20260815");
+        assert_eq!(body["texture_version"], versions::texture::V3_5);
         assert_eq!(body["delight"], false);
     }
 }
 
 #[test]
+fn fast_with_unknown_texture_version_passes_validation() {
+    let options = json!({"texture_quality": "fast", "texture_version": "v3.6-20270101"});
+    for req in generation_requests(&options) {
+        req.validate().unwrap();
+    }
+    texture_request(json!({"texture_quality": "fast", "model": "v3.6-20270101"}))
+        .validate()
+        .unwrap();
+}
+
+#[test]
 fn generation_texture_version_without_fast_is_unrestricted() {
     for texture_version in [
-        versions::texture_version::V2_5,
-        versions::texture_version::V3_0,
+        versions::texture::V2_5,
+        versions::texture::V3_0,
         "future-texture",
     ] {
         let options = json!({"texture_quality": "extreme", "texture_version": texture_version, "delight": true});
@@ -101,7 +112,7 @@ fn texture_endpoint_fast_requires_model_v3_5() {
         let req = texture_request(json!({"texture_quality": "fast", "model": model}));
         let msg = invalid_message(&req);
         assert!(
-            msg.contains("model") && msg.contains("v3.5-20260815"),
+            msg.contains("model") && msg.contains(versions::texture::V3_5),
             "{msg}"
         );
     }
@@ -225,29 +236,18 @@ async fn create_task_uploads_local_texture_prompt_images_in_order() {
 }
 
 #[tokio::test]
-async fn create_task_uploads_local_texture_prompt_image() {
-    let server = MockServer::start().await;
-    mount_upload(&server, "ref-bytes", "file_ref").await;
-    let dir = tempfile::tempdir().unwrap();
-    let image = write_file(&dir, "ref.png", "ref-bytes");
-    create_texture_task(
-        &server,
-        json!({"image": image}),
-        json!({"image": "file_ref"}),
-    )
-    .await;
-}
-
-#[tokio::test]
-async fn create_task_uploads_local_texture_prompt_style_image() {
-    let server = MockServer::start().await;
-    mount_upload(&server, "style-bytes", "file_style").await;
-    let dir = tempfile::tempdir().unwrap();
-    let style = write_file(&dir, "style.png", "style-bytes");
-    create_texture_task(
-        &server,
-        json!({"text": "brass", "style_image": style}),
-        json!({"text": "brass", "style_image": "file_style"}),
-    )
-    .await;
+async fn create_task_uploads_local_texture_prompt_single_images() {
+    for (field, prompt_text) in [("image", None), ("style_image", Some("brass"))] {
+        let server = MockServer::start().await;
+        mount_upload(&server, "local-bytes", "file_local").await;
+        let dir = tempfile::tempdir().unwrap();
+        let local = write_file(&dir, "local.png", "local-bytes");
+        let mut prompt = json!({field: local});
+        let mut expected = json!({field: "file_local"});
+        if let Some(text) = prompt_text {
+            prompt["text"] = json!(text);
+            expected["text"] = json!(text);
+        }
+        create_texture_task(&server, prompt, expected).await;
+    }
 }

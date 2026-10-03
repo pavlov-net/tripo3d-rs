@@ -261,7 +261,7 @@ fn text_to_model_texture_version() {
     let req = TaskRequest::TextToModel(TextToModelRequest {
         prompt: "a red robot".into(),
         texture_quality: Some(TextureQuality::Fast),
-        texture_version: Some(tripo_api::versions::texture_version::V3_5.into()),
+        texture_version: Some(tripo_api::versions::texture::V3_5.into()),
         delight: Some(true),
         ..Default::default()
     });

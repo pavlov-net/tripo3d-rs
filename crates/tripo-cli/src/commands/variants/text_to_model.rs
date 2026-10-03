@@ -41,11 +41,10 @@ pub struct TextToModelArgs {
     /// Texture quality preset (fast|standard|detailed|extreme).
     #[arg(long, value_parser = super::parsers::texture_quality)]
     pub texture_quality: Option<TextureQuality>,
-    /// Texture model version (see `tripo_api::versions::texture_version`).
-    /// Derived from --model when omitted; fast quality requires v3.5.
+    /// Texture model version, independent of --model (see `tripo_api::versions::texture`).
     #[arg(long)]
     pub texture_version: Option<String>,
-    /// Remove baked-in lighting before texturing (texture v3.5 only).
+    /// Strip baked-in lighting before texturing (v3.5 texture only).
     #[arg(long)]
     pub delight: Option<bool>,
     /// Geometry quality preset (standard|detailed).

@@ -75,11 +75,10 @@ Options:
           Texture quality preset (fast|standard|detailed|extreme)
 
       --texture-version <TEXTURE_VERSION>
-          Texture model version (see `tripo_api::versions::texture_version`). Derived from --model
-          when omitted; fast quality requires v3.5
+          Texture model version, independent of --model (see `tripo_api::versions::texture`)
 
       --delight <DELIGHT>
-          Remove baked-in lighting before texturing (texture v3.5 only)
+          Strip baked-in lighting before texturing (v3.5 texture only)
 
           [possible values: true, false]
 

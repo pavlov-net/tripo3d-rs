@@ -41,20 +41,22 @@ unchanged. These request types and validation also apply to the MCP tools.
 
 ### Texture model v3.5
 
-`versions::texture::V3_5` (`v3.5-20260815`) selects the newest texture model.
-On `TextureModelRequest` it goes in `model`; on the text, image, and multiview
-generation requests it goes in `texture_version` (constants in
-`versions::texture_version`). When `texture_version` is omitted the server
-derives it from the geometry `model`: v2.5 geometry uses v2.5 textures,
-everything else uses v3.0.
+```rust
+use tripo_api::{TaskRequest, TextToModelRequest, TextureQuality, versions};
 
-v3.5 adds `TextureQuality::Fast` (same texture size and credits as `Standard`,
-lower detail) and `delight: Option<bool>` (remove baked-in lighting from the
-reference image, default `true` server-side). `Fast` is rejected client-side
-unless the texture version is v3.5. `TexturePrompt::images` takes exactly 4
-reference images in order [front, left, back, right]; `text`, `image`, and
-`images` are mutually exclusive, and the server ignores `style_image` unless `text` is set.
-`Client::create_task` validates these before uploading local paths.
+let req = TaskRequest::TextToModel(TextToModelRequest {
+    prompt: "a red robot".into(),
+    texture_version: Some(versions::texture::V3_5.into()),
+    texture_quality: Some(TextureQuality::Fast),
+    delight: Some(false),
+    ..Default::default()
+});
+assert!(req.validate().is_ok());
+```
+
+`TextureModelRequest` takes the same version in `model`; see
+`versions::texture::V3_5` and `TextureQuality::Fast` for which fields need it
+and what the server assumes when it is omitted.
 
 ## License
 

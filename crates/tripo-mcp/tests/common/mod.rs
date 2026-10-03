@@ -41,3 +41,29 @@ pub fn args(v: serde_json::Value) -> rmcp::model::JsonObject {
         other => panic!("arguments must be a JSON object, got {other}"),
     }
 }
+
+/// One `(tool name, arguments)` pair per generation tool: `options` merged
+/// with that tool's minimal input.
+pub fn generation_bodies(options: &serde_json::Value) -> Vec<(&'static str, serde_json::Value)> {
+    use serde_json::json;
+    [
+        ("text_to_model", json!({"prompt": "chair"})),
+        (
+            "image_to_model",
+            json!({"input": "https://example.com/front.png"}),
+        ),
+        (
+            "multiview_to_model",
+            json!({"inputs": ["https://example.com/front.png"]}),
+        ),
+    ]
+    .into_iter()
+    .map(|(name, input)| {
+        let mut body = options.clone();
+        body.as_object_mut()
+            .unwrap()
+            .extend(input.as_object().unwrap().clone());
+        (name, body)
+    })
+    .collect()
+}
