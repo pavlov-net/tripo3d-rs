@@ -89,6 +89,15 @@ cutoff. Presigned upload accepts jpeg, jpg, png, webp, bmp, tiff, glb, gltf,
 fbx, obj, stl, 3mf, and usdz. `presign_upload` calls `POST /files/presign`
 alone, for callers that `PUT` the bytes themselves.
 
+### Multiview side views
+
+`MultiviewToModelRequest::inputs` takes `[front, left, back, right]`, where
+"left" and "right" are the directions the subject faces as seen by the viewer:
+the left image shows the face pointing to the viewer's left. Image-to-multiview
+output follows the same convention. Supplying the subject's own left side as
+"left" swaps the two, and v3.1 then models a second face on the back of the
+head.
+
 ### P2 generation
 
 Use `versions::text_image::P2` or `versions::multiview::P2` in the corresponding

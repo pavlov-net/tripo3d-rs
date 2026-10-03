@@ -24,6 +24,9 @@ pub mod text_image {
 }
 
 /// Versions accepted by `generation/multiview-to-model`.
+///
+/// For the left/right input convention see
+/// [`MultiviewToModelRequest::inputs`](crate::tasks::MultiviewToModelRequest::inputs).
 pub mod multiview {
     /// P2 (August 2026, preview) — low-poly generation with optional quad output.
     pub const P2: &str = super::text_image::P2;

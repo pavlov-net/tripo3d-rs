@@ -20,6 +20,14 @@ use crate::image::ImageInput;
 pub struct MultiviewToModelRequest {
     /// Ordered list of images [front, left, back, right]. `None` entries
     /// become `""` placeholders on the wire. The front view is required.
+    ///
+    /// "Left" and "right" name the direction the subject faces, as seen by
+    /// the viewer: the left image shows the subject facing the viewer's left
+    /// (camera on the subject's right flank), the right image facing the
+    /// viewer's right. This matches `image_to_multiview` output. Reading
+    /// "left" as "the subject's left side" swaps the two; v3.1 then sees the
+    /// nose pointing backward in both side views and sculpts a second face
+    /// on the back of the head.
     #[serde(
         serialize_with = "serialize_inputs",
         deserialize_with = "deserialize_inputs"
