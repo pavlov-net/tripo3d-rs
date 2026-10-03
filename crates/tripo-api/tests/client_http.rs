@@ -222,6 +222,15 @@ async fn downloads_model_and_rendered_image() {
         std::fs::read(out.rendered_image.unwrap()).unwrap(),
         b"jpg-bytes"
     );
+    let gets = server.received_requests().await.unwrap();
+    assert_eq!(gets.len(), 2);
+    for req in &gets {
+        assert!(
+            !req.headers.contains_key("authorization"),
+            "download of {} must not carry the API key",
+            req.url
+        );
+    }
 }
 
 #[tokio::test]

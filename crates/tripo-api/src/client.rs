@@ -58,7 +58,7 @@ pub struct Client {
     pub(crate) base_url: Url,
     pub(crate) region: Region,
     pub(crate) retry: RetryPolicy,
-    /// Unauthenticated client for presigned object-storage URLs.
+    /// Unauthenticated client for signed storage URLs (uploads and downloads).
     pub(crate) storage: reqwest::Client,
     /// Files larger than this many bytes go through presigned upload.
     pub(crate) presign_threshold: u64,
@@ -104,9 +104,9 @@ fn build_http(api_key: &str) -> Result<reqwest::Client> {
         .map_err(Error::from)
 }
 
-/// Client for presigned storage URLs: the signature in the URL is the only
+/// Client for signed storage URLs: the signature in the URL is the only
 /// credential, so it carries no `Authorization` header. It has no overall
-/// timeout because large uploads can legitimately take many minutes.
+/// timeout because large transfers can legitimately take many minutes.
 fn build_storage_http() -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .user_agent(USER_AGENT_VALUE)
