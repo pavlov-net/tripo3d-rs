@@ -33,6 +33,30 @@ pub async fn start_server(mock: &MockServer) -> RunningService<RoleClient, ()> {
     start_server_with(&mock.uri()).await
 }
 
+/// Text content of a tool-error result. Panics unless `is_error` is set.
+pub fn tool_error_text(result: &rmcp::model::CallToolResult) -> String {
+    assert_eq!(
+        result.is_error,
+        Some(true),
+        "expected a tool error: {result:?}"
+    );
+    assert!(
+        result.structured_content.is_none(),
+        "tool error carries structured content: {result:?}"
+    );
+    result
+        .content
+        .iter()
+        .filter_map(|c| c.as_text().map(|t| t.text.as_str()))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Panic if `result` is a tool error.
+pub fn assert_tool_ok(name: &str, result: &rmcp::model::CallToolResult) {
+    assert_ne!(result.is_error, Some(true), "{name} failed: {result:?}");
+}
+
 /// Coerce a JSON value into the `JsonObject` that `CallToolRequestParams`
 /// expects as its `arguments` field.
 pub fn args(v: serde_json::Value) -> rmcp::model::JsonObject {

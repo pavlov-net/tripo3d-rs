@@ -3,19 +3,27 @@
 //! Tool methods are attached to this struct via `#[tool]` and aggregated by
 //! `#[tool_router]`. `#[tool_handler]` then fills in the `list_tools` and
 //! `call_tool` hooks on `impl ServerHandler`.
+//!
+//! Tool execution failures (API errors, failed validation, I/O) come back as
+//! a [`CallToolResult`] with `is_error: true` via [`ToolError`], so the model
+//! can read the message. JSON-RPC errors are left to rmcp for protocol
+//! problems such as malformed arguments.
 
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use rmcp::{
     ErrorData, Json, RoleServer, ServerHandler,
-    handler::server::wrapper::Parameters,
-    model::{Implementation, ProgressNotificationParam, ServerCapabilities, ServerConfig},
+    handler::server::{tool::IntoCallToolResult, wrapper::Parameters},
+    model::{
+        CallToolResponse, CallToolResult, ContentBlock, Implementation, ProgressNotificationParam,
+        ServerCapabilities, ServerConfig,
+    },
     service::RequestContext,
     tool, tool_handler, tool_router,
 };
 
 use crate::params;
-use tripo_api::Client;
+use tripo_api::{Client, TaskRequest};
 
 #[derive(Clone)]
 pub struct TripoServer {
@@ -29,6 +37,12 @@ impl TripoServer {
         Self {
             client: Arc::new(client),
         }
+    }
+
+    /// Submit a typed task request and return the created task id.
+    async fn submit(&self, req: TaskRequest) -> Result<Json<params::TaskCreated>, ToolError> {
+        let task_id = self.client.create_task(req).await?;
+        Ok(Json(params::TaskCreated { task_id }))
     }
 }
 
@@ -45,9 +59,8 @@ impl TripoServer {
             open_world_hint = true,
         )
     )]
-    async fn get_balance(&self) -> Result<Json<tripo_api::Balance>, ErrorData> {
-        let bal = self.client.get_balance().await.map_err(to_error_data)?;
-        Ok(Json(bal))
+    async fn get_balance(&self) -> Result<Json<tripo_api::Balance>, ToolError> {
+        Ok(Json(self.client.get_balance().await?))
     }
 
     /// Per-task credit usage history.
@@ -64,8 +77,8 @@ impl TripoServer {
     async fn get_usage(
         &self,
         Parameters(q): Parameters<tripo_api::UsageQuery>,
-    ) -> Result<Json<params::Usage>, ErrorData> {
-        let records = self.client.get_usage(q).await.map_err(to_error_data)?;
+    ) -> Result<Json<params::Usage>, ToolError> {
+        let records = self.client.get_usage(q).await?;
         Ok(Json(params::Usage { records }))
     }
 
@@ -83,13 +96,8 @@ impl TripoServer {
     async fn get_task(
         &self,
         Parameters(p): Parameters<params::GetTaskParams>,
-    ) -> Result<Json<tripo_api::Task>, ErrorData> {
-        let task = self
-            .client
-            .get_task(&p.task_id)
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(task))
+    ) -> Result<Json<tripo_api::Task>, ToolError> {
+        Ok(Json(self.client.get_task(&p.task_id).await?))
     }
 
     /// Fetch several tasks' current state in one request.
@@ -106,13 +114,8 @@ impl TripoServer {
     async fn list_tasks(
         &self,
         Parameters(p): Parameters<params::ListTasksParams>,
-    ) -> Result<Json<tripo_api::TaskList>, ErrorData> {
-        let list = self
-            .client
-            .list_tasks(&p.task_ids)
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(list))
+    ) -> Result<Json<tripo_api::TaskList>, ToolError> {
+        Ok(Json(self.client.list_tasks(&p.task_ids).await?))
     }
 
     /// Upload a local file; returns a `file_token` usable as `ImageInput::FileToken`.
@@ -130,13 +133,13 @@ impl TripoServer {
     async fn upload_file(
         &self,
         Parameters(p): Parameters<params::UploadParams>,
-    ) -> Result<Json<tripo_api::UploadedFile>, ErrorData> {
+    ) -> Result<Json<tripo_api::UploadedFile>, ToolError> {
         let up = if p.presign {
             self.client.upload_file_presigned(&p.path).await
         } else {
             self.client.upload_file(&p.path).await
         }
-        .map_err(to_error_data)?;
+        .map_err(|e| ToolError::with_path(e, &p.path))?;
         Ok(Json(up))
     }
 
@@ -156,13 +159,9 @@ impl TripoServer {
     async fn create_raw_task(
         &self,
         Parameters(p): Parameters<params::RawTaskParams>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task_raw(&p.endpoint, &p.body)
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        let task_id = self.client.create_task_raw(&p.endpoint, &p.body).await?;
+        Ok(Json(params::TaskCreated { task_id }))
     }
 
     /// Poll a task until it reaches a terminal status, streaming progress.
@@ -180,14 +179,12 @@ impl TripoServer {
         &self,
         Parameters(p): Parameters<params::WaitParams>,
         ctx: RequestContext<RoleServer>,
-    ) -> Result<Json<tripo_api::Task>, ErrorData> {
+    ) -> Result<Json<tripo_api::Task>, ToolError> {
         use std::time::Duration;
         use tripo_api::WaitOptions;
 
-        let progress_token = ctx.meta.get_progress_token();
-        let peer = ctx.peer.clone();
-
-        let callback: tripo_api::ProgressCallback = if let Some(token) = progress_token {
+        let on_progress = ctx.meta.get_progress_token().map(|token| {
+            let peer = ctx.peer.clone();
             Box::new(move |task: &tripo_api::Task| {
                 let pct = f64::from(task.progress.clamp(0, 100));
                 let message = format!("{:?} ({pct:.0}%)", task.status);
@@ -198,25 +195,18 @@ impl TripoServer {
                 tokio::spawn(async move {
                     let _ = peer.notify_progress(param).await;
                 });
-            })
-        } else {
-            Box::new(|_task: &tripo_api::Task| {})
-        };
+            }) as tripo_api::ProgressCallback
+        });
 
         let mut opts = WaitOptions {
             timeout: p.timeout_seconds.map(Duration::from_secs),
-            on_progress: Some(callback),
+            on_progress,
             ..Default::default()
         };
         if let Some(s) = p.max_interval_seconds {
             opts.max_interval = Duration::from_secs(s);
         }
-        let task = self
-            .client
-            .wait_for_task(&p.task_id, opts)
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(task))
+        Ok(Json(self.client.wait_for_task(&p.task_id, opts).await?))
     }
 
     /// Download a task's output files into a local directory.
@@ -234,12 +224,8 @@ impl TripoServer {
     async fn download_task_models(
         &self,
         Parameters(p): Parameters<params::DownloadParams>,
-    ) -> Result<Json<tripo_api::DownloadedFiles>, ErrorData> {
-        let task = self
-            .client
-            .get_task(&p.task_id)
-            .await
-            .map_err(to_error_data)?;
+    ) -> Result<Json<tripo_api::DownloadedFiles>, ToolError> {
+        let task = self.client.get_task(&p.task_id).await?;
         let opts = tripo_api::DownloadOptions {
             overwrite: p.overwrite,
             ..Default::default()
@@ -248,7 +234,7 @@ impl TripoServer {
             .client
             .download_task_models(&task, &p.output_dir, opts)
             .await
-            .map_err(to_error_data)?;
+            .map_err(|e| ToolError::with_path(e, &p.output_dir))?;
         Ok(Json(files))
     }
 
@@ -267,13 +253,8 @@ impl TripoServer {
     async fn text_to_model(
         &self,
         Parameters(req): Parameters<tripo_api::TextToModelRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::TextToModel(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::TextToModel(req)).await
     }
 
     /// Generate a 3D model from a single image.
@@ -291,13 +272,8 @@ impl TripoServer {
     async fn image_to_model(
         &self,
         Parameters(req): Parameters<tripo_api::ImageToModelRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::ImageToModel(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::ImageToModel(req)).await
     }
 
     /// Multi-view to 3D model.
@@ -315,13 +291,8 @@ impl TripoServer {
     async fn multiview_to_model(
         &self,
         Parameters(req): Parameters<tripo_api::MultiviewToModelRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::MultiviewToModel(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::MultiviewToModel(req)).await
     }
 
     /// Generate an image from a text prompt.
@@ -339,13 +310,8 @@ impl TripoServer {
     async fn text_to_image(
         &self,
         Parameters(req): Parameters<tripo_api::TextToImageRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::TextToImage(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::TextToImage(req)).await
     }
 
     /// Edit or combine reference images.
@@ -363,13 +329,8 @@ impl TripoServer {
     async fn image_to_image(
         &self,
         Parameters(req): Parameters<tripo_api::ImageToImageRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::ImageToImage(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::ImageToImage(req)).await
     }
 
     /// Render four views of a single image.
@@ -387,13 +348,8 @@ impl TripoServer {
     async fn image_to_multiview(
         &self,
         Parameters(req): Parameters<tripo_api::ImageToMultiviewRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::ImageToMultiview(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::ImageToMultiview(req)).await
     }
 
     /// Apply per-view edits to a multiview image.
@@ -411,13 +367,8 @@ impl TripoServer {
     async fn edit_multiview(
         &self,
         Parameters(req): Parameters<tripo_api::EditMultiviewRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::EditMultiview(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::EditMultiview(req)).await
     }
 
     /// Generate a Gaussian Splat from a single image.
@@ -435,13 +386,8 @@ impl TripoServer {
     async fn image_to_splat(
         &self,
         Parameters(req): Parameters<tripo_api::ImageToSplatRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::ImageToSplat(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::ImageToSplat(req)).await
     }
 
     /// Convert a model to another file format.
@@ -459,13 +405,8 @@ impl TripoServer {
     async fn convert_model(
         &self,
         Parameters(req): Parameters<tripo_api::ConvertModelRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::ConvertModel(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::ConvertModel(req)).await
     }
 
     /// Stylize a model.
@@ -483,13 +424,8 @@ impl TripoServer {
     async fn stylize_model(
         &self,
         Parameters(req): Parameters<tripo_api::StylizeModelRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::Stylize(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::Stylize(req)).await
     }
 
     /// (Re)texture an existing model.
@@ -507,13 +443,8 @@ impl TripoServer {
     async fn texture_model(
         &self,
         Parameters(req): Parameters<tripo_api::TextureModelRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::TextureModel(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::TextureModel(req)).await
     }
 
     /// Refine a draft model.
@@ -531,13 +462,8 @@ impl TripoServer {
     async fn refine_model(
         &self,
         Parameters(req): Parameters<tripo_api::RefineModelRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::Refine(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::Refine(req)).await
     }
 
     /// Import an external model file.
@@ -555,13 +481,8 @@ impl TripoServer {
     async fn import_model(
         &self,
         Parameters(req): Parameters<tripo_api::ImportModelRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::ImportModel(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::ImportModel(req)).await
     }
 
     /// Rig compatibility probe.
@@ -579,13 +500,8 @@ impl TripoServer {
     async fn check_riggable(
         &self,
         Parameters(req): Parameters<tripo_api::CheckRiggableRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::CheckRiggable(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::CheckRiggable(req)).await
     }
 
     /// Generate a skeletal rig.
@@ -603,13 +519,8 @@ impl TripoServer {
     async fn rig_model(
         &self,
         Parameters(req): Parameters<tripo_api::RigModelRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::Rig(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::Rig(req)).await
     }
 
     /// Retarget animation presets onto a rigged model.
@@ -627,13 +538,8 @@ impl TripoServer {
     async fn retarget_animation(
         &self,
         Parameters(req): Parameters<tripo_api::RetargetAnimationRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::Retarget(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::Retarget(req)).await
     }
 
     /// Decompose a model into semantic parts.
@@ -651,13 +557,8 @@ impl TripoServer {
     async fn mesh_segmentation(
         &self,
         Parameters(req): Parameters<tripo_api::MeshSegmentationRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::MeshSegmentation(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::MeshSegmentation(req)).await
     }
 
     /// Segment an image or GLB into parts, including auto modeling.
@@ -675,13 +576,8 @@ impl TripoServer {
     async fn mesh_smart_segment(
         &self,
         Parameters(req): Parameters<tripo_api::MeshSmartSegmentRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::MeshSmartSegment(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::MeshSmartSegment(req)).await
     }
 
     /// Fill holes in an existing mesh.
@@ -699,13 +595,8 @@ impl TripoServer {
     async fn mesh_completion(
         &self,
         Parameters(req): Parameters<tripo_api::MeshCompletionRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::MeshCompletion(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::MeshCompletion(req)).await
     }
 
     /// Reduce model polycount (retopology).
@@ -723,13 +614,8 @@ impl TripoServer {
     async fn mesh_decimate(
         &self,
         Parameters(req): Parameters<tripo_api::MeshDecimateRequest>,
-    ) -> Result<Json<params::TaskCreated>, ErrorData> {
-        let id = self
-            .client
-            .create_task(tripo_api::tasks::TaskRequest::MeshDecimate(req))
-            .await
-            .map_err(to_error_data)?;
-        Ok(Json(params::TaskCreated { task_id: id }))
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::MeshDecimate(req)).await
     }
 }
 
@@ -747,12 +633,30 @@ impl ServerHandler for TripoServer {
     }
 }
 
-/// Map a [`tripo_api::Error`] into a JSON-RPC [`ErrorData`]. Takes by value to
-/// pair directly with `Result::map_err`.
-#[allow(
-    clippy::needless_pass_by_value,
-    reason = "by-value signature matches Result::map_err"
-)]
-pub(crate) fn to_error_data(err: tripo_api::Error) -> ErrorData {
-    ErrorData::internal_error(err.to_string(), None)
+/// A tool execution failure, reported to the model as a [`CallToolResult`]
+/// with `is_error: true` and the message as text content.
+#[derive(Debug)]
+pub struct ToolError(String);
+
+impl ToolError {
+    /// Like `From<tripo_api::Error>`, but names `path` in I/O errors, whose
+    /// messages (e.g. "No such file or directory") omit it.
+    fn with_path(err: tripo_api::Error, path: &Path) -> Self {
+        match err {
+            tripo_api::Error::Io(e) => Self(format!("{}: {e}", path.display())),
+            other => other.into(),
+        }
+    }
+}
+
+impl From<tripo_api::Error> for ToolError {
+    fn from(err: tripo_api::Error) -> Self {
+        Self(err.to_string())
+    }
+}
+
+impl IntoCallToolResult for ToolError {
+    fn into_call_tool_result(self) -> Result<CallToolResponse, ErrorData> {
+        Ok(CallToolResult::error(vec![ContentBlock::text(self.0)]).into())
+    }
 }

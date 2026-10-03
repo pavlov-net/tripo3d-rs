@@ -7,7 +7,7 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 mod common;
-use common::{args, start_server, start_server_with};
+use common::{args, assert_tool_ok, start_server, start_server_with, tool_error_text};
 
 #[tokio::test]
 async fn calls_get_balance() {
@@ -50,8 +50,9 @@ async fn calls_mesh_seg_completion_decimate() {
     ] {
         let r = client
             .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
-            .await;
-        assert!(r.is_ok(), "{name} failed: {r:?}");
+            .await
+            .unwrap();
+        assert_tool_ok(name, &r);
     }
 }
 
@@ -79,8 +80,9 @@ async fn calls_texture_refine_rigcheck_rig_retarget() {
     ] {
         let r = client
             .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
-            .await;
-        assert!(r.is_ok(), "{name} failed: {r:?}");
+            .await
+            .unwrap();
+        assert_tool_ok(name, &r);
     }
 }
 
@@ -107,8 +109,9 @@ async fn calls_image_multiview_convert_stylize() {
     ] {
         let r = client
             .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
-            .await;
-        assert!(r.is_ok(), "{name} failed: {r:?}");
+            .await
+            .unwrap();
+        assert_tool_ok(name, &r);
     }
 }
 
@@ -151,8 +154,9 @@ async fn calls_import_splat_smart_segment() {
     ] {
         let r = client
             .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
-            .await;
-        assert!(r.is_ok(), "{name} failed: {r:?}");
+            .await
+            .unwrap();
+        assert_tool_ok(name, &r);
     }
 }
 
@@ -165,10 +169,12 @@ async fn smart_segment_model_without_transform_errors() {
             CallToolRequestParams::new("mesh_smart_segment")
                 .with_arguments(args(json!({"seg_type":"model","input":"https://e/m.glb"}))),
         )
-        .await;
+        .await
+        .unwrap();
+    let text = tool_error_text(&r);
     assert!(
-        format!("{r:?}").contains("transform"),
-        "expected transform error, got {r:?}"
+        text.starts_with("invalid request:") && text.contains("transform"),
+        "{text}"
     );
     assert!(server.received_requests().await.unwrap().is_empty());
 }
@@ -439,13 +445,14 @@ async fn calls_list_tasks() {
 async fn list_tasks_over_limit_is_tool_error() {
     let client = start_server_with("http://127.0.0.1:1/").await;
     let ids: Vec<String> = (0..=100).map(|i| format!("t{i}")).collect();
-    let err = client
+    let r = client
         .call_tool(
             CallToolRequestParams::new("list_tasks").with_arguments(args(json!({"task_ids":ids}))),
         )
         .await
-        .unwrap_err();
-    assert!(format!("{err:?}").contains("1..=100"), "{err:?}");
+        .unwrap();
+    let text = tool_error_text(&r);
+    assert!(text.contains("1..=100"), "{text}");
 }
 
 #[tokio::test]
@@ -519,10 +526,57 @@ async fn image_tool_validation_errors_before_submit() {
                 json!({"prompt":"x","model":"seedream_v4","quality":"high"}),
             )),
         )
+        .await
+        .unwrap();
+    let text = tool_error_text(&r);
+    assert!(text.contains("does not accept quality"), "{text}");
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn api_error_is_tool_error_with_message() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/generation/text-to-model"))
+        .respond_with(ResponseTemplate::new(403).set_body_json(json!({
+            "code":2010,
+            "message":"insufficient credits",
+            "suggestion":"top up your account",
+            "request_id":"req_1"
+        })))
+        .expect(1)
+        .mount(&server)
         .await;
+
+    let client = start_server(&server).await;
+    let r = client
+        .call_tool(
+            CallToolRequestParams::new("text_to_model")
+                .with_arguments(args(json!({"prompt":"chair"}))),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        tool_error_text(&r),
+        "API [2010] insufficient credits \u{2014} top up your account (request_id: req_1)"
+    );
+}
+
+#[tokio::test]
+async fn file_error_is_tool_error() {
+    let server = MockServer::start().await;
+    let client = start_server(&server).await;
+    let r = client
+        .call_tool(
+            CallToolRequestParams::new("upload_file")
+                .with_arguments(args(json!({"path":"/nonexistent/tripo-mcp-test.png"}))),
+        )
+        .await
+        .unwrap();
+    let text = tool_error_text(&r);
     assert!(
-        format!("{r:?}").contains("does not accept quality"),
-        "{r:?}"
+        text.starts_with("/nonexistent/tripo-mcp-test.png: "),
+        "{text}"
     );
     assert!(server.received_requests().await.unwrap().is_empty());
 }
