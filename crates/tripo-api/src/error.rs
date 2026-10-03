@@ -55,7 +55,7 @@ pub enum Error {
     WaitTimeout(TaskId),
 
     /// `TRIPO_API_KEY` not set and no key passed programmatically.
-    #[error("missing API key (set TRIPO_API_KEY or pass --api-key)")]
+    #[error("missing API key (set TRIPO_API_KEY)")]
     MissingApiKey,
 
     /// API key does not begin with `tsk_`.
@@ -63,7 +63,7 @@ pub enum Error {
     InvalidApiKey,
 
     /// Download target exists and `overwrite` was not set.
-    #[error("file already exists: {0} (use --force to overwrite)")]
+    #[error("file already exists: {0}")]
     FileExists(PathBuf),
 
     /// Client-side request validation failed before the request was sent.

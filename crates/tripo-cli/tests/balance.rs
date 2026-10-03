@@ -62,5 +62,8 @@ async fn missing_api_key_is_usage_error() {
         .args(["balance"])
         .assert()
         .failure()
-        .code(2);
+        .code(2)
+        .stderr(predicate::str::contains(
+            "hint: set TRIPO_API_KEY or pass --api-key",
+        ));
 }

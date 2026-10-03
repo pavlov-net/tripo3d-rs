@@ -158,6 +158,43 @@ async fn task_download_writes_model() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn task_download_refuses_existing_file_with_force_hint() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/tasks/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0,"data":{
+                "task_id":"abc","type":"text_to_model","status":"success","progress":100,"created_at":"2026-01-01T00:00:00Z",
+                "output":{"model_url": format!("{}/files/abc.glb", server.uri())}
+            }
+        })))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("abc.glb"), b"keep").unwrap();
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "task",
+            "download",
+            "abc",
+            "-o",
+            dir.path().to_str().unwrap(),
+        ])
+        .assert()
+        .failure()
+        .code(5)
+        .stderr(predicate::str::contains("file already exists"))
+        .stderr(predicate::str::contains("hint: pass --force to overwrite"));
+    assert_eq!(std::fs::read(dir.path().join("abc.glb")).unwrap(), b"keep");
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn task_create_raw_posts_body() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))

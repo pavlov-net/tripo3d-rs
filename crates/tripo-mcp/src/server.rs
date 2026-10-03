@@ -647,7 +647,12 @@ impl ToolError {
 
 impl From<tripo_api::Error> for ToolError {
     fn from(err: tripo_api::Error) -> Self {
-        Self(err.to_string())
+        match err {
+            tripo_api::Error::FileExists(_) => {
+                Self(format!("{err} (set `overwrite` to replace it)"))
+            }
+            _ => Self(err.to_string()),
+        }
     }
 }
 
