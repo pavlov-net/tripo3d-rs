@@ -1,0 +1,2 @@
+# Webhook fixtures are signed byte-for-byte; never convert line endings.
+crates/tripo-api/tests/fixtures/** -text
