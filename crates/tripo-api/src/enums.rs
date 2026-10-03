@@ -262,6 +262,25 @@ string_enum! {
     }
 }
 
+string_enum! {
+    /// Smart-segmentation pipeline (`mesh/smartsegment` `seg_type`).
+    pub enum SegType {
+        /// Image pipeline (PNG / JPEG / WebP input).
+        Image => "image",
+        /// Model pipeline (GLB input only; requires `transform`).
+        Model => "model",
+    }
+}
+
+string_enum! {
+    /// Smart-segmentation granularity (`mesh/smartsegment`). Server default: `medium`.
+    pub enum SegGranularity {
+        Coarse => "coarse",
+        Medium => "medium",
+        Fine => "fine",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -15,9 +15,12 @@ mod image_rules;
 pub mod image_to_image;
 pub mod image_to_model;
 pub mod image_to_multiview;
+pub mod image_to_splat;
+pub mod import_model;
 pub mod mesh_completion;
 pub mod mesh_decimate;
 pub mod mesh_segmentation;
+pub mod mesh_smart_segment;
 pub mod multiview_to_model;
 pub mod refine_model;
 pub mod retarget_animation;
@@ -33,9 +36,12 @@ pub use edit_multiview::{EditMultiviewRequest, MultiviewEdit};
 pub use image_to_image::ImageToImageRequest;
 pub use image_to_model::ImageToModelRequest;
 pub use image_to_multiview::ImageToMultiviewRequest;
+pub use image_to_splat::ImageToSplatRequest;
+pub use import_model::ImportModelRequest;
 pub use mesh_completion::MeshCompletionRequest;
 pub use mesh_decimate::MeshDecimateRequest;
 pub use mesh_segmentation::MeshSegmentationRequest;
+pub use mesh_smart_segment::MeshSmartSegmentRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
 pub use refine_model::RefineModelRequest;
 pub use retarget_animation::{AnimationInput, RetargetAnimationRequest};
@@ -66,6 +72,8 @@ pub enum TaskRequest {
     ImageToMultiview(ImageToMultiviewRequest),
     /// `POST /generation/edit-multiview` — apply per-view edits to a multiview image.
     EditMultiview(EditMultiviewRequest),
+    /// `POST /generation/image-to-splat` — generate a 3D Gaussian Splat (`.splat`) from one image.
+    ImageToSplat(ImageToSplatRequest),
     /// `POST /models/convert` — convert a completed model to another file format.
     ConvertModel(ConvertModelRequest),
     /// `POST /models/stylize` — apply a stylization preset (lego/voxel/etc).
@@ -74,6 +82,8 @@ pub enum TaskRequest {
     TextureModel(TextureModelRequest),
     /// `POST /models/refine` — turn a draft model into a finished one.
     Refine(RefineModelRequest),
+    /// `POST /models/import` — import an external model file for downstream tasks.
+    ImportModel(ImportModelRequest),
     /// `POST /animations/rig-check` — precheck whether a model can be rigged.
     CheckRiggable(CheckRiggableRequest),
     /// `POST /animations/rig` — generate a skeletal rig for an existing model.
@@ -82,6 +92,8 @@ pub enum TaskRequest {
     Retarget(RetargetAnimationRequest),
     /// `POST /mesh/segment` — decompose a model into semantic parts.
     MeshSegmentation(MeshSegmentationRequest),
+    /// `POST /mesh/smartsegment` — segment an image or GLB, including auto modeling.
+    MeshSmartSegment(MeshSmartSegmentRequest),
     /// `POST /mesh/complete` — fill holes in an existing mesh.
     MeshCompletion(MeshCompletionRequest),
     /// `POST /mesh/decimate` — retopology: reduce polycount (smart v2.0 or basic v1.0).
@@ -100,14 +112,17 @@ impl TaskRequest {
             Self::ImageToImage(_) => "generation/image-to-image",
             Self::ImageToMultiview(_) => "generation/image-to-multiview",
             Self::EditMultiview(_) => "generation/edit-multiview",
+            Self::ImageToSplat(_) => "generation/image-to-splat",
             Self::ConvertModel(_) => "models/convert",
             Self::Stylize(_) => "models/stylize",
             Self::TextureModel(_) => "models/texture",
             Self::Refine(_) => "models/refine",
+            Self::ImportModel(_) => "models/import",
             Self::CheckRiggable(_) => "animations/rig-check",
             Self::Rig(_) => "animations/rig",
             Self::Retarget(_) => "animations/retarget",
             Self::MeshSegmentation(_) => "mesh/segment",
+            Self::MeshSmartSegment(_) => "mesh/smartsegment",
             Self::MeshCompletion(_) => "mesh/complete",
             Self::MeshDecimate(_) => "mesh/decimate",
         }
@@ -126,17 +141,24 @@ impl TaskRequest {
             Self::TextToImage(r) => r.validate(),
             Self::ImageToImage(r) => r.validate(),
             Self::EditMultiview(r) => r.validate(),
+            Self::MeshSmartSegment(r) => r.validate(),
             _ => Ok(()),
         }
     }
 
-    /// Walk the request, uploading any `ImageInput::Path` entries to `file_token`s.
+    /// Walk the request, uploading any `ImageInput::Path` entries (images or
+    /// model files) to `file_token`s.
     /// Call this before serializing & sending.
     pub async fn upload_images(&mut self, client: &Client) -> Result<()> {
         match self {
-            Self::ImageToModel(r) => upload_image_if_path(client, &mut r.input).await,
-            Self::ImageToMultiview(r) => upload_image_if_path(client, &mut r.input).await,
-            Self::EditMultiview(r) => upload_image_if_path(client, &mut r.input).await,
+            Self::ImageToModel(ImageToModelRequest { input, .. })
+            | Self::ImageToMultiview(ImageToMultiviewRequest { input, .. })
+            | Self::EditMultiview(EditMultiviewRequest { input, .. })
+            | Self::ImageToSplat(ImageToSplatRequest { input, .. })
+            | Self::ImportModel(ImportModelRequest { input })
+            | Self::MeshSmartSegment(MeshSmartSegmentRequest { input, .. }) => {
+                upload_image_if_path(client, input).await
+            }
             Self::MultiviewToModel(r) => upload_all(client, r.inputs.iter_mut().flatten()).await,
             Self::ImageToImage(r) => {
                 let inputs = r.inputs.iter_mut().flatten();

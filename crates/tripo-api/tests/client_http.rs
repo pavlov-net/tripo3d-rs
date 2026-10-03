@@ -393,6 +393,56 @@ async fn downloads_generated_image_and_multiview_views() {
 }
 
 #[tokio::test]
+async fn downloads_smart_segment_outputs() {
+    use std::collections::BTreeMap;
+    use tripo_api::{DownloadOptions, Task, TaskId, TaskOutput, TaskStatus};
+
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/out/seg_model.glb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"seg" as &[u8]))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/out/mask.png"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"mask" as &[u8]))
+        .mount(&server)
+        .await;
+
+    let task = Task {
+        task_id: TaskId::new("seg"),
+        task_type: "smartsegment_image".into(),
+        status: TaskStatus::Success,
+        input: BTreeMap::new(),
+        output: TaskOutput {
+            seg_model_url: Some(format!("{}/out/seg_model.glb", server.uri())),
+            mask_url: Some(format!("{}/out/mask.png", server.uri())),
+            ..Default::default()
+        },
+        progress: 100,
+        error_code: None,
+        error_message: None,
+        created_at: String::new(),
+        completed_at: None,
+        credits_consumed: None,
+        running_left_time: None,
+        queuing_num: None,
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let out = client(&server)
+        .download_task_models(&task, dir.path(), DownloadOptions::default())
+        .await
+        .unwrap();
+    assert!(out.model.is_none());
+    assert_eq!(out.seg_model, Some(dir.path().join("seg_seg.glb")));
+    assert_eq!(out.mask, Some(dir.path().join("seg_mask.png")));
+    assert_eq!(
+        std::fs::read(dir.path().join("seg_mask.png")).unwrap(),
+        b"mask"
+    );
+}
+
+#[tokio::test]
 async fn download_errors_on_existing_file_without_overwrite() {
     use tripo_api::DownloadOptions;
     let server = MockServer::start().await;
@@ -430,4 +480,59 @@ async fn task_credits_preserve_fractional_and_whole_numbers() {
             expected
         );
     }
+}
+
+#[tokio::test]
+async fn import_model_uploads_local_model_first() {
+    use tripo_api::tasks::TaskRequest;
+    use tripo_api::{ImageInput, ImportModelRequest};
+
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/files"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0, "data":{"file_token":"file_model"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/models/import"))
+        .and(wiremock::matchers::body_json(
+            serde_json::json!({"input":"file_model"}),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0, "data":{"task_id":"imported"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let model = dir.path().join("chair.glb");
+    std::fs::write(&model, b"glTF").unwrap();
+
+    let req = TaskRequest::ImportModel(ImportModelRequest {
+        input: ImageInput::Path(model),
+    });
+    let id = client(&server).create_task(req).await.unwrap();
+    assert_eq!(id.as_str(), "imported");
+}
+
+#[tokio::test]
+async fn smart_segment_model_without_transform_is_rejected_before_post() {
+    use tripo_api::tasks::TaskRequest;
+    use tripo_api::{ImageInput, MeshSmartSegmentRequest, SegType};
+
+    let server = MockServer::start().await;
+    let req = TaskRequest::MeshSmartSegment(MeshSmartSegmentRequest {
+        seg_type: SegType::Model,
+        input: ImageInput::parse("https://example.com/character.glb"),
+        granularity: None,
+        hint: None,
+        transform: None,
+    });
+    let err = client(&server).create_task(req).await.unwrap_err();
+    assert!(matches!(err, Error::InvalidRequest(_)), "{err}");
+    assert!(server.received_requests().await.unwrap().is_empty());
 }

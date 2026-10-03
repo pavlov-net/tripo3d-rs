@@ -422,6 +422,30 @@ impl TripoServer {
         Ok(Json(params::TaskCreated { task_id: id }))
     }
 
+    /// Generate a Gaussian Splat from a single image.
+    #[tool(
+        name = "image_to_splat",
+        description = "Generate a 3D Gaussian Splat (.splat) from a single image reference (URL, file token, or local path). Fixed cost: 30 credits.",
+        annotations(
+            title = "Image \u{2192} Gaussian Splat",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn image_to_splat(
+        &self,
+        Parameters(req): Parameters<tripo_api::ImageToSplatRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::ImageToSplat(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
     /// Convert a model to another file format.
     #[tool(
         name = "convert_model",
@@ -518,6 +542,30 @@ impl TripoServer {
         Ok(Json(params::TaskCreated { task_id: id }))
     }
 
+    /// Import an external model file.
+    #[tool(
+        name = "import_model",
+        description = "Import an external model file (GLB/GLTF/FBX/OBJ/STL, up to 150 MB; URL, file token, or local path) so other model tasks can use it.",
+        annotations(
+            title = "Import Model",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn import_model(
+        &self,
+        Parameters(req): Parameters<tripo_api::ImportModelRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::ImportModel(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
     /// Rig compatibility probe.
     #[tool(
         name = "check_riggable",
@@ -609,6 +657,30 @@ impl TripoServer {
         let id = self
             .client
             .create_task(tripo_api::tasks::TaskRequest::MeshSegmentation(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Segment an image or GLB into parts, including auto modeling.
+    #[tool(
+        name = "mesh_smart_segment",
+        description = "Segment an image or GLB into parts, including auto modeling. seg_type=model takes a GLB and requires a 16-number column-major transform.",
+        annotations(
+            title = "Smart Segmentation",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn mesh_smart_segment(
+        &self,
+        Parameters(req): Parameters<tripo_api::MeshSmartSegmentRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::MeshSmartSegment(req))
             .await
             .map_err(to_error_data)?;
         Ok(Json(params::TaskCreated { task_id: id }))

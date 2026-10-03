@@ -30,7 +30,12 @@ tripo task download <task_id> -o ./out
 # Variants
 tripo image-to-model --input ./photo.jpg --output ./out
 tripo multiview-to-model --input front.jpg --input "" --input back.jpg
+tripo image-to-splat --input ./photo.png --output ./out     # writes <id>.splat
+tripo import-model --input ./chair.fbx
 tripo convert-model --input <id> --format FBX
+tripo mesh-smart-segment --seg-type image --input ./photo.png --hint "head, arms, legs"
+tripo mesh-smart-segment --seg-type model --input ./model.glb \
+  --transform 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1
 tripo rig-model --input <id> --rig-type biped --spec mixamo
 
 # Upload a local file, print its file token (files over 60 MiB, or any

@@ -19,14 +19,17 @@ Commands:
   image-to-image      Edit or combine reference images
   image-to-multiview  Render front/left/back/right views of an image
   edit-multiview      Edit individual views of a multiview image
+  image-to-splat      Generate a 3D Gaussian Splat (.splat) from a single image
   convert-model       Convert a model to a different file format
   stylize-model       Apply a stylization preset to a model
   texture-model       (Re-)texture an existing model
   refine-model        Refine a draft model
+  import-model        Import an external model file for downstream tasks
   check-riggable      Pre-check whether a model can be rigged
   rig-model           Generate a skeletal rig for an existing model
   retarget-animation  Retarget one or more animations onto a rigged model
   mesh-segmentation   Decompose a model into semantic parts
+  mesh-smart-segment  Segment an image or GLB into parts, including auto modeling
   mesh-completion     Fill holes in an existing mesh
   mesh-decimate       Reduce model polycount (retopology; replaces v2 smart-lowpoly)
   help                Print this message or the help of the given subcommand(s)

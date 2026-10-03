@@ -34,6 +34,8 @@ annotation hints are set explicitly on every tool:
 | `image_to_image`       | Edit or combine reference images       |     N     |      N      |     N      |
 | `image_to_multiview`   | Image to four-view images              |     N     |      N      |     N      |
 | `edit_multiview`       | Per-view edits of a multiview image    |     N     |      N      |     N      |
+| `image_to_splat`       | Single image to Gaussian Splat         |     N     |      N      |     N      |
+| `import_model`         | Import an external model file          |     N     |      N      |     N      |
 | `convert_model`        | Format/preset conversion               |     N     |      N      |     N      |
 | `stylize_model`        | Post-style                             |     N     |      N      |     N      |
 | `texture_model`        | Re-texture                             |     N     |      N      |     N      |
@@ -42,6 +44,7 @@ annotation hints are set explicitly on every tool:
 | `rig_model`            | Rig the model                          |     N     |      N      |     N      |
 | `retarget_animation`   | Apply animation presets                |     N     |      N      |     N      |
 | `mesh_segmentation`    | Parts segmentation                     |     N     |      N      |     N      |
+| `mesh_smart_segment`   | Image/GLB segmentation with modeling   |     N     |      N      |     N      |
 | `mesh_completion`      | Complete missing parts                 |     N     |      N      |     N      |
 | `mesh_decimate`        | Retopology (high-poly to low-poly)     |     N     |      N      |     N      |
 

@@ -142,8 +142,23 @@ pub struct TaskOutput {
     /// Populated by `check_riggable`.
     #[serde(default)]
     pub rig_type: Option<crate::enums::RigTypeResponse>,
-    /// Output fields without a typed accessor (e.g. smartsegment's
-    /// `mask_url`), kept verbatim.
+    /// Segmented model URL (`mesh/smartsegment`).
+    #[serde(default)]
+    pub seg_model_url: Option<String>,
+    /// Segmentation mask image URL (`mesh/smartsegment`).
+    #[serde(default)]
+    pub mask_url: Option<String>,
+    /// Part names the segmentation used (`mesh/smartsegment`).
+    #[serde(default)]
+    pub prompt: Option<String>,
+    /// Id of the segmentation sub-task (`mesh/smartsegment`).
+    #[serde(default)]
+    pub seg_task_id: Option<String>,
+    /// Id of the auto-modeling sub-task (`mesh/smartsegment`).
+    #[serde(default)]
+    pub model_task_id: Option<String>,
+    /// Output fields without a typed accessor (e.g. ones added by a newer
+    /// server), kept verbatim.
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
 }
@@ -346,6 +361,27 @@ mod tests {
     }
 
     #[test]
+    fn deserializes_smartsegment_output() {
+        let body = r#"{
+            "task_id":"task_abc123","type":"smartsegment_image","status":"success",
+            "progress":100,"input":{"granularity":"medium"},
+            "output":{"prompt":"head, body","mask_url":"https://cdn/mask.png",
+                      "seg_model_url":"https://cdn/seg_model.glb",
+                      "seg_task_id":"task_seg456","model_task_id":"task_model789"}
+        }"#;
+        let out = serde_json::from_str::<Task>(body).unwrap().output;
+        assert_eq!(out.prompt.as_deref(), Some("head, body"));
+        assert_eq!(out.mask_url.as_deref(), Some("https://cdn/mask.png"));
+        assert_eq!(
+            out.seg_model_url.as_deref(),
+            Some("https://cdn/seg_model.glb")
+        );
+        assert_eq!(out.seg_task_id.as_deref(), Some("task_seg456"));
+        assert_eq!(out.model_task_id.as_deref(), Some("task_model789"));
+        assert!(out.model_url.is_none());
+    }
+
+    #[test]
     fn deserializes_v3_task_body() {
         let body = r#"{
             "task_id":"task_abc123","type":"text_to_model","status":"success",
@@ -391,12 +427,12 @@ mod tests {
     fn unknown_output_fields_round_trip() {
         let output = serde_json::json!({
             "model_url": "https://cdn/m.glb",
-            "mask_url": "https://cdn/mask.png",
-            "seg_task_id": "seg_1"
+            "future_url": "https://cdn/future.png",
+            "future_id": "f_1"
         });
         let parsed: TaskOutput = serde_json::from_value(output.clone()).unwrap();
         assert_eq!(parsed.model_url.as_deref(), Some("https://cdn/m.glb"));
-        assert_eq!(parsed.extra["mask_url"], "https://cdn/mask.png");
+        assert_eq!(parsed.extra["future_url"], "https://cdn/future.png");
         assert!(!parsed.extra.contains_key("model_url"));
 
         let mut reserialized = serde_json::to_value(&parsed).unwrap();
