@@ -206,7 +206,8 @@ impl TripoServer {
         if let Some(s) = p.max_interval_seconds {
             opts.max_interval = Duration::from_secs(s);
         }
-        Ok(Json(self.client.wait_for_task(&p.task_id, opts).await?))
+        let wait = self.client.wait_for_task(&p.task_id, opts);
+        Ok(Json(until_cancelled(&ctx, wait).await?))
     }
 
     /// Download a task's output files into a local directory.
@@ -224,18 +225,20 @@ impl TripoServer {
     async fn download_task_models(
         &self,
         Parameters(p): Parameters<params::DownloadParams>,
+        ctx: RequestContext<RoleServer>,
     ) -> Result<Json<tripo_api::DownloadedFiles>, ToolError> {
-        let task = self.client.get_task(&p.task_id).await?;
-        let opts = tripo_api::DownloadOptions {
-            overwrite: p.overwrite,
-            ..Default::default()
+        let download = async {
+            let task = self.client.get_task(&p.task_id).await?;
+            let opts = tripo_api::DownloadOptions {
+                overwrite: p.overwrite,
+                ..Default::default()
+            };
+            self.client
+                .download_task_models(&task, &p.output_dir, opts)
+                .await
+                .map_err(|e| ToolError::with_path(e, &p.output_dir))
         };
-        let files = self
-            .client
-            .download_task_models(&task, &p.output_dir, opts)
-            .await
-            .map_err(|e| ToolError::with_path(e, &p.output_dir))?;
-        Ok(Json(files))
+        Ok(Json(until_cancelled(&ctx, download).await?))
     }
 
     /// Generate a 3D model from a text prompt.
@@ -639,6 +642,10 @@ impl ServerHandler for TripoServer {
 pub struct ToolError(String);
 
 impl ToolError {
+    fn cancelled() -> Self {
+        Self("request cancelled by the client".to_owned())
+    }
+
     /// Like `From<tripo_api::Error>`, but names `path` in I/O errors, whose
     /// messages (e.g. "No such file or directory") omit it.
     fn with_path(err: tripo_api::Error, path: &Path) -> Self {
@@ -658,5 +665,18 @@ impl From<tripo_api::Error> for ToolError {
 impl IntoCallToolResult for ToolError {
     fn into_call_tool_result(self) -> Result<CallToolResponse, ErrorData> {
         Ok(CallToolResult::error(vec![ContentBlock::text(self.0)]).into())
+    }
+}
+
+/// Run `fut` until it completes or the client cancels the request. rmcp
+/// cancels `ctx.ct` on `notifications/cancelled` but never aborts the handler,
+/// so long-running work must stop on its own.
+async fn until_cancelled<T, E: Into<ToolError>>(
+    ctx: &RequestContext<RoleServer>,
+    fut: impl Future<Output = Result<T, E>>,
+) -> Result<T, ToolError> {
+    tokio::select! {
+        res = fut => res.map_err(Into::into),
+        () = ctx.ct.cancelled() => Err(ToolError::cancelled()),
     }
 }

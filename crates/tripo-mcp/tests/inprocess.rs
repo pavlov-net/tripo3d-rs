@@ -580,3 +580,47 @@ async fn file_error_is_tool_error() {
     );
     assert!(server.received_requests().await.unwrap().is_empty());
 }
+
+#[tokio::test]
+async fn wait_for_task_stops_polling_after_cancel() {
+    use rmcp::model::{CallToolRequest, ClientRequest};
+    use rmcp::service::PeerRequestOptions;
+    use std::time::Duration;
+
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/tasks/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{"task_id":"abc","type":"text_to_model","status":"running","progress":10,"created_at":"2026-01-01T00:00:00Z"}
+        })))
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    let params = CallToolRequestParams::new("wait_for_task")
+        .with_arguments(args(json!({"task_id":"abc","max_interval_seconds":1})));
+    let handle = client
+        .send_cancellable_request(
+            ClientRequest::CallToolRequest(CallToolRequest::new(params)),
+            PeerRequestOptions::no_options(),
+        )
+        .await
+        .unwrap();
+
+    // Wait for the first poll, then cancel.
+    let polls = || async { server.received_requests().await.unwrap().len() };
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while polls().await == 0 {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("first poll never arrived");
+    handle.cancel(Some("test".into())).await.unwrap();
+    let at_cancel = polls().await;
+
+    // Uncancelled, the handler would poll again every second.
+    tokio::time::sleep(Duration::from_millis(2500)).await;
+    assert_eq!(polls().await, at_cancel, "kept polling after cancellation");
+}
