@@ -9,9 +9,7 @@ use std::sync::Arc;
 use rmcp::{
     ErrorData, Json, RoleServer, ServerHandler,
     handler::server::wrapper::Parameters,
-    model::{
-        Implementation, ProgressNotificationParam, ProtocolVersion, ServerCapabilities, ServerInfo,
-    },
+    model::{Implementation, ProgressNotificationParam, ServerCapabilities, ServerConfig},
     service::RequestContext,
     tool, tool_handler, tool_router,
 };
@@ -737,13 +735,14 @@ impl TripoServer {
 
 #[tool_handler]
 impl ServerHandler for TripoServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-            .with_protocol_version(ProtocolVersion::V_2026_07_28)
-            .with_server_info(Implementation::from_build_env())
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
+            .with_server_info(Implementation::new(
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION"),
+            ))
             .with_instructions(
-                "Tools for submitting, polling, downloading, and managing Tripo 3D and image generation tasks."
-                    .to_string(),
+                "Tools for submitting, polling, downloading, and managing Tripo 3D and image generation tasks.",
             )
     }
 }
