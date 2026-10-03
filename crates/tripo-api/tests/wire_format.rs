@@ -77,6 +77,8 @@ fn default_image_to_model() -> ImageToModelRequest {
         model_seed: None,
         texture_seed: None,
         texture_quality: None,
+        texture_version: None,
+        delight: None,
         geometry_quality: None,
         texture_alignment: None,
         auto_size: None,
@@ -109,6 +111,8 @@ fn multiview_to_model_with_empty_slot() {
         model_seed: None,
         texture_seed: None,
         texture_quality: None,
+        texture_version: None,
+        delight: None,
         geometry_quality: None,
         texture_alignment: None,
         auto_size: None,
@@ -210,11 +214,58 @@ fn texture_model_with_text_and_style_image() {
         texture_prompt: TexturePrompt {
             text: Some("brass and copper".into()),
             image: None,
+            images: None,
             style_image: Some(ImageInput::Url("https://cdn/s.jpg".parse().unwrap())),
         },
         pbr: Some(true),
         ..Default::default()
     });
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn texture_model_v3_5_fast_delight() {
+    let req = TaskRequest::TextureModel(TextureModelRequest {
+        input: "task_src".into(),
+        model: Some(tripo_api::versions::texture::V3_5.into()),
+        texture_quality: Some(TextureQuality::Fast),
+        delight: Some(false),
+        pbr: Some(true),
+        ..Default::default()
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn texture_model_with_multiview_images() {
+    let req = TaskRequest::TextureModel(TextureModelRequest {
+        input: "task_src".into(),
+        model: Some(tripo_api::versions::texture::V3_5.into()),
+        texture_prompt: TexturePrompt {
+            images: Some(vec![
+                ImageInput::Url("https://cdn/front.jpg".parse().unwrap()),
+                ImageInput::FileToken("file_left".into()),
+                ImageInput::Url("https://cdn/back.jpg".parse().unwrap()),
+                ImageInput::FileToken("file_right".into()),
+            ]),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+    req.validate().unwrap();
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn text_to_model_texture_version() {
+    let req = TaskRequest::TextToModel(TextToModelRequest {
+        prompt: "a red robot".into(),
+        texture_quality: Some(TextureQuality::Fast),
+        texture_version: Some(tripo_api::versions::texture::V3_5.into()),
+        delight: Some(true),
+        ..Default::default()
+    });
+    req.validate().unwrap();
     insta::assert_json_snapshot!(json_of(&req));
 }
 

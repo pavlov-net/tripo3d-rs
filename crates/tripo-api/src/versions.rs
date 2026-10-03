@@ -37,8 +37,20 @@ pub mod multiview {
     pub const DEFAULT: &str = V3_1;
 }
 
-/// Versions accepted by `models/texture`.
+/// Texture model versions. Accepted as `model` on `models/texture` and as
+/// `texture_version` on the generation endpoints (`generation/text-to-model`,
+/// `image-to-model`, `multiview-to-model`), where it pins the texture model
+/// independently of the geometry `model`.
+///
+/// When a generation request omits `texture_version`, the server derives it
+/// from `model`: v2.5 geometry uses [`V2_5`](texture::V2_5), every other
+/// geometry version (v3.x, P1, P2) uses [`V3_0`](texture::V3_0). Features that
+/// need [`V3_5`](texture::V3_5) therefore need it set explicitly.
 pub mod texture {
+    /// v3.5 (August 2026). Required for
+    /// [`TextureQuality::Fast`](crate::enums::TextureQuality::Fast); the only
+    /// version that reads `delight`.
+    pub const V3_5: &str = "v3.5-20260815";
     /// v3.0 (August 2025). Server default; recommended for models generated
     /// with v3.0 or v3.1.
     pub const V3_0: &str = "v3.0-20250812";

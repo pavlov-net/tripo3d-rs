@@ -38,9 +38,15 @@ pub struct ImageToModelRequest {
     /// Seed for texture generation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_seed: Option<i32>,
-    /// Texture quality preset.
+    /// Texture quality preset; see [`TextureQuality::Fast`] for `fast`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_quality: Option<TextureQuality>,
+    /// Texture model version, independent of `model`; see [`crate::versions::texture`].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub texture_version: Option<String>,
+    /// Strip baked-in lighting before texturing (v3.5 texture only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delight: Option<bool>,
     /// Geometry quality preset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub geometry_quality: Option<GeometryQuality>,
@@ -77,13 +83,15 @@ pub struct ImageToModelRequest {
 
 impl ImageToModelRequest {
     pub(crate) fn validate(&self) -> Result<()> {
-        super::validate_p2_face_limit(self.model.as_deref(), self.quad, self.face_limit)?;
-        super::validate_p1_params(
-            self.model.as_deref(),
-            self.quad,
-            self.smart_low_poly,
-            self.generate_parts,
-            self.geometry_quality.as_ref(),
-        )
+        super::validate_generation(&super::GenerationParams {
+            model: self.model.as_deref(),
+            quad: self.quad,
+            face_limit: self.face_limit,
+            smart_low_poly: self.smart_low_poly,
+            generate_parts: self.generate_parts,
+            geometry_quality: self.geometry_quality.as_ref(),
+            texture_quality: self.texture_quality.as_ref(),
+            texture_version: self.texture_version.as_deref(),
+        })
     }
 }

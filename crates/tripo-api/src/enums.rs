@@ -120,7 +120,14 @@ string_enum! {
     /// `extreme` (added in API 1.9.7, June 2026) is the top tier — Tripo bills
     /// it as the highest-resolution PBR texture output. It is valid only for
     /// `texture_quality`, not `geometry_quality`; see [`GeometryQuality`].
+    ///
+    /// `fast` is the quickest tier; see [`TextureQuality::Fast`].
     pub enum TextureQuality {
+        /// Quickest tier: same texture size and credit cost as `standard`,
+        /// lower detail. Requires texture model v3.5
+        /// ([`crate::versions::texture::V3_5`]); the server rejects it (code
+        /// 1004) on any other texture version.
+        Fast => "fast",
         Standard => "standard",
         Detailed => "detailed",
         Extreme  => "extreme",

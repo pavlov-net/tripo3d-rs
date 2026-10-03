@@ -72,7 +72,15 @@ Options:
           Seed for texture generation
 
       --texture-quality <TEXTURE_QUALITY>
-          Texture quality preset (standard|detailed|extreme)
+          Texture quality preset (fast|standard|detailed|extreme)
+
+      --texture-version <TEXTURE_VERSION>
+          Texture model version, independent of --model (see `tripo_api::versions::texture`)
+
+      --delight <DELIGHT>
+          Strip baked-in lighting before texturing (v3.5 texture only)
+
+          [possible values: true, false]
 
       --geometry-quality <GEOMETRY_QUALITY>
           Geometry quality preset (standard|detailed)

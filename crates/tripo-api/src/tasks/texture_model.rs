@@ -1,13 +1,15 @@
 //! `texture_model` task variant. Endpoint: `POST /models/texture`.
 //!
-//! Wire-format quirk: `text` / `image` / `style_image` are rolled up into a
-//! nested `texture_prompt` object, sent only when at least one is present.
-//! `text`/`image` are mutually exclusive; `style_image` may accompany `text`.
+//! Wire-format quirk: `text` / `image` / `images` / `style_image` are rolled
+//! up into a nested `texture_prompt` object, sent only when at least one is
+//! present. `text`/`image`/`images` are mutually exclusive; the server reads
+//! `style_image` only alongside `text`.
 
 use serde::{Deserialize, Serialize};
 
 use crate::compress::CompressionMode;
 use crate::enums::{TextureAlignment, TextureQuality};
+use crate::error::{Error, Result};
 use crate::image::ImageInput;
 
 /// Sub-object carrying the texture-prompt inputs.
@@ -21,14 +23,44 @@ pub struct TexturePrompt {
     /// Reference image (uploaded/URL/token).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub image: Option<ImageInput>,
-    /// Style image (uploaded/URL/token). Only used with `text`.
+    /// Exactly 4 reference images in order [front, left, back, right] for
+    /// multi-angle texture guidance.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub images: Option<Vec<ImageInput>>,
+    /// Style image (uploaded/URL/token). The server ignores it unless `text`
+    /// is set.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub style_image: Option<ImageInput>,
 }
 
 impl TexturePrompt {
     pub(crate) fn is_empty(&self) -> bool {
-        self.text.is_none() && self.image.is_none() && self.style_image.is_none()
+        self.text.is_none()
+            && self.image.is_none()
+            && self.images.is_none()
+            && self.style_image.is_none()
+    }
+
+    fn validate(&self) -> Result<()> {
+        let modes = [
+            self.text.is_some(),
+            self.image.is_some(),
+            self.images.is_some(),
+        ];
+        if modes.into_iter().filter(|&set| set).count() > 1 {
+            return Err(Error::InvalidRequest(
+                "texture_prompt.text, texture_prompt.image, and texture_prompt.images are mutually exclusive".into(),
+            ));
+        }
+        if let Some(images) = &self.images
+            && images.len() != 4
+        {
+            return Err(Error::InvalidRequest(format!(
+                "texture_prompt.images requires exactly 4 images [front, left, back, right], got {}",
+                images.len()
+            )));
+        }
+        Ok(())
     }
 }
 
@@ -42,7 +74,7 @@ pub struct TextureModelRequest {
     /// Nested prompt object; omitted when all sub-fields are None.
     #[serde(default, skip_serializing_if = "TexturePrompt::is_empty")]
     pub texture_prompt: TexturePrompt,
-    /// Texture model version; see `versions::texture`.
+    /// Texture model version; see [`crate::versions::texture`].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     /// PBR.
@@ -51,7 +83,7 @@ pub struct TextureModelRequest {
     /// Texture seed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_seed: Option<i32>,
-    /// Texture quality.
+    /// Texture quality; see [`TextureQuality::Fast`] for `fast`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_quality: Option<TextureQuality>,
     /// Texture alignment strategy.
@@ -66,4 +98,18 @@ pub struct TextureModelRequest {
     /// Bake textures.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bake: Option<bool>,
+    /// Strip baked-in lighting before texturing (v3.5 texture only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delight: Option<bool>,
+}
+
+impl TextureModelRequest {
+    pub(crate) fn validate(&self) -> Result<()> {
+        super::validate_fast_texture(
+            self.texture_quality.as_ref(),
+            "model",
+            self.model.as_deref(),
+        )?;
+        self.texture_prompt.validate()
+    }
 }

@@ -38,9 +38,15 @@ pub struct TextToModelArgs {
     /// Seed for texture generation.
     #[arg(long)]
     pub texture_seed: Option<i32>,
-    /// Texture quality preset (standard|detailed|extreme).
+    /// Texture quality preset (fast|standard|detailed|extreme).
     #[arg(long, value_parser = super::parsers::texture_quality)]
     pub texture_quality: Option<TextureQuality>,
+    /// Texture model version, independent of --model (see `tripo_api::versions::texture`).
+    #[arg(long)]
+    pub texture_version: Option<String>,
+    /// Strip baked-in lighting before texturing (v3.5 texture only).
+    #[arg(long)]
+    pub delight: Option<bool>,
     /// Geometry quality preset (standard|detailed).
     #[arg(long, value_parser = super::parsers::geometry_quality)]
     pub geometry_quality: Option<GeometryQuality>,
@@ -86,6 +92,8 @@ impl VariantArgs for TextToModelArgs {
             model_seed: self.model_seed,
             texture_seed: self.texture_seed,
             texture_quality: self.texture_quality,
+            texture_version: self.texture_version,
+            delight: self.delight,
             geometry_quality: self.geometry_quality,
             auto_size: self.auto_size,
             quad: self.quad,

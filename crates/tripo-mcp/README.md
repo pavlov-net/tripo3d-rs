@@ -48,6 +48,10 @@ approval policies.
 status; a failed task includes `error_code` and `error_message` when the
 server reports them.
 
+Generation and texture tools accept the request fields of the corresponding
+`tripo-api` structs (including texture model v3.5 options) and reject invalid
+combinations before any API call.
+
 ## Claude Code client config
 
 `.claude/mcp.json` (or the equivalent for your MCP client):

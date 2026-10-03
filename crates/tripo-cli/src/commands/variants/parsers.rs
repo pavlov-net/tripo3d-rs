@@ -9,11 +9,12 @@ use tripo_api::enums::{
 
 pub fn texture_quality(s: &str) -> Result<TextureQuality, String> {
     match s {
+        "fast" => Ok(TextureQuality::Fast),
         "standard" => Ok(TextureQuality::Standard),
         "detailed" => Ok(TextureQuality::Detailed),
         "extreme" => Ok(TextureQuality::Extreme),
         o => Err(format!(
-            "invalid texture quality `{o}` — use standard|detailed|extreme"
+            "invalid texture quality `{o}` — use fast|standard|detailed|extreme"
         )),
     }
 }

@@ -39,6 +39,25 @@ request's `model` field to select `P2-20260801` (preview). P2 supports `quad: So
 or 48–25,000 for quads; `None` selects adaptive sizing. Existing defaults stay
 unchanged. These request types and validation also apply to the MCP tools.
 
+### Texture model v3.5
+
+```rust
+use tripo_api::{TaskRequest, TextToModelRequest, TextureQuality, versions};
+
+let req = TaskRequest::TextToModel(TextToModelRequest {
+    prompt: "a red robot".into(),
+    texture_version: Some(versions::texture::V3_5.into()),
+    texture_quality: Some(TextureQuality::Fast),
+    delight: Some(false),
+    ..Default::default()
+});
+assert!(req.validate().is_ok());
+```
+
+`TextureModelRequest` takes the same version in `model`; see
+`versions::texture::V3_5` and `TextureQuality::Fast` for which fields need it
+and what the server assumes when it is omitted.
+
 ## License
 
 MIT

@@ -99,8 +99,13 @@ expression: "serde_json::to_value(&critical).unwrap()"
           ]
         },
         "TextureQuality": {
-          "description": "Texture quality level (`texture_quality`).\n\n`extreme` (added in API 1.9.7, June 2026) is the top tier — Tripo bills\nit as the highest-resolution PBR texture output. It is valid only for\n`texture_quality`, not `geometry_quality`; see [`GeometryQuality`].",
+          "description": "Texture quality level (`texture_quality`).\n\n`extreme` (added in API 1.9.7, June 2026) is the top tier — Tripo bills\nit as the highest-resolution PBR texture output. It is valid only for\n`texture_quality`, not `geometry_quality`; see [`GeometryQuality`].\n\n`fast` is the quickest tier; see [`TextureQuality::Fast`].",
           "oneOf": [
+            {
+              "const": "fast",
+              "description": "Wire value: `fast`.\nQuickest tier: same texture size and credit cost as `standard`,\nlower detail. Requires texture model v3.5\n([`crate::versions::texture::V3_5`]); the server rejects it (code\n1004) on any other texture version.",
+              "type": "string"
+            },
             {
               "const": "standard",
               "description": "Wire value: `standard`.",
@@ -139,6 +144,13 @@ expression: "serde_json::to_value(&critical).unwrap()"
             }
           ],
           "description": "Geometry compression option."
+        },
+        "delight": {
+          "description": "Strip baked-in lighting before texturing (v3.5 texture only).",
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "export_orientation": {
           "anyOf": [
@@ -255,13 +267,20 @@ expression: "serde_json::to_value(&critical).unwrap()"
               "type": "null"
             }
           ],
-          "description": "Texture quality preset."
+          "description": "Texture quality preset; see [`TextureQuality::Fast`] for `fast`."
         },
         "texture_seed": {
           "description": "Seed for texture generation.",
           "format": "int32",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "texture_version": {
+          "description": "Texture model version, independent of `model`; see [`crate::versions::texture`].",
+          "type": [
+            "string",
             "null"
           ]
         }

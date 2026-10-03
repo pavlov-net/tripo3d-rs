@@ -3,7 +3,7 @@
 use serde::Serialize;
 
 use crate::client::Client;
-use crate::enums::GeometryQuality;
+use crate::enums::{GeometryQuality, TextureQuality};
 use crate::error::{Error, Result};
 use crate::image::ImageInput;
 use crate::versions;
@@ -101,6 +101,7 @@ impl TaskRequest {
             Self::TextToModel(r) => r.validate(),
             Self::ImageToModel(r) => r.validate(),
             Self::MultiviewToModel(r) => r.validate(),
+            Self::TextureModel(r) => r.validate(),
             _ => Ok(()),
         }
     }
@@ -120,19 +121,14 @@ impl TaskRequest {
                 Ok(())
             }
             Self::TextureModel(r) => {
-                let image = &mut r.texture_prompt.image;
-                let style = &mut r.texture_prompt.style_image;
-                match (image.as_mut(), style.as_mut()) {
-                    (Some(a), Some(b)) => {
-                        tokio::try_join!(
-                            upload_image_if_path(client, a),
-                            upload_image_if_path(client, b)
-                        )?;
-                    }
-                    (Some(a), None) => upload_image_if_path(client, a).await?,
-                    (None, Some(b)) => upload_image_if_path(client, b).await?,
-                    (None, None) => {}
-                }
+                let p = &mut r.texture_prompt;
+                let futs = p
+                    .image
+                    .iter_mut()
+                    .chain(p.style_image.iter_mut())
+                    .chain(p.images.iter_mut().flatten())
+                    .map(|img| upload_image_if_path(client, img));
+                futures::future::try_join_all(futs).await?;
                 Ok(())
             }
             Self::TextToModel(_)
@@ -149,10 +145,35 @@ impl TaskRequest {
     }
 }
 
+/// Fields shared by the text/image/multiview generation requests that
+/// client-side validation inspects.
+pub(crate) struct GenerationParams<'a> {
+    pub model: Option<&'a str>,
+    pub quad: Option<bool>,
+    pub face_limit: Option<i32>,
+    pub smart_low_poly: Option<bool>,
+    pub generate_parts: Option<bool>,
+    pub geometry_quality: Option<&'a GeometryQuality>,
+    pub texture_quality: Option<&'a TextureQuality>,
+    pub texture_version: Option<&'a str>,
+}
+
+/// Validation shared by text/image/multiview `validate()`.
+pub(crate) fn validate_generation(p: &GenerationParams<'_>) -> Result<()> {
+    validate_p2_face_limit(p.model, p.quad, p.face_limit)?;
+    validate_fast_texture(p.texture_quality, "texture_version", p.texture_version)?;
+    validate_p1_params(
+        p.model,
+        p.quad,
+        p.smart_low_poly,
+        p.generate_parts,
+        p.geometry_quality,
+    )
+}
+
 /// Reject parameters that aren't supported by `model: P1-20260311`.
 /// P1 is a low-poly-optimized pipeline and per the docs rejects `quad`,
-/// `smart_low_poly`, `generate_parts`, and `geometry_quality`. Called from
-/// text/image/multiview `validate()`.
+/// `smart_low_poly`, `generate_parts`, and `geometry_quality`.
 pub(crate) fn validate_p1_params(
     model: Option<&str>,
     quad: Option<bool>,
@@ -203,6 +224,31 @@ pub(crate) fn validate_p2_face_limit(
         return Err(Error::InvalidRequest(format!(
             "model {} requires face_limit between 48 and {maximum}; omit it for adaptive sizing",
             versions::text_image::P2,
+        )));
+    }
+    Ok(())
+}
+
+/// Reject `texture_quality: fast` on texture versions known not to support
+/// it. The server answers 1004 instead of falling back to `standard`. `field`
+/// names the request field selecting the texture version: `model` on
+/// `models/texture`, `texture_version` on the generation endpoints. An omitted
+/// version resolves to v3.0 or v2.5 server-side, so it is rejected too.
+/// Unrecognized version strings pass through so newer server versions work.
+pub(crate) fn validate_fast_texture(
+    texture_quality: Option<&TextureQuality>,
+    field: &str,
+    texture_version: Option<&str>,
+) -> Result<()> {
+    if texture_quality == Some(&TextureQuality::Fast)
+        && matches!(
+            texture_version,
+            None | Some(versions::texture::V3_0 | versions::texture::V2_5)
+        )
+    {
+        return Err(Error::InvalidRequest(format!(
+            "texture_quality fast requires {field} {}",
+            versions::texture::V3_5,
         )));
     }
     Ok(())
