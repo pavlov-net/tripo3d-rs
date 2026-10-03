@@ -395,6 +395,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
           "type": "string"
         },
         "TaskOutput": {
+          "additionalProperties": true,
           "description": "Download URLs and auxiliary output fields returned on the task object.",
           "properties": {
             "generated_image_url": {
@@ -473,11 +474,6 @@ expression: "serde_json::to_value(&critical).unwrap()"
               "type": "string"
             },
             {
-              "const": "unknown",
-              "description": "Unknown / uncategorized.",
-              "type": "string"
-            },
-            {
               "const": "banned",
               "description": "Banned by moderation.",
               "type": "string"
@@ -485,6 +481,11 @@ expression: "serde_json::to_value(&critical).unwrap()"
             {
               "const": "expired",
               "description": "Past retention.",
+              "type": "string"
+            },
+            {
+              "const": "unknown",
+              "description": "Unrecognized status string from a newer server; not terminal.",
               "type": "string"
             }
           ]
@@ -511,6 +512,23 @@ expression: "serde_json::to_value(&critical).unwrap()"
           "format": "double",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "error_code": {
+          "default": null,
+          "description": "Server error code; present on some failed tasks.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "error_message": {
+          "default": null,
+          "description": "Human-readable failure reason; accompanies `error_code`.",
+          "type": [
+            "string",
             "null"
           ]
         },

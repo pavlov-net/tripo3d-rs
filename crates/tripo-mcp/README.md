@@ -44,6 +44,10 @@ table means the hint is not set). On every non-read-only tool it is set
 explicitly to `false` so MCP clients can allow these tools under lightweight
 approval policies.
 
+`get_task` and `wait_for_task` return the task object for every terminal
+status; a failed task includes `error_code` and `error_message` when the
+server reports them.
+
 ## Claude Code client config
 
 `.claude/mcp.json` (or the equivalent for your MCP client):

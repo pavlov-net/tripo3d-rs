@@ -209,6 +209,32 @@ async fn calls_wait_for_task() {
 }
 
 #[tokio::test]
+async fn wait_for_task_reports_failure_detail() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/tasks/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{"task_id":"abc","type":"text_to_model","status":"failed","progress":0,"created_at":"2026-01-01T00:00:00Z",
+                    "error_code":2018,"error_message":"model too complex"}
+        })))
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(
+            CallToolRequestParams::new("wait_for_task")
+                .with_arguments(args(json!({"task_id":"abc"}))),
+        )
+        .await
+        .unwrap();
+    let task = result.structured_content.unwrap();
+    assert_eq!(task["error_code"], 2018);
+    assert_eq!(task["error_message"], "model too complex");
+}
+
+#[tokio::test]
 async fn calls_create_raw_task() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))

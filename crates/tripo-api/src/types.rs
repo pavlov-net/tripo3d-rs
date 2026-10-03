@@ -55,12 +55,13 @@ pub enum TaskStatus {
     Failed,
     /// User or system cancelled.
     Cancelled,
-    /// Unknown / uncategorized.
-    Unknown,
     /// Banned by moderation.
     Banned,
     /// Past retention.
     Expired,
+    /// Unrecognized status string from a newer server; not terminal.
+    #[serde(other)]
+    Unknown,
 }
 
 impl TaskStatus {
@@ -112,6 +113,10 @@ pub struct TaskOutput {
     /// Populated by `check_riggable`.
     #[serde(default)]
     pub rig_type: Option<crate::enums::RigTypeResponse>,
+    /// Output fields without a typed accessor (e.g. smartsegment's
+    /// `mask_url`), kept verbatim.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// Task record returned by `GET /tasks/{id}`.
@@ -134,6 +139,12 @@ pub struct Task {
     /// Progress percent 0–100.
     #[serde(default)]
     pub progress: i32,
+    /// Server error code; present on some failed tasks.
+    #[serde(default)]
+    pub error_code: Option<i64>,
+    /// Human-readable failure reason; accompanies `error_code`.
+    #[serde(default, alias = "error_msg")]
+    pub error_message: Option<String>,
     /// ISO 8601 creation time (e.g. `2026-04-28T12:00:00Z`).
     #[serde(default)]
     pub created_at: String,
@@ -193,5 +204,50 @@ mod tests {
         assert_eq!(task.credits_consumed, Some(30.0));
         assert_eq!(task.created_at, "2026-04-28T12:00:00Z");
         assert_eq!(task.completed_at.as_deref(), Some("2026-04-28T12:01:30Z"));
+    }
+
+    #[test]
+    fn deserializes_failure_detail() {
+        let body = r#"{"task_id":"t","type":"text_to_model","status":"failed",
+            "error_code":2018,"error_message":"model too complex"}"#;
+        let task: Task = serde_json::from_str(body).unwrap();
+        assert_eq!(task.status, TaskStatus::Failed);
+        assert_eq!(task.error_code, Some(2018));
+        assert_eq!(task.error_message.as_deref(), Some("model too complex"));
+    }
+
+    #[test]
+    fn accepts_legacy_error_msg_spelling() {
+        let body = r#"{"task_id":"t","type":"text_to_model","status":"failed","error_msg":"nope"}"#;
+        let task: Task = serde_json::from_str(body).unwrap();
+        assert_eq!(task.error_message.as_deref(), Some("nope"));
+    }
+
+    #[test]
+    fn unknown_status_is_not_a_decode_error() {
+        let body = r#"{"task_id":"t","type":"text_to_model","status":"paused"}"#;
+        let task: Task = serde_json::from_str(body).unwrap();
+        assert_eq!(task.status, TaskStatus::Unknown);
+        assert!(!task.status.is_terminal());
+    }
+
+    #[test]
+    fn unknown_output_fields_round_trip() {
+        let output = serde_json::json!({
+            "model_url": "https://cdn/m.glb",
+            "mask_url": "https://cdn/mask.png",
+            "seg_task_id": "seg_1"
+        });
+        let parsed: TaskOutput = serde_json::from_value(output.clone()).unwrap();
+        assert_eq!(parsed.model_url.as_deref(), Some("https://cdn/m.glb"));
+        assert_eq!(parsed.extra["mask_url"], "https://cdn/mask.png");
+        assert!(!parsed.extra.contains_key("model_url"));
+
+        let mut reserialized = serde_json::to_value(&parsed).unwrap();
+        reserialized
+            .as_object_mut()
+            .unwrap()
+            .retain(|_, v| !v.is_null());
+        assert_eq!(reserialized, output);
     }
 }

@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use crate::types::{TaskId, TaskStatus};
+use crate::types::{Task, TaskId, TaskStatus};
 
 /// Result alias using [`Error`].
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -36,9 +36,19 @@ pub enum Error {
         request_id: Option<String>,
     },
 
-    /// A task polling loop observed a non-success terminal status.
-    #[error("task {0} ended with status {1:?}")]
-    TaskFailed(TaskId, TaskStatus),
+    /// A task ended with a non-success terminal status. Build with
+    /// [`Error::task_failed`].
+    #[error("task {task_id} ended with status {status:?}{}", failure_detail(*error_code, error_message.as_deref()))]
+    TaskFailed {
+        /// Task identifier.
+        task_id: TaskId,
+        /// Terminal status.
+        status: TaskStatus,
+        /// Server error code, when reported.
+        error_code: Option<i64>,
+        /// Server failure reason, when reported.
+        error_message: Option<String>,
+    },
 
     /// `wait_for_task` exceeded its timeout.
     #[error("timed out waiting for task {0}")]
@@ -71,4 +81,57 @@ pub enum Error {
     /// JSON (de)serialization error.
     #[error(transparent)]
     Json(#[from] serde_json::Error),
+}
+
+impl Error {
+    /// [`Error::TaskFailed`] describing `task`'s terminal status and failure
+    /// details.
+    #[must_use]
+    pub fn task_failed(task: &Task) -> Self {
+        Self::TaskFailed {
+            task_id: task.task_id.clone(),
+            status: task.status,
+            error_code: task.error_code,
+            error_message: task.error_message.clone(),
+        }
+    }
+}
+
+fn failure_detail(code: Option<i64>, message: Option<&str>) -> String {
+    match (code, message) {
+        (Some(c), Some(m)) => format!(" (error {c}: {m})"),
+        (Some(c), None) => format!(" (error {c})"),
+        (None, Some(m)) => format!(": {m}"),
+        (None, None) => String::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn task_failed_display_includes_server_detail() {
+        let task: Task = serde_json::from_value(serde_json::json!({
+            "task_id": "t1", "type": "text_to_model", "status": "failed",
+            "error_code": 2018, "error_message": "model too complex"
+        }))
+        .unwrap();
+        assert_eq!(
+            Error::task_failed(&task).to_string(),
+            "task t1 ended with status Failed (error 2018: model too complex)"
+        );
+    }
+
+    #[test]
+    fn task_failed_display_without_detail() {
+        let task: Task = serde_json::from_value(serde_json::json!({
+            "task_id": "t1", "type": "text_to_model", "status": "cancelled"
+        }))
+        .unwrap();
+        assert_eq!(
+            Error::task_failed(&task).to_string(),
+            "task t1 ended with status Cancelled"
+        );
+    }
 }

@@ -88,7 +88,7 @@ async fn wait(g: &GlobalArgs, id: &str, timeout: Option<u64>) -> Result<()> {
     serde_json::to_writer_pretty(std::io::stdout(), &task)?;
     println!();
     if task.status != TaskStatus::Success {
-        return Err(tripo_api::Error::TaskFailed(task.task_id.clone(), task.status).into());
+        return Err(tripo_api::Error::task_failed(&task).into());
     }
     Ok(())
 }

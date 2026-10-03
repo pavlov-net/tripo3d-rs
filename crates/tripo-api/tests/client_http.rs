@@ -179,11 +179,11 @@ fn success_task(server: &MockServer, with_rendered: bool) -> tripo_api::Task {
             model_url: Some(format!("{}/files/abc.glb", server.uri())),
             rendered_image_url: with_rendered
                 .then(|| format!("{}/files/abc.jpg?sig=x", server.uri())),
-            generated_image_url: None,
-            riggable: None,
-            rig_type: None,
+            ..Default::default()
         },
         progress: 100,
+        error_code: None,
+        error_message: None,
         created_at: "2026-04-28T12:00:00Z".into(),
         completed_at: None,
         credits_consumed: None,

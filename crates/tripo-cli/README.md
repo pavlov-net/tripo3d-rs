@@ -66,6 +66,9 @@ without reporting an error. Omitting the option preserves the server default.
 |    6 | task finished with non-success terminal status  |
 |  130 | interrupted by SIGINT                           |
 
+On exit code 6, stderr includes the server's `error_code` and `error_message`
+when the task reports them.
+
 ## Claude Code settings snippet
 
 Add to `.claude/settings.local.json` to auto-allow read-only commands:
