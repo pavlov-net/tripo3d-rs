@@ -13,6 +13,18 @@ pub struct GetTaskParams {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+pub struct ListTasksParams {
+    /// Task identifiers (1 to 100).
+    pub task_ids: Vec<TaskId>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+pub struct Usage {
+    /// Per-task credit charges.
+    pub records: Vec<tripo_api::UsageRecord>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct WaitParams {
     /// Task identifier.
     pub task_id: TaskId,

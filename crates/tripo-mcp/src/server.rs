@@ -52,6 +52,25 @@ impl TripoServer {
         Ok(Json(bal))
     }
 
+    /// Per-task credit usage history.
+    #[tool(
+        name = "get_usage",
+        description = "List per-task credit consumption for the Tripo account. Optional limit/offset page through the history.",
+        annotations(
+            title = "Account Usage",
+            read_only_hint = true,
+            idempotent_hint = true,
+            open_world_hint = true,
+        )
+    )]
+    async fn get_usage(
+        &self,
+        Parameters(q): Parameters<tripo_api::UsageQuery>,
+    ) -> Result<Json<params::Usage>, ErrorData> {
+        let records = self.client.get_usage(q).await.map_err(to_error_data)?;
+        Ok(Json(params::Usage { records }))
+    }
+
     /// Fetch a task's current state.
     #[tool(
         name = "get_task",
@@ -73,6 +92,29 @@ impl TripoServer {
             .await
             .map_err(to_error_data)?;
         Ok(Json(task))
+    }
+
+    /// Fetch several tasks' current state in one request.
+    #[tool(
+        name = "list_tasks",
+        description = "Fetch the current state of up to 100 Tripo tasks in one request. Ids the server does not know are returned in `missed`.",
+        annotations(
+            title = "List Tasks",
+            read_only_hint = true,
+            idempotent_hint = true,
+            open_world_hint = true,
+        )
+    )]
+    async fn list_tasks(
+        &self,
+        Parameters(p): Parameters<params::ListTasksParams>,
+    ) -> Result<Json<tripo_api::TaskList>, ErrorData> {
+        let list = self
+            .client
+            .list_tasks(&p.task_ids)
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(list))
     }
 
     /// Upload a local file; returns a `file_token` usable as `ImageInput::FileToken`.

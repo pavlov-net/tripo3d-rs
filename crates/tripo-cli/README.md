@@ -23,6 +23,7 @@ tripo text-to-model --prompt "a red robot" --output ./out
 
 # Get / wait / download an existing task
 tripo task get <task_id>
+tripo task list <task_id>...        # up to 100 ids in one request
 tripo task wait <task_id>
 tripo task download <task_id> -o ./out
 
@@ -37,8 +38,9 @@ tripo rig-model --input <id> --rig-type biped --spec mixamo
 tripo upload ./scan.glb
 tripo upload --presign ./photo.png
 
-# Balance
+# Balance and per-task credit usage
 tripo balance
+tripo usage --limit 20 --offset 0
 
 # Shell completions
 tripo completions bash > /etc/bash_completion.d/tripo
@@ -83,7 +85,9 @@ Add to `.claude/settings.local.json` to auto-allow read-only commands:
   "permissions": {
     "allow": [
       "Bash(tripo balance:*)",
+      "Bash(tripo usage:*)",
       "Bash(tripo task get:*)",
+      "Bash(tripo task list:*)",
       "Bash(tripo task wait:*)",
       "Bash(tripo check-riggable:*)"
     ]

@@ -8,9 +8,10 @@ Usage: tripo [OPTIONS] <COMMAND>
 
 Commands:
   balance             Show account balance
+  usage               Show per-task credit usage
   upload              Upload a file, print the `file_token`
   completions         Generate shell completions
-  task                Raw task escape hatches: create from JSON, get, wait, download
+  task                Raw task escape hatches: create from JSON, get, list, wait, download
   text-to-model       Generate a 3D model from a text prompt
   image-to-model      Generate a 3D model from a single image
   multiview-to-model  Generate a 3D model from multi-view images

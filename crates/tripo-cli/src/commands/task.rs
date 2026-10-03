@@ -22,6 +22,12 @@ pub enum TaskCommand {
         /// Task identifier.
         task_id: String,
     },
+    /// Fetch several tasks' current state in one request.
+    List {
+        /// Task identifiers (at most 100).
+        #[arg(required = true)]
+        task_ids: Vec<String>,
+    },
     /// Wait for a task to reach a terminal status.
     Wait {
         /// Task identifier.
@@ -44,6 +50,7 @@ pub enum TaskCommand {
 pub async fn run(g: &GlobalArgs, cmd: TaskCommand) -> Result<()> {
     match cmd {
         TaskCommand::Get { task_id } => get(g, &task_id).await,
+        TaskCommand::List { task_ids } => list(g, task_ids).await,
         TaskCommand::Wait { task_id, timeout } => wait(g, &task_id, timeout).await,
         TaskCommand::Download { task_id, output } => download(g, &task_id, &output).await,
         TaskCommand::Create { endpoint, body } => create(g, &endpoint, &body).await,
@@ -54,6 +61,15 @@ async fn get(g: &GlobalArgs, id: &str) -> Result<()> {
     let client = crate::resolve::build_client(g)?;
     let task = client.get_task(&id.into()).await?;
     serde_json::to_writer_pretty(std::io::stdout(), &task)?;
+    println!();
+    Ok(())
+}
+
+async fn list(g: &GlobalArgs, ids: Vec<String>) -> Result<()> {
+    let ids: Vec<tripo_api::TaskId> = ids.into_iter().map(Into::into).collect();
+    let client = crate::resolve::build_client(g)?;
+    let list = client.list_tasks(&ids).await?;
+    serde_json::to_writer_pretty(std::io::stdout(), &list)?;
     println!();
     Ok(())
 }

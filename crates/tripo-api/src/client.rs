@@ -15,6 +15,9 @@ pub const API_KEY_ENV: &str = "TRIPO_API_KEY";
 /// Env var name for the region selector (`global` | `cn`).
 pub const REGION_ENV: &str = "TRIPO_REGION";
 
+/// Maximum number of ids [`Client::list_tasks`] accepts per request.
+pub const MAX_LIST_TASK_IDS: usize = 100;
+
 /// Global v3 base URL.
 pub const BASE_URL_GLOBAL: &str = "https://openapi.tripo3d.ai/v3";
 /// China mainland v3 base URL.
@@ -172,16 +175,48 @@ impl Client {
     #[tracing::instrument(skip(self))]
     pub async fn get_balance(&self) -> Result<crate::types::Balance> {
         let url = self.url(&["account", "balance"]);
-        let resp = self.send_with_retry(|| self.http.get(url.clone())).await?;
-        crate::envelope::read_envelope(resp).await
+        self.send_json(|| self.http.get(url.clone())).await
+    }
+
+    /// `GET /account/usage` — per-task credit consumption history.
+    #[tracing::instrument(skip(self))]
+    pub async fn get_usage(
+        &self,
+        query: crate::types::UsageQuery,
+    ) -> Result<Vec<crate::types::UsageRecord>> {
+        let mut url = self.url(&["account", "usage"]);
+        for (key, value) in [("limit", query.limit), ("offset", query.offset)] {
+            if let Some(v) = value {
+                url.query_pairs_mut().append_pair(key, &v.to_string());
+            }
+        }
+        let data = self.send_json(|| self.http.get(url.clone())).await?;
+        Ok(crate::types::usage_from_data(data)?)
     }
 
     /// `GET /tasks/{id}` — current state of an existing task.
     #[tracing::instrument(skip(self), fields(task_id = %id))]
     pub async fn get_task(&self, id: &crate::types::TaskId) -> Result<crate::types::Task> {
         let url = self.url(&["tasks", id.as_str()]);
-        let resp = self.send_with_retry(|| self.http.get(url.clone())).await?;
-        crate::envelope::read_envelope(resp).await
+        self.send_json(|| self.http.get(url.clone())).await
+    }
+
+    /// `POST /tasks/list` — fetch up to [`MAX_LIST_TASK_IDS`] tasks in one
+    /// request.
+    #[tracing::instrument(skip(self), fields(count = ids.len()))]
+    pub async fn list_tasks(&self, ids: &[crate::types::TaskId]) -> Result<crate::types::TaskList> {
+        if ids.is_empty() || ids.len() > MAX_LIST_TASK_IDS {
+            return Err(Error::InvalidRequest(format!(
+                "list_tasks takes 1..={MAX_LIST_TASK_IDS} task ids, got {}",
+                ids.len()
+            )));
+        }
+        let url = self.url(&["tasks", "list"]);
+        let body = serde_json::json!({ "task_ids": ids });
+        let data = self
+            .send_json(|| self.http.post(url.clone()).json(&body))
+            .await?;
+        Ok(crate::types::TaskList::from_data(data, ids)?)
     }
 
     /// Submit a task to its v3 capability endpoint (e.g. `POST
@@ -213,11 +248,20 @@ impl Client {
         }
         let segments: Vec<&str> = endpoint.split('/').filter(|s| !s.is_empty()).collect();
         let url = self.url(&segments);
-        let resp = self
-            .send_with_retry(|| self.http.post(url.clone()).json(body))
+        let created: TaskIdBody = self
+            .send_json(|| self.http.post(url.clone()).json(body))
             .await?;
-        let data: TaskIdBody = crate::envelope::read_envelope(resp).await?;
-        Ok(crate::types::TaskId(data.task_id))
+        Ok(crate::types::TaskId(created.task_id))
+    }
+
+    /// Send with retry, then decode the success envelope's `data` as `T`.
+    async fn send_json<T, F>(&self, build: F) -> Result<T>
+    where
+        T: serde::de::DeserializeOwned,
+        F: Fn() -> reqwest::RequestBuilder,
+    {
+        let resp = self.send_with_retry(build).await?;
+        crate::envelope::read_envelope(resp).await
     }
 
     pub(crate) async fn send_with_retry<F>(&self, build: F) -> Result<reqwest::Response>

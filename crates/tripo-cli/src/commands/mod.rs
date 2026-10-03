@@ -4,6 +4,7 @@ pub mod balance;
 pub mod completions;
 pub mod task;
 pub mod upload;
+pub mod usage;
 pub mod variants;
 
 use crate::cli::{Cli, Command};
@@ -13,6 +14,7 @@ pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
     let g = &args.global;
     match args.command {
         Command::Balance => balance::run(g).await,
+        Command::Usage(a) => usage::run(g, a).await,
         Command::Upload(a) => upload::run(g, a).await,
         Command::Completions(a) => completions::run(&a),
         Command::Task(cmd) => task::run(g, cmd).await,

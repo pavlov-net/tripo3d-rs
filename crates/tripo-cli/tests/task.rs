@@ -189,3 +189,65 @@ async fn task_create_raw_posts_body() {
         .success()
         .stdout(predicate::str::contains("newtask"));
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn task_list_prints_tasks_and_missed() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/tasks/list"))
+        .and(wiremock::matchers::body_json(
+            serde_json::json!({"task_ids": ["b", "gone", "a"]}),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code": 0,
+            "data": {
+                "tasks": {
+                    "a": {"task_id":"a","type":"text_to_model","status":"success","progress":100},
+                    "b": {"task_id":"b","type":"text_to_model","status":"running","progress":40}
+                },
+                "missed": ["gone"]
+            }
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let out = Command::cargo_bin("tripo")
+        .unwrap()
+        .args([
+            "--api-key",
+            "tsk_test",
+            "--base-url",
+            &server.uri(),
+            "task",
+            "list",
+            "b",
+            "gone",
+            "a",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(v["tasks"][0]["task_id"], "b");
+    assert_eq!(v["tasks"][1]["task_id"], "a");
+    assert_eq!(v["missed"], serde_json::json!(["gone"]));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn task_list_over_limit_is_usage_error() {
+    let ids: Vec<String> = (0..=100).map(|i| format!("t{i}")).collect();
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args(["--api-key", "tsk_test", "--base-url", "http://127.0.0.1:1"])
+        .args(["task", "list"])
+        .args(&ids)
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("1..=100"));
+}

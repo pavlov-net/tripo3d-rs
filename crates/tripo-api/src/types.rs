@@ -179,6 +179,150 @@ pub struct Task {
     pub queuing_num: Option<i32>,
 }
 
+/// Result of [`Client::list_tasks`](crate::Client::list_tasks).
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+pub struct TaskList {
+    /// Tasks found, in the order they were requested.
+    pub tasks: Vec<Task>,
+    /// Requested ids the server did not return (unknown, owned by another
+    /// API key, or expired).
+    pub missed: Vec<TaskId>,
+}
+
+impl TaskList {
+    /// Normalize the `data` payload of `POST /tasks/list`. Accepts the
+    /// documented `{tasks: {<id>: Task}, missed: [..]}` form as well as
+    /// `{tasks: [Task]}` and a bare `[Task]`. When the server omits
+    /// `missed`, it is derived from `requested`.
+    pub(crate) fn from_data(
+        data: serde_json::Value,
+        requested: &[TaskId],
+    ) -> serde_json::Result<Self> {
+        use serde_json::Value;
+
+        let (tasks, missed) = match data {
+            Value::Object(mut obj) => (
+                obj.remove("tasks").unwrap_or_default(),
+                obj.remove("missed"),
+            ),
+            other => (other, None),
+        };
+        let tasks: Vec<Task> = match tasks {
+            Value::Null => Vec::new(),
+            Value::Object(mut by_id) => {
+                let mut ordered = Vec::with_capacity(by_id.len());
+                for id in requested {
+                    if let Some(v) = by_id.remove(id.as_str()) {
+                        ordered.push((id.0.clone(), v));
+                    }
+                }
+                ordered.extend(by_id);
+                ordered
+                    .into_iter()
+                    .map(|(id, mut v)| {
+                        if let Value::Object(o) = &mut v {
+                            o.entry("task_id").or_insert(Value::String(id));
+                        }
+                        serde_json::from_value(v)
+                    })
+                    .collect::<serde_json::Result<_>>()?
+            }
+            other => serde_json::from_value(other)?,
+        };
+        let missed = match missed
+            .map(serde_json::from_value::<Option<Vec<TaskId>>>)
+            .transpose()?
+        {
+            Some(Some(missed)) => missed,
+            _ => requested
+                .iter()
+                .filter(|id| !tasks.iter().any(|t| &t.task_id == *id))
+                .cloned()
+                .collect(),
+        };
+        Ok(Self { tasks, missed })
+    }
+}
+
+/// Query parameters for [`Client::get_usage`](crate::Client::get_usage).
+/// Unset fields are omitted, leaving paging to the server's defaults.
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+pub struct UsageQuery {
+    /// Maximum number of records to return.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    /// Number of records to skip.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u32>,
+}
+
+/// A timestamp as sent by the server: an ISO 8601 string or an epoch number.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[serde(untagged)]
+pub enum Timestamp {
+    /// Numeric epoch time, unit as sent by the server.
+    Epoch(serde_json::Number),
+    /// Textual time, normally ISO 8601 (e.g. `2026-01-01T00:00:00Z`).
+    Text(String),
+}
+
+impl std::fmt::Display for Timestamp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Epoch(n) => n.fmt(f),
+            Self::Text(s) => f.write_str(s),
+        }
+    }
+}
+
+/// One per-task credit charge from `GET /account/usage`.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+pub struct UsageRecord {
+    /// Task that consumed the credits.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_id: Option<TaskId>,
+    /// Wire-format task type string (e.g. `text_to_model`).
+    #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
+    pub task_type: Option<String>,
+    /// Task status string, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Credits consumed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credits_consumed: Option<f64>,
+    /// Creation time; also read from the v2 name `create_time`.
+    #[serde(
+        default,
+        alias = "create_time",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub created_at: Option<Timestamp>,
+    /// Fields not modeled above, passed through unchanged.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, serde_json::Value>,
+}
+
+/// Normalize the `data` payload of `GET /account/usage`: a bare array, or an
+/// object wrapping the array (the first array-valued field is used).
+pub(crate) fn usage_from_data(data: serde_json::Value) -> serde_json::Result<Vec<UsageRecord>> {
+    let list = match data {
+        serde_json::Value::Object(obj) => obj
+            .into_values()
+            .find(serde_json::Value::is_array)
+            .ok_or_else(|| {
+                <serde_json::Error as serde::de::Error>::custom(
+                    "usage response object contains no record list",
+                )
+            })?,
+        other => other,
+    };
+    serde_json::from_value(list)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
