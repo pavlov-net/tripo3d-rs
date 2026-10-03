@@ -69,7 +69,7 @@ cargo install --path crates/tripo-cli    # tripo
 cargo install --path crates/tripo-mcp    # tripo-mcp
 ```
 
-Get an API key from the [Tripo platform](https://platform.tripo3d.ai/) — it needs to start with `tsk_`.
+Get an API key from the [Tripo platform](https://platform.tripo3d.ai/) — it starts with `tsk_`.
 
 ## License
 

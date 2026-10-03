@@ -85,7 +85,7 @@ combinations before any API call.
 
 | Variable         | Purpose                                                  |
 | ---------------- | -------------------------------------------------------- |
-| `TRIPO_API_KEY`  | Required. Must start with `tsk_`.                        |
+| `TRIPO_API_KEY`  | Required. Normally starts with `tsk_`.                   |
 | `TRIPO_REGION`   | `global` (default) or `cn`.                              |
 | `RUST_LOG`       | `tripo_mcp=debug` for verbose logs (to stderr).          |
 

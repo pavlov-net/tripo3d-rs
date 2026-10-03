@@ -58,8 +58,8 @@ pub enum Error {
     #[error("missing API key (set TRIPO_API_KEY)")]
     MissingApiKey,
 
-    /// API key does not begin with `tsk_`.
-    #[error("invalid API key (must start with `tsk_`)")]
+    /// API key contains characters not allowed in an HTTP header.
+    #[error("invalid API key (contains characters not allowed in an HTTP header)")]
     InvalidApiKey,
 
     /// Download target exists and `overwrite` was not set.
