@@ -62,9 +62,15 @@ fn tampered_body_is_rejected() {
 
 #[test]
 fn tampered_timestamp_is_rejected() {
-    let h = format!("t={},v1={SIG_COMPLETED}", T + 1);
-    let err = verify(SECRET, &h, TASK_COMPLETED).unwrap_err();
-    assert!(matches!(err, WebhookError::SignatureMismatch), "{err:?}");
+    // `t=0…` parses to the same Unix seconds but is signed verbatim.
+    for t in [(T + 1).to_string(), format!("0{T}")] {
+        let h = format!("t={t},v1={SIG_COMPLETED}");
+        let err = verify(SECRET, &h, TASK_COMPLETED).unwrap_err();
+        assert!(
+            matches!(err, WebhookError::SignatureMismatch),
+            "{h}: {err:?}"
+        );
+    }
 }
 
 #[test]
@@ -276,6 +282,14 @@ fn verify_and_parse_rejects_bad_signature_before_parsing() {
     let err =
         verify_and_parse(SECRET, &header(SIG_COMPLETED), b"not json", None, at(T)).unwrap_err();
     assert!(matches!(err, WebhookError::SignatureMismatch), "{err:?}");
+}
+
+#[test]
+fn verify_and_parse_reports_invalid_json_after_valid_signature() {
+    // Signed with SECRET over "1714992000.not json".
+    let h = header("d6aea06fd5a75abb8e7b543b3ffd74d44c3f4a26ac1867c7c65d2971eabeea7a");
+    let err = verify_and_parse(SECRET, &h, b"not json", None, at(T)).unwrap_err();
+    assert!(matches!(err, WebhookError::Json(_)), "{err:?}");
 }
 
 #[test]

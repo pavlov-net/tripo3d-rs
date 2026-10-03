@@ -273,9 +273,9 @@ impl WebhookEventData {
 
 /// `data` of `task.completed` and `task.failed` events.
 ///
-/// It mirrors a subset of [`crate::Task`], but failures carry a string
-/// `error` object that the task query API does not return, so it is a
-/// separate type.
+/// It mirrors a subset of [`crate::Task`], but failures carry an `error`
+/// object with a string `code`, which the task query API does not return,
+/// so it is a separate type.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TaskEventData {
     /// Task identifier.
