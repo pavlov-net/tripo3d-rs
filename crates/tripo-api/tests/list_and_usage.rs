@@ -232,7 +232,7 @@ async fn get_usage_epoch_create_time_status_and_extras() {
 }
 
 #[tokio::test]
-async fn get_usage_wrapped_list_and_paging_params() {
+async fn get_usage_paging_params() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/account/usage"))
@@ -240,7 +240,7 @@ async fn get_usage_wrapped_list_and_paging_params() {
         .and(query_param("offset", "40"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code": 0,
-            "data": {"total": 41, "list": [{"task_id": "task_y", "credits_consumed": 10.0}]}
+            "data": [{"task_id": "task_y", "credits_consumed": 10.0}]
         })))
         .expect(1)
         .mount(&server)

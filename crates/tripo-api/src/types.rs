@@ -230,17 +230,17 @@ impl TaskList {
             }
             other => serde_json::from_value(other)?,
         };
-        let missed = match missed
-            .map(serde_json::from_value::<Option<Vec<TaskId>>>)
-            .transpose()?
-        {
-            Some(Some(missed)) => missed,
-            _ => requested
+        let missed: Option<Vec<TaskId>> = match missed {
+            Some(v) => serde_json::from_value(v)?,
+            None => None,
+        };
+        let missed = missed.unwrap_or_else(|| {
+            requested
                 .iter()
                 .filter(|id| !tasks.iter().any(|t| &t.task_id == *id))
                 .cloned()
-                .collect(),
-        };
+                .collect()
+        });
         Ok(Self { tasks, missed })
     }
 }
@@ -304,23 +304,6 @@ pub struct UsageRecord {
     /// Fields not modeled above, passed through unchanged.
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
-}
-
-/// Normalize the `data` payload of `GET /account/usage`: a bare array, or an
-/// object wrapping the array (the first array-valued field is used).
-pub(crate) fn usage_from_data(data: serde_json::Value) -> serde_json::Result<Vec<UsageRecord>> {
-    let list = match data {
-        serde_json::Value::Object(obj) => obj
-            .into_values()
-            .find(serde_json::Value::is_array)
-            .ok_or_else(|| {
-                <serde_json::Error as serde::de::Error>::custom(
-                    "usage response object contains no record list",
-                )
-            })?,
-        other => other,
-    };
-    serde_json::from_value(list)
 }
 
 #[cfg(test)]

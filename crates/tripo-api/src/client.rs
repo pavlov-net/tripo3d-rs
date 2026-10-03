@@ -190,8 +190,7 @@ impl Client {
                 url.query_pairs_mut().append_pair(key, &v.to_string());
             }
         }
-        let data = self.send_json(|| self.http.get(url.clone())).await?;
-        Ok(crate::types::usage_from_data(data)?)
+        self.send_json(|| self.http.get(url.clone())).await
     }
 
     /// `GET /tasks/{id}` — current state of an existing task.
