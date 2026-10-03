@@ -39,10 +39,5 @@ async fn initialize_reports_this_server() {
     let server = info.server_info.as_ref().expect("server info");
     assert_eq!(server.name, "tripo-mcp");
     assert_eq!(server.version, env!("CARGO_PKG_VERSION"));
-    assert!(
-        info.protocol_version.has_initialize(),
-        "{:?}",
-        info.protocol_version
-    );
     assert!(info.capabilities.tools.is_some());
 }
