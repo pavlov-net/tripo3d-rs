@@ -159,7 +159,9 @@ impl Client {
         dir: &Path,
         opts: DownloadOptions,
     ) -> Result<DownloadedFiles> {
-        tokio::fs::create_dir_all(dir).await?;
+        tokio::fs::create_dir_all(dir)
+            .await
+            .map_err(Error::file(dir))?;
 
         let mut jobs: Vec<(OutputKind, String, PathBuf)> = Vec::new();
         for kind in &opts.kinds {
@@ -172,7 +174,11 @@ impl Client {
                 Some(suffix) => format!("{id}_{suffix}.{ext}"),
                 None => format!("{id}.{ext}"),
             });
-            if !opts.overwrite && tokio::fs::try_exists(&target).await? {
+            if !opts.overwrite
+                && tokio::fs::try_exists(&target)
+                    .await
+                    .map_err(Error::file(&target))?
+            {
                 return Err(Error::FileExists(target));
             }
             jobs.push((*kind, url.clone(), target));
@@ -208,13 +214,17 @@ async fn download_one(
     // Output URLs are signed storage/CDN URLs: fetch them without the API key
     // and without the API client's overall timeout.
     let mut resp = client.storage.get(&url).send().await?.error_for_status()?;
-    let mut f = tokio::fs::File::create(&partial).await?;
+    let mut f = tokio::fs::File::create(&partial)
+        .await
+        .map_err(Error::file(&partial))?;
     while let Some(chunk) = resp.chunk().await? {
-        f.write_all(&chunk).await?;
+        f.write_all(&chunk).await.map_err(Error::file(&partial))?;
     }
-    f.flush().await?;
+    f.flush().await.map_err(Error::file(&partial))?;
     drop(f);
-    tokio::fs::rename(&partial, &target).await?;
+    tokio::fs::rename(&partial, &target)
+        .await
+        .map_err(Error::file(&target))?;
     Ok((kind, target))
 }
 

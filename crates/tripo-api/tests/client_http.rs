@@ -460,6 +460,23 @@ async fn download_errors_on_existing_file_without_overwrite() {
 }
 
 #[tokio::test]
+async fn upload_of_missing_file_names_the_path() {
+    let server = MockServer::start().await;
+    let missing = std::path::Path::new("/nonexistent/tripo-api-test.png");
+    let err = client(&server).upload_file(missing).await.unwrap_err();
+    assert!(
+        matches!(&err, Error::File { path, .. } if path == missing),
+        "{err:?}"
+    );
+    assert!(
+        err.to_string()
+            .starts_with("/nonexistent/tripo-api-test.png: "),
+        "{err}"
+    );
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[tokio::test]
 #[allow(clippy::float_cmp)] // compare JSON numbers against the same parsed literals
 async fn task_credits_preserve_fractional_and_whole_numbers() {
     let server = MockServer::start().await;

@@ -31,7 +31,9 @@ pub fn code_for_error(err: &anyhow::Error) -> ExitCode {
         return match api_err {
             tripo_api::Error::WaitTimeout(_) => ExitCode::Timeout,
             tripo_api::Error::Api { .. } | tripo_api::Error::Http { .. } => ExitCode::ApiError,
-            tripo_api::Error::Io(_) | tripo_api::Error::FileExists(_) => ExitCode::Io,
+            tripo_api::Error::Io(_)
+            | tripo_api::Error::File { .. }
+            | tripo_api::Error::FileExists(_) => ExitCode::Io,
             tripo_api::Error::TaskFailed { .. } => ExitCode::TaskNonSuccess,
             tripo_api::Error::MissingApiKey
             | tripo_api::Error::InvalidApiKey

@@ -54,7 +54,10 @@ impl Client {
     #[tracing::instrument(skip(self), fields(path = %path.as_ref().display()))]
     pub async fn upload_file(&self, path: impl AsRef<Path>) -> Result<UploadedFile> {
         let path = path.as_ref();
-        let len = tokio::fs::metadata(path).await?.len();
+        let len = tokio::fs::metadata(path)
+            .await
+            .map_err(Error::file(path))?
+            .len();
         if len > self.presign_threshold {
             return self.upload_file_presigned(path).await;
         }
@@ -66,13 +69,13 @@ impl Client {
             .file_name()
             .and_then(|s| s.to_str())
             .ok_or_else(|| {
-                Error::Io(std::io::Error::new(
+                Error::file(path)(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "non-utf8 filename",
+                    "non-UTF-8 file name",
                 ))
             })?
             .to_string();
-        let bytes = tokio::fs::read(path).await?;
+        let bytes = tokio::fs::read(path).await.map_err(Error::file(path))?;
         let part = reqwest::multipart::Part::bytes(bytes).file_name(file_name);
         let form = reqwest::multipart::Form::new().part("file", part);
 
@@ -98,10 +101,12 @@ impl Client {
         let url = presigned.presigned_url.as_str();
         let resp = self
             .send_with_retry_async(|| async move {
-                let file = tokio::fs::File::open(path).await?;
+                let file = tokio::fs::File::open(path)
+                    .await
+                    .map_err(Error::file(path))?;
                 // Storage rejects chunked transfer encoding, so the length
                 // of the streamed body must be declared up front.
-                let len = file.metadata().await?.len();
+                let len = file.metadata().await.map_err(Error::file(path))?.len();
                 Ok(self
                     .storage
                     .put(url)

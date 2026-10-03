@@ -1,6 +1,6 @@
 //! Error types returned by the client.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::types::{Task, TaskId, TaskStatus};
 
@@ -70,7 +70,16 @@ pub enum Error {
     #[error("invalid request: {0}")]
     InvalidRequest(String),
 
-    /// I/O error.
+    /// I/O error on a local file or directory.
+    #[error("{path}: {source}")]
+    File {
+        /// The file or directory being accessed.
+        path: PathBuf,
+        /// The underlying I/O error.
+        source: std::io::Error,
+    },
+
+    /// I/O error not tied to a single path.
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
@@ -98,6 +107,15 @@ impl Error {
             status: task.status,
             error_code: task.error_code,
             error_message: task.error_message.clone(),
+        }
+    }
+
+    /// Wrap an I/O error on `path` as [`Error::File`], for use with
+    /// `map_err`.
+    pub(crate) fn file(path: &Path) -> impl FnOnce(std::io::Error) -> Self + '_ {
+        move |source| Self::File {
+            path: path.to_path_buf(),
+            source,
         }
     }
 }

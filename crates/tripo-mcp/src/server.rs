@@ -9,7 +9,7 @@
 //! can read the message. JSON-RPC errors are left to rmcp for protocol
 //! problems such as malformed arguments.
 
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use rmcp::{
     ErrorData, Json, RoleServer, ServerHandler,
@@ -135,11 +135,10 @@ impl TripoServer {
         Parameters(p): Parameters<params::UploadParams>,
     ) -> Result<Json<tripo_api::UploadedFile>, ToolError> {
         let up = if p.presign {
-            self.client.upload_file_presigned(&p.path).await
+            self.client.upload_file_presigned(&p.path).await?
         } else {
-            self.client.upload_file(&p.path).await
-        }
-        .map_err(|e| ToolError::with_path(e, &p.path))?;
+            self.client.upload_file(&p.path).await?
+        };
         Ok(Json(up))
     }
 
@@ -236,7 +235,6 @@ impl TripoServer {
             self.client
                 .download_task_models(&task, &p.output_dir, opts)
                 .await
-                .map_err(|e| ToolError::with_path(e, &p.output_dir))
         };
         Ok(Json(until_cancelled(&ctx, download).await?))
     }
@@ -644,15 +642,6 @@ pub struct ToolError(String);
 impl ToolError {
     fn cancelled() -> Self {
         Self("request cancelled by the client".to_owned())
-    }
-
-    /// Like `From<tripo_api::Error>`, but names `path` in I/O errors, whose
-    /// messages (e.g. "No such file or directory") omit it.
-    fn with_path(err: tripo_api::Error, path: &Path) -> Self {
-        match err {
-            tripo_api::Error::Io(e) => Self(format!("{}: {e}", path.display())),
-            other => other.into(),
-        }
     }
 }
 
