@@ -58,6 +58,10 @@ pub struct Client {
     pub(crate) base_url: Url,
     pub(crate) region: Region,
     pub(crate) retry: RetryPolicy,
+    /// Unauthenticated client for presigned object-storage URLs.
+    pub(crate) storage: reqwest::Client,
+    /// Files larger than this many bytes go through presigned upload.
+    pub(crate) presign_threshold: u64,
 }
 
 impl std::fmt::Debug for Client {
@@ -79,24 +83,34 @@ fn validate_key(key: &str) -> Result<()> {
     Ok(())
 }
 
+const USER_AGENT_VALUE: &str = concat!(
+    "tripo-rs/",
+    env!("CARGO_PKG_VERSION"),
+    " (+https://github.com/pavlov-net/tripo3d-cli)"
+);
+
 fn build_http(api_key: &str) -> Result<reqwest::Client> {
     let mut headers = HeaderMap::new();
     let mut auth =
         HeaderValue::from_str(&format!("Bearer {api_key}")).map_err(|_| Error::InvalidApiKey)?;
     auth.set_sensitive(true);
     headers.insert(AUTHORIZATION, auth);
-    headers.insert(
-        USER_AGENT,
-        HeaderValue::from_static(concat!(
-            "tripo-rs/",
-            env!("CARGO_PKG_VERSION"),
-            " (+https://github.com/pavlov-net/tripo3d-cli)"
-        )),
-    );
+    headers.insert(USER_AGENT, HeaderValue::from_static(USER_AGENT_VALUE));
     reqwest::Client::builder()
         .default_headers(headers)
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_mins(1))
+        .build()
+        .map_err(Error::from)
+}
+
+/// Client for presigned storage URLs: the signature in the URL is the only
+/// credential, so it carries no `Authorization` header. It has no overall
+/// timeout because large uploads can legitimately take many minutes.
+fn build_storage_http() -> Result<reqwest::Client> {
+    reqwest::Client::builder()
+        .user_agent(USER_AGENT_VALUE)
+        .connect_timeout(Duration::from_secs(10))
         .build()
         .map_err(Error::from)
 }
@@ -227,11 +241,23 @@ impl Client {
     where
         F: Fn() -> reqwest::RequestBuilder,
     {
+        self.send_with_retry_async(|| std::future::ready(Ok(build())))
+            .await
+    }
+
+    /// [`Self::send_with_retry`] for requests whose construction is async and
+    /// fallible, such as a streamed file body that must be reopened for each
+    /// attempt.
+    pub(crate) async fn send_with_retry_async<F, Fut>(&self, build: F) -> Result<reqwest::Response>
+    where
+        F: Fn() -> Fut,
+        Fut: Future<Output = Result<reqwest::RequestBuilder>>,
+    {
         use crate::retry::{RetryDecision, parse_retry_after};
 
         let mut attempt: u32 = 0;
         loop {
-            let req = build();
+            let req = build().await?;
             match req.send().await {
                 Ok(resp) => {
                     let status = resp.status();
@@ -270,6 +296,7 @@ pub struct ClientBuilder {
     base_url: Option<Url>,
     region: Option<Region>,
     retry: Option<RetryPolicy>,
+    presign_threshold: Option<u64>,
 }
 
 impl ClientBuilder {
@@ -297,6 +324,15 @@ impl ClientBuilder {
         self.retry = Some(r);
         self
     }
+    /// Size in bytes above which [`Client::upload_file`] uses presigned
+    /// upload instead of multipart `POST /files`. Defaults to
+    /// [`DEFAULT_PRESIGN_THRESHOLD`](crate::DEFAULT_PRESIGN_THRESHOLD);
+    /// `u64::MAX` disables the switch.
+    #[must_use]
+    pub fn presign_threshold(mut self, bytes: u64) -> Self {
+        self.presign_threshold = Some(bytes);
+        self
+    }
     /// Build, validating the API key.
     pub fn build(self) -> Result<Client> {
         let key = self.api_key.ok_or(Error::MissingApiKey)?;
@@ -309,6 +345,10 @@ impl ClientBuilder {
             base_url,
             region,
             retry: self.retry.unwrap_or_default(),
+            storage: build_storage_http()?,
+            presign_threshold: self
+                .presign_threshold
+                .unwrap_or(crate::upload::DEFAULT_PRESIGN_THRESHOLD),
         })
     }
 }

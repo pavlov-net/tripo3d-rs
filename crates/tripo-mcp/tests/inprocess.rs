@@ -258,6 +258,43 @@ async fn calls_upload_file() {
 }
 
 #[tokio::test]
+async fn calls_upload_file_with_presign() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/files/presign"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{
+                "presigned_url": format!("{}/storage/obj", server.uri()),
+                "file_token":"file_presigned",
+                "expires_in":1800
+            }
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("PUT"))
+        .and(path("/storage/obj"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let tmp = tempfile::Builder::new().suffix(".glb").tempfile().unwrap();
+    std::fs::write(tmp.path(), b"glb").unwrap();
+
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(
+            CallToolRequestParams::new("upload_file")
+                .with_arguments(args(json!({ "path": tmp.path(), "presign": true }))),
+        )
+        .await
+        .unwrap();
+    assert!(format!("{result:?}").contains("file_presigned"));
+}
+
+#[tokio::test]
 async fn calls_get_task() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))

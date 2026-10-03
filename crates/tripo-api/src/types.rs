@@ -93,6 +93,22 @@ pub struct UploadedFile {
     pub file_token: String,
 }
 
+/// Response of `POST /files/presign`: where to `PUT` the file, and the token
+/// that refers to it once the `PUT` completes.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+pub struct PresignedUpload {
+    /// Presigned storage URL accepting a single HTTP `PUT` of the raw file.
+    /// Older responses name this field `upload_url`.
+    #[serde(alias = "upload_url")]
+    pub presigned_url: String,
+    /// Token to pass as `input` once the upload completes.
+    pub file_token: String,
+    /// Validity of `presigned_url` in seconds (documented as 1800).
+    #[serde(default)]
+    pub expires_in: Option<u64>,
+}
+
 /// Download URLs and auxiliary output fields returned on the task object.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]

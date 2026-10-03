@@ -23,7 +23,7 @@ annotation hints are set explicitly on every tool:
 | `get_task`             | Fetch task state                       |     Y     |      —      |     Y      |
 | `wait_for_task`        | Poll until terminal; streams progress  |     Y     |      —      |     Y      |
 | `download_task_models` | Download output files                  |     N     |      N      |     N      |
-| `upload_file`          | Upload a local file, get a file token  |     N     |      N      |     N      |
+| `upload_file`          | Upload a file (presigned over 60 MiB)  |     N     |      N      |     N      |
 | `create_raw_task`      | Forward-compat escape hatch            |     N     |      N      |     N      |
 | `text_to_model`        | Text prompt to 3D                      |     N     |      N      |     N      |
 | `image_to_model`       | Single image to 3D                     |     N     |      N      |     N      |

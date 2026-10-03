@@ -37,6 +37,11 @@ pub struct DownloadParams {
 pub struct UploadParams {
     /// Absolute path to a local file.
     pub path: PathBuf,
+    /// Upload through a presigned storage URL regardless of size. Files over
+    /// 60 MiB always use it. Requires one of the extensions jpeg, jpg, png,
+    /// webp, bmp, tiff, glb, gltf, fbx, obj, stl, 3mf, usdz.
+    #[serde(default)]
+    pub presign: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]

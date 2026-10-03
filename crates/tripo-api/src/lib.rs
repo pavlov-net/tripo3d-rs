@@ -45,5 +45,6 @@ pub use tasks::{
     RefineModelRequest, RetargetAnimationRequest, RigModelRequest, StylizeModelRequest,
     TaskRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
 };
-pub use types::{Balance, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
+pub use types::{Balance, PresignedUpload, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
+pub use upload::{DEFAULT_PRESIGN_THRESHOLD, PRESIGN_FORMATS};
 pub use wait::{ProgressCallback, WaitOptions};
