@@ -32,6 +32,11 @@ tripo multiview-to-model --input front.jpg --input "" --input back.jpg
 tripo convert-model --input <id> --format FBX
 tripo rig-model --input <id> --rig-type biped --spec mixamo
 
+# Upload a local file, print its file token (files over 60 MiB, or any
+# file with --presign, go through a presigned storage URL)
+tripo upload ./scan.glb
+tripo upload --presign ./photo.png
+
 # Balance
 tripo balance
 

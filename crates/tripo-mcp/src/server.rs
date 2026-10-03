@@ -78,7 +78,7 @@ impl TripoServer {
     /// Upload a local file; returns a `file_token` usable as `ImageInput::FileToken`.
     #[tool(
         name = "upload_file",
-        description = "Upload a local file to Tripo and return a file token usable as an image reference.",
+        description = "Upload a local file to Tripo and return a file token usable as an image or model input. Files over 60 MiB go through a presigned storage URL; set `presign` to use it for any size.",
         annotations(
             title = "Upload File",
             read_only_hint = false,
@@ -91,11 +91,12 @@ impl TripoServer {
         &self,
         Parameters(p): Parameters<params::UploadParams>,
     ) -> Result<Json<tripo_api::UploadedFile>, ErrorData> {
-        let up = self
-            .client
-            .upload_file(&p.path)
-            .await
-            .map_err(to_error_data)?;
+        let up = if p.presign {
+            self.client.upload_file_presigned(&p.path).await
+        } else {
+            self.client.upload_file(&p.path).await
+        }
+        .map_err(to_error_data)?;
         Ok(Json(up))
     }
 

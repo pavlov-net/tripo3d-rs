@@ -59,6 +59,19 @@ pub(crate) fn map_http_error(status: reqwest::StatusCode, bytes: &[u8]) -> Error
     }
 }
 
+/// Check the status and unwrap the `{code, data}` envelope of an API response.
+pub(crate) async fn read_envelope<T: serde::de::DeserializeOwned>(
+    resp: reqwest::Response,
+) -> crate::error::Result<T> {
+    let status = resp.status();
+    let body = resp.bytes().await?;
+    if !status.is_success() {
+        return Err(map_http_error(status, &body));
+    }
+    let env: Envelope<T> = serde_json::from_slice(&body)?;
+    env.into_result()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

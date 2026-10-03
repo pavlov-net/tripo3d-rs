@@ -146,7 +146,9 @@ async fn download_one(
 ) -> Result<(OutputKind, PathBuf)> {
     let mut partial = target.clone();
     partial.as_mut_os_string().push(".partial");
-    let mut resp = client.http.get(&url).send().await?.error_for_status()?;
+    // Output URLs are signed storage/CDN URLs: fetch them without the API key
+    // and without the API client's overall timeout.
+    let mut resp = client.storage.get(&url).send().await?.error_for_status()?;
     let mut f = tokio::fs::File::create(&partial).await?;
     while let Some(chunk) = resp.chunk().await? {
         f.write_all(&chunk).await?;
