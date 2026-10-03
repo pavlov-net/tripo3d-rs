@@ -85,39 +85,16 @@ impl Client {
     }
 
     /// Upload a local file via presigned URL regardless of its size: presign
-    /// with the file's extension as `format`, then stream the file to storage.
+    /// with the file's extension as `format`, then `PUT` the file to the
+    /// returned storage URL. The body is streamed from disk as
+    /// `application/octet-stream`, with no `Authorization` header. The `PUT`
+    /// is idempotent, so it follows the client's retry policy, reopening the
+    /// file for each attempt.
     #[tracing::instrument(skip(self), fields(path = %path.as_ref().display()))]
     pub async fn upload_file_presigned(&self, path: impl AsRef<Path>) -> Result<UploadedFile> {
         let path = path.as_ref();
         let format = presign_format(path)?;
         let presigned = self.presign_upload(&format).await?;
-        self.put_presigned(&presigned, path).await
-    }
-
-    /// `POST /files/presign` — get a presigned storage URL and file token for
-    /// a file with extension `format` (with or without the leading dot).
-    #[tracing::instrument(skip(self))]
-    pub async fn presign_upload(&self, format: &str) -> Result<PresignedUpload> {
-        let url = self.url(&["files", "presign"]);
-        let body = serde_json::json!({ "format": format.trim_start_matches('.') });
-        let resp = self
-            .send_with_retry(|| self.http.post(url.clone()).json(&body))
-            .await?;
-        read_envelope(resp).await
-    }
-
-    /// `PUT` the file at `path` to `presigned.presigned_url` and return its
-    /// file token. The body is streamed from disk as
-    /// `application/octet-stream`, with no `Authorization` header. The `PUT`
-    /// is idempotent, so it follows the client's retry policy, reopening the
-    /// file for each attempt.
-    #[tracing::instrument(skip(self, presigned), fields(path = %path.as_ref().display()))]
-    pub async fn put_presigned(
-        &self,
-        presigned: &PresignedUpload,
-        path: impl AsRef<Path>,
-    ) -> Result<UploadedFile> {
-        let path = path.as_ref();
         let url = presigned.presigned_url.as_str();
         let resp = self
             .send_with_retry_async(|| async move {
@@ -138,8 +115,21 @@ impl Client {
             return Err(map_http_error(status, &resp.bytes().await?));
         }
         Ok(UploadedFile {
-            file_token: presigned.file_token.clone(),
+            file_token: presigned.file_token,
         })
+    }
+
+    /// `POST /files/presign` — get a presigned storage URL and file token for
+    /// a file with extension `format` (with or without the leading dot).
+    /// [`Client::upload_file_presigned`] runs the whole flow for a local file.
+    #[tracing::instrument(skip(self))]
+    pub async fn presign_upload(&self, format: &str) -> Result<PresignedUpload> {
+        let url = self.url(&["files", "presign"]);
+        let body = serde_json::json!({ "format": format.trim_start_matches('.') });
+        let resp = self
+            .send_with_retry(|| self.http.post(url.clone()).json(&body))
+            .await?;
+        read_envelope(resp).await
     }
 }
 

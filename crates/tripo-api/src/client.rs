@@ -173,13 +173,7 @@ impl Client {
     pub async fn get_balance(&self) -> Result<crate::types::Balance> {
         let url = self.url(&["account", "balance"]);
         let resp = self.send_with_retry(|| self.http.get(url.clone())).await?;
-        let status = resp.status();
-        let bytes = resp.bytes().await?;
-        if !status.is_success() {
-            return Err(crate::envelope::map_http_error(status, &bytes));
-        }
-        let env: crate::envelope::Envelope<crate::types::Balance> = serde_json::from_slice(&bytes)?;
-        env.into_result()
+        crate::envelope::read_envelope(resp).await
     }
 
     /// `GET /tasks/{id}` — current state of an existing task.
@@ -187,13 +181,7 @@ impl Client {
     pub async fn get_task(&self, id: &crate::types::TaskId) -> Result<crate::types::Task> {
         let url = self.url(&["tasks", id.as_str()]);
         let resp = self.send_with_retry(|| self.http.get(url.clone())).await?;
-        let status = resp.status();
-        let bytes = resp.bytes().await?;
-        if !status.is_success() {
-            return Err(crate::envelope::map_http_error(status, &bytes));
-        }
-        let env: crate::envelope::Envelope<crate::types::Task> = serde_json::from_slice(&bytes)?;
-        env.into_result()
+        crate::envelope::read_envelope(resp).await
     }
 
     /// Submit a task to its v3 capability endpoint (e.g. `POST
@@ -228,13 +216,8 @@ impl Client {
         let resp = self
             .send_with_retry(|| self.http.post(url.clone()).json(body))
             .await?;
-        let status = resp.status();
-        let bytes = resp.bytes().await?;
-        if !status.is_success() {
-            return Err(crate::envelope::map_http_error(status, &bytes));
-        }
-        let env: crate::envelope::Envelope<TaskIdBody> = serde_json::from_slice(&bytes)?;
-        Ok(crate::types::TaskId(env.into_result()?.task_id))
+        let data: TaskIdBody = crate::envelope::read_envelope(resp).await?;
+        Ok(crate::types::TaskId(data.task_id))
     }
 
     pub(crate) async fn send_with_retry<F>(&self, build: F) -> Result<reqwest::Response>
