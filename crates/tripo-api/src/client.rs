@@ -76,12 +76,15 @@ impl std::fmt::Debug for Client {
     }
 }
 
+/// Rejects an empty key. A key without the usual `tsk_` prefix only logs a
+/// warning: credential-injecting proxies put a placeholder in the key and
+/// swap in the real one in transit, and the server rejects bad keys itself.
 fn validate_key(key: &str) -> Result<()> {
     if key.is_empty() {
         return Err(Error::MissingApiKey);
     }
     if !key.starts_with("tsk_") {
-        return Err(Error::InvalidApiKey);
+        tracing::warn!("API key does not start with `tsk_`; sending it anyway");
     }
     Ok(())
 }
@@ -390,11 +393,22 @@ mod tests {
     }
 
     #[test]
-    fn rejects_bad_prefix() {
-        let err = Client::builder()
-            .api_key("wrong_prefix")
+    fn accepts_key_without_tsk_prefix() {
+        Client::builder()
+            .api_key("sbx-placeholder")
             .build()
-            .unwrap_err();
+            .unwrap();
+    }
+
+    #[test]
+    fn rejects_empty_key() {
+        let err = Client::builder().api_key("").build().unwrap_err();
+        assert!(matches!(err, Error::MissingApiKey));
+    }
+
+    #[test]
+    fn rejects_key_invalid_in_header() {
+        let err = Client::builder().api_key("tsk_a\nb").build().unwrap_err();
         assert!(matches!(err, Error::InvalidApiKey));
     }
 
