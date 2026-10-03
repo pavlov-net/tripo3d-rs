@@ -13,10 +13,11 @@ homepage    = { workspace = true }
 [features]
 default  = []
 schemars = ["dep:schemars"]
+webhook  = ["dep:hmac", "dep:sha2"]
 
 [package.metadata.docs.rs]
 # Build docs.rs with all features so the `schemars` JsonSchema derives on
-# public types show up in the rendered documentation.
+# public types and the `webhook` module show up in the rendered documentation.
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
@@ -32,6 +33,8 @@ bytes      = { workspace = true }
 futures    = { workspace = true }
 reqwest    = { workspace = true }
 schemars   = { workspace = true, optional = true }
+hmac       = { workspace = true, optional = true }
+sha2       = { workspace = true, optional = true }
 
 [dev-dependencies]
 wiremock   = { workspace = true }

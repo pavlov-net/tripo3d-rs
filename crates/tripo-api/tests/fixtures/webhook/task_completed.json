@@ -1,0 +1,13 @@
+{
+  "id": "task_abc123:task.completed",
+  "type": "task.completed",
+  "created_at": "2026-05-06T12:00:00Z",
+  "data": {
+    "task_id": "task_abc123",
+    "type": "text_to_model",
+    "status": "success",
+    "output": {
+      "model_url": "https://cdn.tripo3d.ai/output/model_pbr.glb"
+    }
+  }
+}
