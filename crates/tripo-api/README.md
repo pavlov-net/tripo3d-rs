@@ -138,9 +138,8 @@ combinations the server would refuse:
 - Edit-multiview without prompts, or with more than 4.
 
 An unset or unrecognized model skips the model-specific checks. Finished image
-tasks report `output.generated_image_url`; image-to-multiview reports
-`output.{front,left,back,right}_view_url`. `download_task_models` saves all of
-them.
+tasks report `output.generated_image_url`; image-to-multiview reports its four
+JPEG views in `TaskOutput::views`. `download_task_models` saves all of them.
 
 ## License
 

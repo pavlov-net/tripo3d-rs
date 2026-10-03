@@ -54,8 +54,8 @@ pub use tasks::{
     TextToImageRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
 };
 pub use types::{
-    Balance, PresignedUpload, Task, TaskId, TaskList, TaskOutput, TaskStatus, Timestamp,
-    UploadedFile, UsageQuery, UsageRecord,
+    Balance, MultiviewViews, PresignedUpload, Task, TaskId, TaskList, TaskOutput, TaskStatus,
+    Timestamp, UploadedFile, UsageQuery, UsageRecord,
 };
 pub use upload::{DEFAULT_PRESIGN_THRESHOLD, PRESIGN_FORMATS};
 pub use wait::{ProgressCallback, WaitOptions};

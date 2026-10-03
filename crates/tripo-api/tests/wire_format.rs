@@ -616,3 +616,31 @@ fn mesh_smart_segment_model_with_transform() {
     });
     insta::assert_json_snapshot!(json_of(&req));
 }
+
+#[test]
+fn image_to_multiview_output_accepts_nested_and_flat_views() {
+    use tripo_api::{MultiviewView, TaskOutput};
+    // Shape returned by the live v3 API (task ee193309-ad48-4336-92dc-a806781458e6).
+    let nested: TaskOutput = serde_json::from_value(serde_json::json!({
+        "generate_multiview_image": {
+            "front_view_url": "https://cdn/multiview_0.jpeg",
+            "left_view_url": "https://cdn/multiview_1.jpeg",
+            "back_view_url": "https://cdn/multiview_2.jpeg",
+            "right_view_url": "https://cdn/multiview_3.jpeg"
+        }
+    }))
+    .unwrap();
+    assert_eq!(
+        nested.views.get(MultiviewView::Left),
+        Some("https://cdn/multiview_1.jpeg")
+    );
+    assert!(nested.extra.is_empty());
+
+    let flat = json_of(&nested);
+    assert_eq!(flat["right_view_url"], "https://cdn/multiview_3.jpeg");
+    let reparsed: TaskOutput = serde_json::from_value(flat).unwrap();
+    assert_eq!(
+        reparsed.views.get(MultiviewView::Right),
+        Some("https://cdn/multiview_3.jpeg")
+    );
+}
