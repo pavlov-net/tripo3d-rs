@@ -19,10 +19,15 @@ pub struct TextureModelArgs {
     /// Reference image (`URL`, `file_token`, or path); maps into `texture_prompt.image`.
     #[arg(long)]
     pub image_prompt: Option<String>,
+    /// Repeated; exactly 4 reference images (`URL`, `file_token`, or path) in
+    /// order [front, left, back, right]; maps into `texture_prompt.images`.
+    #[arg(long, action = clap::ArgAction::Append)]
+    pub images: Vec<String>,
     /// Style image (`URL`, `file_token`, or path); maps into `texture_prompt.style_image`.
     #[arg(long)]
     pub style_image: Option<String>,
-    /// Model version.
+    /// Texture model version (v3.5-20260815|v3.0-20250812|v2.5-20250123).
+    /// v3.5 is required for fast quality.
     #[arg(long)]
     pub model: Option<String>,
     /// PBR shading.
@@ -31,7 +36,7 @@ pub struct TextureModelArgs {
     /// Texture seed.
     #[arg(long)]
     pub texture_seed: Option<i32>,
-    /// Texture quality preset (standard|detailed|extreme).
+    /// Texture quality preset (fast|standard|detailed|extreme).
     #[arg(long, value_parser = super::parsers::texture_quality)]
     pub texture_quality: Option<TextureQuality>,
     /// Texture alignment strategy.
@@ -46,6 +51,9 @@ pub struct TextureModelArgs {
     /// Bake textures.
     #[arg(long)]
     pub bake: Option<bool>,
+    /// Remove baked-in lighting before texturing (texture v3.5 only).
+    #[arg(long)]
+    pub delight: Option<bool>,
 
     #[command(flatten)]
     pub run: VariantRunOpts,
@@ -59,6 +67,8 @@ impl VariantArgs for TextureModelArgs {
         let prompt = TexturePrompt {
             text: self.text_prompt,
             image: self.image_prompt.as_deref().map(ImageInput::parse),
+            images: (!self.images.is_empty())
+                .then(|| self.images.iter().map(|s| ImageInput::parse(s)).collect()),
             style_image: self.style_image.as_deref().map(ImageInput::parse),
         };
         Ok(TaskRequest::TextureModel(TextureModelRequest {
@@ -72,6 +82,7 @@ impl VariantArgs for TextureModelArgs {
             part_names: self.part_names,
             compress: self.compress.then_some(CompressionMode::Geometry),
             bake: self.bake,
+            delight: self.delight,
         }))
     }
 }

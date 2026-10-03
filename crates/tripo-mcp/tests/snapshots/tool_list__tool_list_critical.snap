@@ -99,8 +99,13 @@ expression: "serde_json::to_value(&critical).unwrap()"
           ]
         },
         "TextureQuality": {
-          "description": "Texture quality level (`texture_quality`).\n\n`extreme` (added in API 1.9.7, June 2026) is the top tier — Tripo bills\nit as the highest-resolution PBR texture output. It is valid only for\n`texture_quality`, not `geometry_quality`; see [`GeometryQuality`].",
+          "description": "Texture quality level (`texture_quality`).\n\n`extreme` (added in API 1.9.7, June 2026) is the top tier — Tripo bills\nit as the highest-resolution PBR texture output. It is valid only for\n`texture_quality`, not `geometry_quality`; see [`GeometryQuality`].\n\n`fast` (texture model v3.5, September 2026) is the quickest tier: same\noutput texture size and credit cost as `standard`, lower detail. It\nrequires texture version `v3.5-20260815`; the server\nrejects it (code 1004) on any other texture version.",
           "oneOf": [
+            {
+              "const": "fast",
+              "description": "Wire value: `fast`.",
+              "type": "string"
+            },
             {
               "const": "standard",
               "description": "Wire value: `standard`.",
@@ -139,6 +144,13 @@ expression: "serde_json::to_value(&critical).unwrap()"
             }
           ],
           "description": "Geometry compression option."
+        },
+        "delight": {
+          "description": "Remove baked-in lighting from the reference image before texturing\n(default true server-side). Only texture version v3.5 reads it.",
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "export_orientation": {
           "anyOf": [
@@ -255,13 +267,20 @@ expression: "serde_json::to_value(&critical).unwrap()"
               "type": "null"
             }
           ],
-          "description": "Texture quality preset."
+          "description": "Texture quality preset. `fast` requires `texture_version: v3.5-20260815`."
         },
         "texture_seed": {
           "description": "Seed for texture generation.",
           "format": "int32",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "texture_version": {
+          "description": "Texture model version, pinned independently of the geometry `model`;\nsee `versions::texture_version`. Derived from `model` when omitted\n(v2.5 geometry: v2.5, otherwise v3.0). `v3.5-20260815` is required for\n`texture_quality: fast` and `delight`.",
+          "type": [
+            "string",
             "null"
           ]
         }

@@ -39,6 +39,23 @@ request's `model` field to select `P2-20260801` (preview). P2 supports `quad: So
 or 48–25,000 for quads; `None` selects adaptive sizing. Existing defaults stay
 unchanged. These request types and validation also apply to the MCP tools.
 
+### Texture model v3.5
+
+`versions::texture::V3_5` (`v3.5-20260815`) selects the newest texture model.
+On `TextureModelRequest` it goes in `model`; on the text, image, and multiview
+generation requests it goes in `texture_version` (constants in
+`versions::texture_version`). When `texture_version` is omitted the server
+derives it from the geometry `model`: v2.5 geometry uses v2.5 textures,
+everything else uses v3.0.
+
+v3.5 adds `TextureQuality::Fast` (same texture size and credits as `Standard`,
+lower detail) and `delight: Option<bool>` (remove baked-in lighting from the
+reference image, default `true` server-side). `Fast` is rejected client-side
+unless the texture version is v3.5. `TexturePrompt::images` takes exactly 4
+reference images in order [front, left, back, right]; `text`, `image`, and
+`images` are mutually exclusive, and `style_image` is only valid with `text`.
+`Client::create_task` validates these before uploading local paths.
+
 ## License
 
 MIT

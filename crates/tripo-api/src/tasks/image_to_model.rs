@@ -38,9 +38,19 @@ pub struct ImageToModelRequest {
     /// Seed for texture generation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_seed: Option<i32>,
-    /// Texture quality preset.
+    /// Texture quality preset. `fast` requires `texture_version: v3.5-20260815`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture_quality: Option<TextureQuality>,
+    /// Texture model version, pinned independently of the geometry `model`;
+    /// see `versions::texture_version`. Derived from `model` when omitted
+    /// (v2.5 geometry: v2.5, otherwise v3.0). `v3.5-20260815` is required for
+    /// `texture_quality: fast` and `delight`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub texture_version: Option<String>,
+    /// Remove baked-in lighting from the reference image before texturing
+    /// (default true server-side). Only texture version v3.5 reads it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delight: Option<bool>,
     /// Geometry quality preset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub geometry_quality: Option<GeometryQuality>,
@@ -78,6 +88,11 @@ pub struct ImageToModelRequest {
 impl ImageToModelRequest {
     pub(crate) fn validate(&self) -> Result<()> {
         super::validate_p2_face_limit(self.model.as_deref(), self.quad, self.face_limit)?;
+        super::validate_fast_texture(
+            self.texture_quality.as_ref(),
+            "texture_version",
+            self.texture_version.as_deref(),
+        )?;
         super::validate_p1_params(
             self.model.as_deref(),
             self.quad,

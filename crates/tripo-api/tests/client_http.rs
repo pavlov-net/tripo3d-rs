@@ -151,6 +151,8 @@ async fn create_task_uploads_local_image_first() {
         model_seed: None,
         texture_seed: None,
         texture_quality: None,
+        texture_version: None,
+        delight: None,
         geometry_quality: None,
         texture_alignment: None,
         auto_size: None,

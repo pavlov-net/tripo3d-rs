@@ -3,7 +3,7 @@
 use serde::Serialize;
 
 use crate::client::Client;
-use crate::enums::GeometryQuality;
+use crate::enums::{GeometryQuality, TextureQuality};
 use crate::error::{Error, Result};
 use crate::image::ImageInput;
 use crate::versions;
@@ -101,6 +101,7 @@ impl TaskRequest {
             Self::TextToModel(r) => r.validate(),
             Self::ImageToModel(r) => r.validate(),
             Self::MultiviewToModel(r) => r.validate(),
+            Self::TextureModel(r) => r.validate(),
             _ => Ok(()),
         }
     }
@@ -120,19 +121,14 @@ impl TaskRequest {
                 Ok(())
             }
             Self::TextureModel(r) => {
-                let image = &mut r.texture_prompt.image;
-                let style = &mut r.texture_prompt.style_image;
-                match (image.as_mut(), style.as_mut()) {
-                    (Some(a), Some(b)) => {
-                        tokio::try_join!(
-                            upload_image_if_path(client, a),
-                            upload_image_if_path(client, b)
-                        )?;
-                    }
-                    (Some(a), None) => upload_image_if_path(client, a).await?,
-                    (None, Some(b)) => upload_image_if_path(client, b).await?,
-                    (None, None) => {}
-                }
+                let p = &mut r.texture_prompt;
+                let futs = p
+                    .image
+                    .iter_mut()
+                    .chain(p.style_image.iter_mut())
+                    .chain(p.images.iter_mut().flatten())
+                    .map(|img| upload_image_if_path(client, img));
+                futures::future::try_join_all(futs).await?;
                 Ok(())
             }
             Self::TextToModel(_)
@@ -203,6 +199,27 @@ pub(crate) fn validate_p2_face_limit(
         return Err(Error::InvalidRequest(format!(
             "model {} requires face_limit between 48 and {maximum}; omit it for adaptive sizing",
             versions::text_image::P2,
+        )));
+    }
+    Ok(())
+}
+
+/// Reject `texture_quality: fast` unless the texture version is v3.5. The
+/// server answers 1004 instead of falling back to `standard`. `field` names
+/// the request field selecting the texture version: `model` on
+/// `models/texture`, `texture_version` on the generation endpoints (where an
+/// omitted value is derived as v3.0 or v2.5, never v3.5).
+pub(crate) fn validate_fast_texture(
+    texture_quality: Option<&TextureQuality>,
+    field: &str,
+    texture_version: Option<&str>,
+) -> Result<()> {
+    if texture_quality == Some(&TextureQuality::Fast)
+        && texture_version != Some(versions::texture::V3_5)
+    {
+        return Err(Error::InvalidRequest(format!(
+            "texture_quality fast requires {field} {}",
+            versions::texture::V3_5,
         )));
     }
     Ok(())

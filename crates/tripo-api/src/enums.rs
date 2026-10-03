@@ -120,7 +120,13 @@ string_enum! {
     /// `extreme` (added in API 1.9.7, June 2026) is the top tier — Tripo bills
     /// it as the highest-resolution PBR texture output. It is valid only for
     /// `texture_quality`, not `geometry_quality`; see [`GeometryQuality`].
+    ///
+    /// `fast` (texture model v3.5, September 2026) is the quickest tier: same
+    /// output texture size and credit cost as `standard`, lower detail. It
+    /// requires texture version `v3.5-20260815`; the server
+    /// rejects it (code 1004) on any other texture version.
     pub enum TextureQuality {
+        Fast => "fast",
         Standard => "standard",
         Detailed => "detailed",
         Extreme  => "extreme",
@@ -222,6 +228,15 @@ mod tests {
         assert_eq!(back, TextureQuality::Extreme);
         // `extreme` is texture-only — it must not deserialize as a geometry tier.
         assert!(serde_json::from_str::<GeometryQuality>("\"extreme\"").is_err());
+    }
+
+    #[test]
+    fn texture_quality_has_fast_tier() {
+        assert_eq!(
+            serde_json::to_string(&TextureQuality::Fast).unwrap(),
+            "\"fast\""
+        );
+        assert!(serde_json::from_str::<GeometryQuality>("\"fast\"").is_err());
     }
 
     #[test]

@@ -30,6 +30,7 @@ client.download_task_models(&task, "./out".as_ref(), Default::default()).await?;
 export TRIPO_API_KEY=tsk_...
 tripo text-to-model --prompt "a red robot" --output ./out
 tripo image-to-model --input ./photo.jpg --output ./out
+tripo texture-model --input <id> --model v3.5-20260815 --texture-quality fast
 tripo rig-model --input <id> --rig-type biped --spec mixamo
 ```
 

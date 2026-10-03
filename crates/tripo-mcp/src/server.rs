@@ -334,7 +334,7 @@ impl TripoServer {
     /// (Re)texture an existing model.
     #[tool(
         name = "texture_model",
-        description = "Re-texture an existing model, optionally guided by a text or image prompt.",
+        description = "Re-texture an existing model, optionally guided by a text prompt (plus style image), one reference image, or exactly 4 reference images [front, left, back, right]. Texture model v3.5-20260815 adds texture_quality fast and delight.",
         annotations(
             title = "Texture Model",
             read_only_hint = false,

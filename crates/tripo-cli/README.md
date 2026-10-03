@@ -106,6 +106,32 @@ P2 costs 100 credits without texture, or 110 / 120 / 130 credits with
 standard / detailed / extreme textures. For bare geometry, set both
 `--texture false` and `--pbr false` (PBR forces texture generation).
 
+### Texture model v3.5
+
+Texture model `v3.5-20260815` adds `--texture-quality fast` (same texture size
+and credits as `standard`, lower detail) and `--delight true|false` (remove
+baked-in lighting from the reference image; on by default). On
+`texture-model`, select it with `--model`:
+
+```sh
+tripo texture-model --input <task_id> --model v3.5-20260815 \
+  --texture-quality fast --delight false
+```
+
+On `text-to-model`, `image-to-model`, and `multiview-to-model`, select it with
+`--texture-version`; omitted, the server derives it from `--model` (v2.5
+geometry uses v2.5 textures, anything else v3.0):
+
+```sh
+tripo image-to-model --input ./photo.jpg \
+  --texture-version v3.5-20260815 --texture-quality fast
+```
+
+`fast` without a v3.5 texture version is rejected before submission.
+`texture-model` also accepts `--images` four times, in order front, left,
+back, right, for multi-angle texture guidance. `--text-prompt`,
+`--image-prompt`, and `--images` are mutually exclusive.
+
 ## License
 
 MIT

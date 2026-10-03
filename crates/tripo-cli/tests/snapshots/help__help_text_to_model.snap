@@ -72,7 +72,16 @@ Options:
           Seed for texture generation
 
       --texture-quality <TEXTURE_QUALITY>
-          Texture quality preset (standard|detailed|extreme)
+          Texture quality preset (fast|standard|detailed|extreme)
+
+      --texture-version <TEXTURE_VERSION>
+          Texture model version (v3.5-20260815|v3.0-20250812|v2.5-20250123). Derived from --model
+          when omitted; v3.5 is required for fast quality
+
+      --delight <DELIGHT>
+          Remove baked-in lighting before texturing (texture v3.5 only)
+
+          [possible values: true, false]
 
       --geometry-quality <GEOMETRY_QUALITY>
           Geometry quality preset (standard|detailed)
