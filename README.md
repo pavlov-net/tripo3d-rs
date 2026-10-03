@@ -24,6 +24,10 @@ let task = client.wait_for_task(&id, WaitOptions::default()).await?;
 client.download_task_models(&task, "./out".as_ref(), Default::default()).await?;
 ```
 
+Enable the `webhook` feature to verify and parse Tripo's webhook deliveries
+(`task.completed`, `task.failed`, `balance.low`) in your own HTTP server; see
+the [SDK README](crates/tripo-api#webhooks).
+
 ## The CLI — `tripo`
 
 ```bash

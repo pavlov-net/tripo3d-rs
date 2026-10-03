@@ -39,6 +39,44 @@ are kept in `TaskOutput::extra`.
 ## Features
 
 - `schemars` (default off): derive `schemars::JsonSchema` on public types.
+- `webhook` (default off): verify webhook signatures and parse event payloads.
+
+### Webhooks
+
+Tripo can POST `task.completed`, `task.failed`, and `balance.low` events to an
+HTTPS endpoint configured under Settings → Webhooks in the Tripo console. With
+the `webhook` feature, `webhook::verify_and_parse` checks the
+`Tripo-Webhook-Signature` header against the raw request body using the
+endpoint's `whsec_…` signing secret, rejects timestamps more than 5 minutes
+from now, and returns a typed event. It works with any HTTP server: pass it the
+header value and the body bytes before any JSON parsing.
+
+```rust
+# #[cfg(feature = "webhook")]
+# fn handle(secret: &str, signature: &str, body: &[u8]) -> Result<(), tripo_api::webhook::WebhookError> {
+use std::time::SystemTime;
+use tripo_api::webhook::{self, WebhookEventData};
+
+let event = webhook::verify_and_parse(
+    secret,    // "whsec_…"
+    signature, // value of the `Tripo-Webhook-Signature` header
+    body,      // raw request body
+    Some(webhook::DEFAULT_TOLERANCE),
+    SystemTime::now(),
+)?;
+match event.data {
+    WebhookEventData::TaskCompleted(task) => println!("{} finished", task.task_id),
+    WebhookEventData::TaskFailed(task) => println!("{} failed: {:?}", task.task_id, task.error),
+    WebhookEventData::BalanceLow(low) => println!("balance {} < {}", low.balance, low.threshold),
+    _ => {}
+}
+# Ok(())
+# }
+```
+
+Respond with a 2xx within about 5 seconds and do slow work asynchronously.
+Tripo retries non-2xx responses and timeouts, so deduplicate on the
+`Tripo-Webhook-Delivery` header (`webhook::HEADER_DELIVERY`).
 
 ### File uploads
 

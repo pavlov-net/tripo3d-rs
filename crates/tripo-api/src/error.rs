@@ -81,6 +81,11 @@ pub enum Error {
     /// JSON (de)serialization error.
     #[error(transparent)]
     Json(#[from] serde_json::Error),
+
+    /// Webhook delivery failed verification or parsing.
+    #[cfg(feature = "webhook")]
+    #[error(transparent)]
+    Webhook(#[from] crate::webhook::WebhookError),
 }
 
 impl Error {

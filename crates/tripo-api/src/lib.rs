@@ -11,6 +11,8 @@
 //!
 //! - `schemars` (default off): derive `schemars::JsonSchema` on public types
 //!   so `tripo-mcp` can expose them as MCP tool schemas.
+//! - `webhook` (default off): the `webhook` module, which
+//!   verifies webhook signatures and parses event payloads.
 
 mod client;
 mod compress;
@@ -25,6 +27,8 @@ pub mod types;
 mod upload;
 pub mod versions;
 mod wait;
+#[cfg(feature = "webhook")]
+pub mod webhook;
 
 pub use client::{
     API_KEY_ENV, BASE_URL_CN, BASE_URL_GLOBAL, Client, ClientBuilder, MAX_LIST_TASK_IDS,
