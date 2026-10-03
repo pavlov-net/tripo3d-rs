@@ -20,7 +20,9 @@ annotation hints are set explicitly on every tool:
 | Tool                   | Purpose                                | read-only | destructive | idempotent |
 | ---------------------- | -------------------------------------- | :-------: | :---------: | :--------: |
 | `get_balance`          | Account balance                        |     Y     |      —      |     Y      |
+| `get_usage`            | Per-task credit usage                  |     Y     |      —      |     Y      |
 | `get_task`             | Fetch task state                       |     Y     |      —      |     Y      |
+| `list_tasks`           | Fetch up to 100 tasks at once          |     Y     |      —      |     Y      |
 | `wait_for_task`        | Poll until terminal; streams progress  |     Y     |      —      |     Y      |
 | `download_task_models` | Download output files                  |     N     |      N      |     N      |
 | `upload_file`          | Upload a file (presigned over 60 MiB)  |     N     |      N      |     N      |

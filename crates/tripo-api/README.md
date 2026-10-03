@@ -28,6 +28,14 @@ into an error that includes them. Status strings this crate does not know
 decode as `TaskStatus::Unknown`, and output fields without a typed accessor
 are kept in `TaskOutput::extra`.
 
+## Queries
+
+- `get_task(&id)` / `list_tasks(&ids)`: one task, or up to `MAX_LIST_TASK_IDS`
+  (100) per request. `TaskList` holds the found tasks in request order plus
+  the `missed` ids.
+- `get_balance()` / `get_usage(UsageQuery { limit, offset })`: account balance
+  and per-task credit history. `UsageRecord` keeps unmodeled fields in `extra`.
+
 ## Features
 
 - `schemars` (default off): derive `schemars::JsonSchema` on public types.

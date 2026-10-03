@@ -7,7 +7,7 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 mod common;
-use common::{args, start_server};
+use common::{args, start_server, start_server_with};
 
 #[tokio::test]
 async fn calls_get_balance() {
@@ -342,4 +342,71 @@ async fn calls_get_task() {
     let txt = format!("{result:?}");
     assert!(txt.contains("abc"));
     assert!(txt.contains("success"));
+}
+
+#[tokio::test]
+async fn calls_list_tasks() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/tasks/list"))
+        .and(wiremock::matchers::body_json(json!({"task_ids":["abc","gone"]})))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{
+                "tasks":{"abc":{"task_id":"abc","type":"text_to_model","status":"success","progress":100}},
+                "missed":["gone"]
+            }
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(
+            CallToolRequestParams::new("list_tasks")
+                .with_arguments(args(json!({"task_ids":["abc","gone"]}))),
+        )
+        .await
+        .unwrap();
+    let out = result.structured_content.expect("structured output");
+    assert_eq!(out["tasks"][0]["task_id"], "abc");
+    assert_eq!(out["missed"], json!(["gone"]));
+}
+
+#[tokio::test]
+async fn list_tasks_over_limit_is_tool_error() {
+    let client = start_server_with("http://127.0.0.1:1/").await;
+    let ids: Vec<String> = (0..=100).map(|i| format!("t{i}")).collect();
+    let err = client
+        .call_tool(
+            CallToolRequestParams::new("list_tasks").with_arguments(args(json!({"task_ids":ids}))),
+        )
+        .await
+        .unwrap_err();
+    assert!(format!("{err:?}").contains("1..=100"), "{err:?}");
+}
+
+#[tokio::test]
+async fn calls_get_usage() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/account/usage"))
+        .and(wiremock::matchers::query_param("limit", "5"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":[{"task_id":"abc","type":"text_to_model","credits_consumed":100.0,"created_at":"2026-01-01T00:00:00Z"}]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    let result = client
+        .call_tool(CallToolRequestParams::new("get_usage").with_arguments(args(json!({"limit":5}))))
+        .await
+        .unwrap();
+    let out = result.structured_content.expect("structured output");
+    assert_eq!(out["records"][0]["task_id"], "abc");
+    assert_eq!(out["records"][0]["credits_consumed"], 100.0);
 }

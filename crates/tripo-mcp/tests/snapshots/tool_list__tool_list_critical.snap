@@ -39,6 +39,437 @@ expression: "serde_json::to_value(&critical).unwrap()"
   },
   {
     "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Account Usage"
+    },
+    "description": "List per-task credit consumption for the Tripo account. Optional limit/offset page through the history.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "limit": {
+          "description": "Maximum number of records to return.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "offset": {
+          "description": "Number of records to skip.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_usage",
+    "outputSchema": {
+      "$defs": {
+        "TaskId": {
+          "description": "Opaque task identifier.",
+          "type": "string"
+        },
+        "Timestamp": {
+          "anyOf": [
+            {
+              "description": "Numeric epoch time, unit as sent by the server.",
+              "type": "number"
+            },
+            {
+              "description": "Textual time, normally ISO 8601 (e.g. `2026-01-01T00:00:00Z`).",
+              "type": "string"
+            }
+          ],
+          "description": "A timestamp as sent by the server: an ISO 8601 string or an epoch number."
+        },
+        "UsageRecord": {
+          "additionalProperties": true,
+          "description": "One per-task credit charge from `GET /account/usage`.",
+          "properties": {
+            "created_at": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Timestamp"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Creation time; also read from the v2 name `create_time`."
+            },
+            "credits_consumed": {
+              "description": "Credits consumed.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "status": {
+              "description": "Task status string, when reported.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "task_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/TaskId"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Task that consumed the credits."
+            },
+            "type": {
+              "description": "Wire-format task type string (e.g. `text_to_model`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "records": {
+          "description": "Per-task credit charges.",
+          "items": {
+            "$ref": "#/$defs/UsageRecord"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "records"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "List Tasks"
+    },
+    "description": "Fetch the current state of up to 100 Tripo tasks in one request. Ids the server does not know are returned in `missed`.",
+    "inputSchema": {
+      "$defs": {
+        "TaskId": {
+          "description": "Opaque task identifier.",
+          "type": "string"
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "task_ids": {
+          "description": "Task identifiers (1 to 100).",
+          "items": {
+            "$ref": "#/$defs/TaskId"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "task_ids"
+      ],
+      "type": "object"
+    },
+    "name": "list_tasks",
+    "outputSchema": {
+      "$defs": {
+        "RigTypeResponse": {
+          "description": "Rig classification reported by `check_riggable`. Forward-compatible —\nunrecognized server values deserialize as `Unknown`.",
+          "oneOf": [
+            {
+              "const": "biped",
+              "description": "Wire value: `biped`.",
+              "type": "string"
+            },
+            {
+              "const": "quadruped",
+              "description": "Wire value: `quadruped`.",
+              "type": "string"
+            },
+            {
+              "const": "hexapod",
+              "description": "Wire value: `hexapod`.",
+              "type": "string"
+            },
+            {
+              "const": "octopod",
+              "description": "Wire value: `octopod`.",
+              "type": "string"
+            },
+            {
+              "const": "avian",
+              "description": "Wire value: `avian`.",
+              "type": "string"
+            },
+            {
+              "const": "serpentine",
+              "description": "Wire value: `serpentine`.",
+              "type": "string"
+            },
+            {
+              "const": "aquatic",
+              "description": "Wire value: `aquatic`.",
+              "type": "string"
+            },
+            {
+              "const": "others",
+              "description": "Wire value: `others`.",
+              "type": "string"
+            },
+            {
+              "const": "Unknown",
+              "description": "Unknown value received from a forward-compatible server.",
+              "type": "string"
+            }
+          ]
+        },
+        "Task": {
+          "description": "Task record returned by `GET /tasks/{id}`.",
+          "properties": {
+            "completed_at": {
+              "default": null,
+              "description": "ISO 8601 completion time; set once terminal.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "created_at": {
+              "default": "",
+              "description": "ISO 8601 creation time (e.g. `2026-04-28T12:00:00Z`).",
+              "type": "string"
+            },
+            "credits_consumed": {
+              "default": null,
+              "description": "Credits consumed by this task.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "error_code": {
+              "default": null,
+              "description": "Server error code; present on some failed tasks.",
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "error_message": {
+              "default": null,
+              "description": "Human-readable failure reason; accompanies `error_code`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "input": {
+              "additionalProperties": true,
+              "default": {},
+              "description": "Echo of request parameters.",
+              "type": "object"
+            },
+            "output": {
+              "$ref": "#/$defs/TaskOutput",
+              "default": {
+                "generated_image_url": null,
+                "model_url": null,
+                "rendered_image_url": null,
+                "rig_type": null,
+                "riggable": null
+              },
+              "description": "Output URLs and flags."
+            },
+            "progress": {
+              "default": 0,
+              "description": "Progress percent 0–100.",
+              "format": "int32",
+              "type": "integer"
+            },
+            "queuing_num": {
+              "default": null,
+              "description": "Queue depth ahead of this task.",
+              "format": "int32",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "running_left_time": {
+              "default": null,
+              "description": "Estimated seconds until completion; used by the polling backoff when\npresent.",
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "status": {
+              "$ref": "#/$defs/TaskStatus",
+              "description": "Current status."
+            },
+            "task_id": {
+              "$ref": "#/$defs/TaskId",
+              "description": "Identifier."
+            },
+            "type": {
+              "description": "Wire-format task type string (e.g. `text_to_model`, `animate_rig`).",
+              "type": "string"
+            }
+          },
+          "required": [
+            "task_id",
+            "type",
+            "status"
+          ],
+          "type": "object"
+        },
+        "TaskId": {
+          "description": "Opaque task identifier.",
+          "type": "string"
+        },
+        "TaskOutput": {
+          "additionalProperties": true,
+          "description": "Download URLs and auxiliary output fields returned on the task object.",
+          "properties": {
+            "generated_image_url": {
+              "default": null,
+              "description": "URL for the intermediate generated image (`text_to_model` only).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "model_url": {
+              "default": null,
+              "description": "URL for the main output model.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "rendered_image_url": {
+              "default": null,
+              "description": "URL for a rendered preview image.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "rig_type": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RigTypeResponse"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Populated by `check_riggable`."
+            },
+            "riggable": {
+              "default": null,
+              "description": "Populated by `check_riggable`.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "TaskStatus": {
+          "description": "Task lifecycle status.",
+          "oneOf": [
+            {
+              "const": "queued",
+              "description": "Waiting in the queue.",
+              "type": "string"
+            },
+            {
+              "const": "running",
+              "description": "Currently being processed.",
+              "type": "string"
+            },
+            {
+              "const": "success",
+              "description": "Completed successfully.",
+              "type": "string"
+            },
+            {
+              "const": "failed",
+              "description": "Completed with failure.",
+              "type": "string"
+            },
+            {
+              "const": "cancelled",
+              "description": "User or system cancelled.",
+              "type": "string"
+            },
+            {
+              "const": "banned",
+              "description": "Banned by moderation.",
+              "type": "string"
+            },
+            {
+              "const": "expired",
+              "description": "Past retention.",
+              "type": "string"
+            },
+            {
+              "const": "unknown",
+              "description": "Unrecognized status string from a newer server; not terminal.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "missed": {
+          "description": "Requested ids the server did not return (unknown, owned by another\nAPI key, or expired).",
+          "items": {
+            "$ref": "#/$defs/TaskId"
+          },
+          "type": "array"
+        },
+        "tasks": {
+          "description": "Tasks found, in the order they were requested.",
+          "items": {
+            "$ref": "#/$defs/Task"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "tasks",
+        "missed"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
       "destructiveHint": false,
       "idempotentHint": false,
       "openWorldHint": true,

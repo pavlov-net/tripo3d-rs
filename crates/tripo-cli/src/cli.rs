@@ -73,11 +73,13 @@ impl From<Region> for tripo_api::Region {
 pub enum Command {
     /// Show account balance.
     Balance,
+    /// Show per-task credit usage.
+    Usage(crate::commands::usage::UsageArgs),
     /// Upload a file, print the `file_token`.
     Upload(crate::commands::upload::UploadArgs),
     /// Generate shell completions.
     Completions(crate::commands::completions::CompletionsArgs),
-    /// Raw task escape hatches: create from JSON, get, wait, download.
+    /// Raw task escape hatches: create from JSON, get, list, wait, download.
     #[command(subcommand)]
     Task(crate::commands::task::TaskCommand),
     /// Generate a 3D model from a text prompt.

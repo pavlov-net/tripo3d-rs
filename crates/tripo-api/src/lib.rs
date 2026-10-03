@@ -27,7 +27,8 @@ pub mod versions;
 mod wait;
 
 pub use client::{
-    API_KEY_ENV, BASE_URL_CN, BASE_URL_GLOBAL, Client, ClientBuilder, REGION_ENV, Region,
+    API_KEY_ENV, BASE_URL_CN, BASE_URL_GLOBAL, Client, ClientBuilder, MAX_LIST_TASK_IDS,
+    REGION_ENV, Region,
 };
 pub use compress::CompressionMode;
 pub use download::{DownloadOptions, DownloadedFiles, OutputKind};
@@ -45,6 +46,9 @@ pub use tasks::{
     RefineModelRequest, RetargetAnimationRequest, RigModelRequest, StylizeModelRequest,
     TaskRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
 };
-pub use types::{Balance, PresignedUpload, Task, TaskId, TaskOutput, TaskStatus, UploadedFile};
+pub use types::{
+    Balance, PresignedUpload, Task, TaskId, TaskList, TaskOutput, TaskStatus, Timestamp,
+    UploadedFile, UsageQuery, UsageRecord,
+};
 pub use upload::{DEFAULT_PRESIGN_THRESHOLD, PRESIGN_FORMATS};
 pub use wait::{ProgressCallback, WaitOptions};
