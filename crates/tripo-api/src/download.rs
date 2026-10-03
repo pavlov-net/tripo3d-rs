@@ -151,7 +151,9 @@ fn extension_of(url: &str, default_ext: &str) -> String {
 
 impl Client {
     /// Download all available outputs of a task into `dir`. Creates `dir` if
-    /// it does not exist. Atomic writes via `.partial` + rename.
+    /// it does not exist. Each file is written to `<name>.partial` and renamed
+    /// into place; the `.partial` file is removed if the download fails or the
+    /// returned future is dropped.
     #[tracing::instrument(skip(self, task, opts), fields(task_id = %task.task_id))]
     pub async fn download_task_models(
         &self,
@@ -209,23 +211,46 @@ async fn download_one(
     client: &Client,
     (kind, url, target): (OutputKind, String, PathBuf),
 ) -> Result<(OutputKind, PathBuf)> {
-    let mut partial = target.clone();
-    partial.as_mut_os_string().push(".partial");
+    let mut path = target.clone();
+    path.as_mut_os_string().push(".partial");
     // Output URLs are signed storage/CDN URLs: fetch them without the API key
     // and without the API client's overall timeout.
     let mut resp = client.storage.get(&url).send().await?.error_for_status()?;
-    let mut f = tokio::fs::File::create(&partial)
+    // Declared before `f` so the file is closed before the guard removes it.
+    let mut partial = PartialFile {
+        path,
+        renamed: false,
+    };
+    let mut f = tokio::fs::File::create(&partial.path)
         .await
-        .map_err(Error::file(&partial))?;
+        .map_err(Error::file(&partial.path))?;
     while let Some(chunk) = resp.chunk().await? {
-        f.write_all(&chunk).await.map_err(Error::file(&partial))?;
+        f.write_all(&chunk)
+            .await
+            .map_err(Error::file(&partial.path))?;
     }
-    f.flush().await.map_err(Error::file(&partial))?;
+    f.flush().await.map_err(Error::file(&partial.path))?;
     drop(f);
-    tokio::fs::rename(&partial, &target)
+    tokio::fs::rename(&partial.path, &target)
         .await
         .map_err(Error::file(&target))?;
+    partial.renamed = true;
     Ok((kind, target))
+}
+
+/// A `.partial` download file, removed on drop unless it was renamed into
+/// place. Dropping covers both errors and cancellation of the download future.
+struct PartialFile {
+    path: PathBuf,
+    renamed: bool,
+}
+
+impl Drop for PartialFile {
+    fn drop(&mut self) {
+        if !self.renamed {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
 }
 
 #[cfg(test)]

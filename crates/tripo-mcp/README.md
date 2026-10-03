@@ -61,7 +61,7 @@ Tool failures (Tripo API errors, rejected request parameters, unreadable
 files, failed downloads, `wait_for_task` timeouts) come back as a tool result
 with `isError: true` and the error message as text, so the model can read and
 act on them. `wait_for_task` and `download_task_models` stop when the client
-cancels the request; a cancelled download can leave a `.partial` file behind.
+cancels the request.
 
 Generation and texture tools accept the request fields of the corresponding
 `tripo-api` structs (including texture model v3.5 options) and reject invalid

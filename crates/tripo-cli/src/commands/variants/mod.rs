@@ -134,12 +134,10 @@ pub async fn run_variant<A: VariantArgs>(g: &GlobalArgs, mut args: A) -> Result<
             overwrite: g.force,
             ..Default::default()
         };
+        // Dropping the download future removes its `.partial` files.
         let files = tokio::select! {
             res = client.download_task_models(&task, dir, dl) => res?,
-            () = cancel.cancelled() => {
-                crate::cleanup::partial_files(dir).await;
-                return Err(crate::signals::Interrupted.into());
-            }
+            () = cancel.cancelled() => return Err(crate::signals::Interrupted.into()),
         };
         for p in files.paths() {
             println!("{}", p.display());
