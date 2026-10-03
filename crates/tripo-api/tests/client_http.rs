@@ -319,7 +319,7 @@ async fn downloads_model_and_rendered_image() {
 
 #[tokio::test]
 async fn downloads_generated_image_and_multiview_views() {
-    use tripo_api::{DownloadOptions, MultiviewView, TaskOutput};
+    use tripo_api::{DownloadOptions, MultiviewView, MultiviewViews, TaskOutput};
 
     let server = MockServer::start().await;
     for name in [
@@ -358,10 +358,12 @@ async fn downloads_generated_image_and_multiview_views() {
     let multiview = task_with_output(
         "task_mv",
         TaskOutput {
-            front_view_url: url("front.png"),
-            left_view_url: url("left.png"),
-            back_view_url: url("back.png"),
-            right_view_url: url("right.png"),
+            views: MultiviewViews {
+                front_view_url: url("front.png"),
+                left_view_url: url("left.png"),
+                back_view_url: url("back.png"),
+                right_view_url: url("right.png"),
+            },
             ..Default::default()
         },
     );

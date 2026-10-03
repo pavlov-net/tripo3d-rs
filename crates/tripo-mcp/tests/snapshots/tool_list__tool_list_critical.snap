@@ -362,7 +362,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
           "properties": {
             "back_view_url": {
               "default": null,
-              "description": "Back view (`image_to_multiview`).",
+              "description": "Back view.",
               "type": [
                 "string",
                 "null"
@@ -370,7 +370,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
             },
             "front_view_url": {
               "default": null,
-              "description": "Front view (`image_to_multiview`).",
+              "description": "Front view.",
               "type": [
                 "string",
                 "null"
@@ -386,7 +386,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
             },
             "left_view_url": {
               "default": null,
-              "description": "Left view (`image_to_multiview`).",
+              "description": "Left view: the subject faces the viewer's left.",
               "type": [
                 "string",
                 "null"
@@ -454,7 +454,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
             },
             "right_view_url": {
               "default": null,
-              "description": "Right view (`image_to_multiview`).",
+              "description": "Right view: the subject faces the viewer's right.",
               "type": [
                 "string",
                 "null"
@@ -1144,7 +1144,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
           "properties": {
             "back_view_url": {
               "default": null,
-              "description": "Back view (`image_to_multiview`).",
+              "description": "Back view.",
               "type": [
                 "string",
                 "null"
@@ -1152,7 +1152,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
             },
             "front_view_url": {
               "default": null,
-              "description": "Front view (`image_to_multiview`).",
+              "description": "Front view.",
               "type": [
                 "string",
                 "null"
@@ -1168,7 +1168,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
             },
             "left_view_url": {
               "default": null,
-              "description": "Left view (`image_to_multiview`).",
+              "description": "Left view: the subject faces the viewer's left.",
               "type": [
                 "string",
                 "null"
@@ -1236,7 +1236,7 @@ expression: "serde_json::to_value(&critical).unwrap()"
             },
             "right_view_url": {
               "default": null,
-              "description": "Right view (`image_to_multiview`).",
+              "description": "Right view: the subject faces the viewer's right.",
               "type": [
                 "string",
                 "null"

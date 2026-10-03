@@ -47,22 +47,18 @@ impl OutputKind {
     /// The task output URL for this kind, the file extension to use when the
     /// URL has none, and the filename suffix after `<task_id>_` (`None` for
     /// the bare `<task_id>.<ext>`).
-    fn source(self, task: &Task) -> (Option<&String>, &'static str, Option<&'static str>) {
-        use MultiviewView as V;
+    fn source(self, task: &Task) -> (Option<&str>, &'static str, Option<&'static str>) {
         let out = &task.output;
         match self {
             Self::Model if task.task_type == "image_to_splat" => {
-                (out.model_url.as_ref(), "splat", None)
+                (out.model_url.as_deref(), "splat", None)
             }
-            Self::Model => (out.model_url.as_ref(), "glb", None),
-            Self::RenderedImage => (out.rendered_image_url.as_ref(), "jpg", Some("rendered")),
-            Self::GeneratedImage => (out.generated_image_url.as_ref(), "png", Some("generated")),
-            Self::View(V::Front) => (out.front_view_url.as_ref(), "png", Some("front")),
-            Self::View(V::Left) => (out.left_view_url.as_ref(), "png", Some("left")),
-            Self::View(V::Back) => (out.back_view_url.as_ref(), "png", Some("back")),
-            Self::View(V::Right) => (out.right_view_url.as_ref(), "png", Some("right")),
-            Self::SegModel => (out.seg_model_url.as_ref(), "glb", Some("seg")),
-            Self::Mask => (out.mask_url.as_ref(), "png", Some("mask")),
+            Self::Model => (out.model_url.as_deref(), "glb", None),
+            Self::RenderedImage => (out.rendered_image_url.as_deref(), "jpg", Some("rendered")),
+            Self::GeneratedImage => (out.generated_image_url.as_deref(), "png", Some("generated")),
+            Self::View(view) => (out.views.get(view), "jpg", Some(view.as_str())),
+            Self::SegModel => (out.seg_model_url.as_deref(), "glb", Some("seg")),
+            Self::Mask => (out.mask_url.as_deref(), "png", Some("mask")),
         }
     }
 }
@@ -183,7 +179,7 @@ impl Client {
             {
                 return Err(Error::FileExists(target));
             }
-            jobs.push((*kind, url.clone(), target));
+            jobs.push((*kind, url.to_owned(), target));
         }
 
         let max = opts.max_concurrency.max(1);

@@ -2,7 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+use crate::enums::MultiviewView;
 
 /// Opaque task identifier.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -124,18 +126,11 @@ pub struct TaskOutput {
     /// `image_to_image`, or the intermediate image of `text_to_model`.
     #[serde(default)]
     pub generated_image_url: Option<String>,
-    /// Front view (`image_to_multiview`).
-    #[serde(default)]
-    pub front_view_url: Option<String>,
-    /// Left view (`image_to_multiview`).
-    #[serde(default)]
-    pub left_view_url: Option<String>,
-    /// Back view (`image_to_multiview`).
-    #[serde(default)]
-    pub back_view_url: Option<String>,
-    /// Right view (`image_to_multiview`).
-    #[serde(default)]
-    pub right_view_url: Option<String>,
+    /// `image_to_multiview` views. Serialized as top-level
+    /// `<view>_view_url` fields; deserialized from those or from the v3
+    /// API's nested `generate_multiview_image` object.
+    #[serde(flatten, deserialize_with = "multiview_views")]
+    pub views: MultiviewViews,
     /// Populated by `check_riggable`.
     #[serde(default)]
     pub riggable: Option<bool>,
@@ -161,6 +156,69 @@ pub struct TaskOutput {
     /// server), kept verbatim.
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
+}
+
+/// Reads the views from the nested `generate_multiview_image` object,
+/// falling back per view to the top-level `<view>_view_url` fields.
+fn multiview_views<'de, D: Deserializer<'de>>(d: D) -> Result<MultiviewViews, D::Error> {
+    // Named fields (no inner `flatten`) so the keys consumed here are kept
+    // out of `TaskOutput::extra`.
+    #[derive(Deserialize)]
+    struct Wire {
+        #[serde(default)]
+        front_view_url: Option<String>,
+        #[serde(default)]
+        left_view_url: Option<String>,
+        #[serde(default)]
+        back_view_url: Option<String>,
+        #[serde(default)]
+        right_view_url: Option<String>,
+        #[serde(default)]
+        generate_multiview_image: Option<MultiviewViews>,
+    }
+    let w = Wire::deserialize(d)?;
+    let nested = w.generate_multiview_image.unwrap_or_default();
+    Ok(MultiviewViews {
+        front_view_url: nested.front_view_url.or(w.front_view_url),
+        left_view_url: nested.left_view_url.or(w.left_view_url),
+        back_view_url: nested.back_view_url.or(w.back_view_url),
+        right_view_url: nested.right_view_url.or(w.right_view_url),
+    })
+}
+
+/// The four views of an `image_to_multiview` result: JPEGs on a white
+/// background. Left and right follow the viewer-relative convention
+/// described on
+/// [`MultiviewToModelRequest::inputs`](crate::tasks::MultiviewToModelRequest::inputs).
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+pub struct MultiviewViews {
+    /// Front view.
+    #[serde(default)]
+    pub front_view_url: Option<String>,
+    /// Left view: the subject faces the viewer's left.
+    #[serde(default)]
+    pub left_view_url: Option<String>,
+    /// Back view.
+    #[serde(default)]
+    pub back_view_url: Option<String>,
+    /// Right view: the subject faces the viewer's right.
+    #[serde(default)]
+    pub right_view_url: Option<String>,
+}
+
+impl MultiviewViews {
+    /// URL of one view.
+    #[must_use]
+    pub fn get(&self, view: MultiviewView) -> Option<&str> {
+        match view {
+            MultiviewView::Front => &self.front_view_url,
+            MultiviewView::Left => &self.left_view_url,
+            MultiviewView::Back => &self.back_view_url,
+            MultiviewView::Right => &self.right_view_url,
+        }
+        .as_deref()
+    }
 }
 
 /// Task record returned by `GET /tasks/{id}`.

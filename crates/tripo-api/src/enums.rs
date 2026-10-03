@@ -22,6 +22,16 @@ macro_rules! string_enum {
                 $variant,
             )+
         }
+
+        impl $name {
+            /// The wire value.
+            #[must_use]
+            pub const fn as_str(self) -> &'static str {
+                match self {
+                    $(Self::$variant => $wire,)+
+                }
+            }
+        }
     };
 }
 
