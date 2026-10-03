@@ -389,3 +389,171 @@ fn mesh_decimate_body_and_endpoint() {
     assert_eq!(req.endpoint(), "mesh/decimate");
     insta::assert_json_snapshot!(json_of(&req));
 }
+
+use tripo_api::{
+    EditMultiviewRequest, ImageBackground, ImageOutputFormat, ImageQuality, ImageToImageRequest,
+    ImageToImageTemplate, ImageToMultiviewRequest, MultiviewEdit, MultiviewView,
+    TextToImageRequest, TextToImageTemplate, versions,
+};
+
+#[test]
+fn text_to_image_minimal() {
+    let req = TaskRequest::TextToImage(TextToImageRequest {
+        prompt: "a glass sneaker".into(),
+        ..Default::default()
+    });
+    assert_eq!(req.endpoint(), "generation/text-to-image");
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "prompt": "a glass sneaker"
+    }
+    "###);
+}
+
+#[test]
+fn text_to_image_seedream_full() {
+    let req = TaskRequest::TextToImage(TextToImageRequest {
+        prompt: "a knight".into(),
+        model: Some(versions::image::SEEDREAM_V5.into()),
+        size: Some("2K".into()),
+        aspect_ratio: Some("3:2".into()),
+        output_format: Some(ImageOutputFormat::Jpeg),
+        watermark: Some(false),
+        template: Some(TextToImageTemplate::AssetExtraction),
+        ..Default::default()
+    });
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "aspect_ratio": "3:2",
+      "model": "seedream_v5",
+      "output_format": "jpeg",
+      "prompt": "a knight",
+      "size": "2K",
+      "template": "asset_extraction",
+      "watermark": false
+    }
+    "###);
+}
+
+#[test]
+fn text_to_image_chat_image_2_5_quality_background() {
+    let req = TaskRequest::TextToImage(TextToImageRequest {
+        prompt: "a game icon".into(),
+        model: Some(versions::image::CHAT_IMAGE_2_5_FLARE.into()),
+        size: Some("1536x1024".into()),
+        quality: Some(ImageQuality::Xhigh),
+        background: Some(ImageBackground::Transparent),
+        output_format: Some(ImageOutputFormat::Png),
+        ..Default::default()
+    });
+    req.validate().unwrap();
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "background": "transparent",
+      "model": "chat_image_2.5_flare",
+      "output_format": "png",
+      "prompt": "a game icon",
+      "quality": "xhigh",
+      "size": "1536x1024"
+    }
+    "###);
+}
+
+#[test]
+fn image_to_image_single_input() {
+    let req = TaskRequest::ImageToImage(ImageToImageRequest {
+        input: Some(ImageInput::Url(
+            "https://example.com/reference.png".parse().unwrap(),
+        )),
+        prompt: Some("make the outfit glass".into()),
+        model: Some(versions::image::CHAT_IMAGE_2_5_SUNBURST.into()),
+        quality: Some(ImageQuality::Max),
+        background: Some(ImageBackground::Opaque),
+        output_format: Some(ImageOutputFormat::Jpeg),
+        ..Default::default()
+    });
+    assert_eq!(req.endpoint(), "generation/image-to-image");
+    req.validate().unwrap();
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "background": "opaque",
+      "input": "https://example.com/reference.png",
+      "model": "chat_image_2.5_sunburst",
+      "output_format": "jpeg",
+      "prompt": "make the outfit glass",
+      "quality": "max"
+    }
+    "###);
+}
+
+#[test]
+fn image_to_image_multi_input_template() {
+    let req = TaskRequest::ImageToImage(ImageToImageRequest {
+        inputs: Some(vec![
+            ImageInput::FileToken("file_a".into()),
+            ImageInput::FileToken("task_b".into()),
+        ]),
+        template: Some(ImageToImageTemplate::Enhance3d),
+        size: Some("2048x2048".into()),
+        aspect_ratio: Some("1:1".into()),
+        ..Default::default()
+    });
+    req.validate().unwrap();
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "aspect_ratio": "1:1",
+      "inputs": [
+        "file_a",
+        "task_b"
+      ],
+      "size": "2048x2048",
+      "template": "3d_enhance"
+    }
+    "###);
+}
+
+#[test]
+fn image_to_multiview_body_and_endpoint() {
+    let req = TaskRequest::ImageToMultiview(ImageToMultiviewRequest {
+        input: ImageInput::Url("https://example.com/character.png".parse().unwrap()),
+    });
+    assert_eq!(req.endpoint(), "generation/image-to-multiview");
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "input": "https://example.com/character.png"
+    }
+    "###);
+}
+
+#[test]
+fn edit_multiview_body_and_endpoint() {
+    let req = TaskRequest::EditMultiview(EditMultiviewRequest {
+        input: ImageInput::FileToken("task_abc123".into()),
+        prompts: vec![
+            MultiviewEdit {
+                prompt: "change the shirt color to red".into(),
+                view: MultiviewView::Front,
+            },
+            MultiviewEdit {
+                prompt: "add a logo on the back".into(),
+                view: MultiviewView::Back,
+            },
+        ],
+    });
+    assert_eq!(req.endpoint(), "generation/edit-multiview");
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "input": "task_abc123",
+      "prompts": [
+        {
+          "prompt": "change the shirt color to red",
+          "view": "front"
+        },
+        {
+          "prompt": "add a logo on the back",
+          "view": "back"
+        }
+      ]
+    }
+    "###);
+}

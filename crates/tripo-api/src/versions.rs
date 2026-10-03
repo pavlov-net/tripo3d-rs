@@ -37,6 +37,48 @@ pub mod multiview {
     pub const DEFAULT: &str = V3_1;
 }
 
+/// Models accepted by `generation/text-to-image` and `generation/image-to-image`.
+/// [`image::SEEDREAM_V4`] is documented for text-to-image only.
+///
+/// The two endpoints have different server defaults:
+/// [`image::TEXT_TO_IMAGE_DEFAULT`] and [`image::IMAGE_TO_IMAGE_DEFAULT`].
+pub mod image {
+    /// Seedream v5. Strongest prompt following, editing, and multi-image fusion.
+    pub const SEEDREAM_V5: &str = "seedream_v5";
+    /// Seedream v4. Balanced text-to-image model. The image-to-image docs do
+    /// not list it; prefer [`SEEDREAM_V5`] there.
+    pub const SEEDREAM_V4: &str = "seedream_v4";
+    /// Banana. Fast generation.
+    pub const BANANA: &str = "banana";
+    /// Banana Pro. Higher quality than [`BANANA`].
+    pub const BANANA_PRO: &str = "banana_pro";
+    /// Banana 2. Latest fast option; supports extra extreme aspect ratios.
+    pub const BANANA2: &str = "banana2";
+    /// GPT Image 1. Tripo retires this model on 2026-10-23.
+    #[deprecated(
+        note = "Tripo retires chat_image_1 on 2026-10-23; use CHAT_IMAGE_2 or a 2.5 model"
+    )]
+    pub const CHAT_IMAGE_1: &str = "chat_image_1";
+    /// GPT Image 1.5. Tripo retires this model on 2026-12-01.
+    #[deprecated(
+        note = "Tripo retires chat_image_1.5 on 2026-12-01; use CHAT_IMAGE_2 or a 2.5 model"
+    )]
+    pub const CHAT_IMAGE_1_5: &str = "chat_image_1.5";
+    /// GPT Image 2. Accepts `quality` `low` / `medium` / `high` and custom
+    /// `WIDTHxHEIGHT` sizes.
+    pub const CHAT_IMAGE_2: &str = "chat_image_2";
+    /// GPT Image 2.5, speed tier. Same cost as [`CHAT_IMAGE_2_5_SUNBURST`],
+    /// noticeably faster. Accepts all five `quality` tiers and `background`.
+    pub const CHAT_IMAGE_2_5_FLARE: &str = "chat_image_2.5_flare";
+    /// GPT Image 2.5, fidelity tier. Best at preserving untouched regions when
+    /// editing. Accepts all five `quality` tiers and `background`.
+    pub const CHAT_IMAGE_2_5_SUNBURST: &str = "chat_image_2.5_sunburst";
+    /// Server default for `generation/text-to-image`.
+    pub const TEXT_TO_IMAGE_DEFAULT: &str = SEEDREAM_V4;
+    /// Server default for `generation/image-to-image`.
+    pub const IMAGE_TO_IMAGE_DEFAULT: &str = SEEDREAM_V5;
+}
+
 /// Texture model versions. Accepted as `model` on `models/texture` and as
 /// `texture_version` on the generation endpoints (`generation/text-to-model`,
 /// `image-to-model`, `multiview-to-model`), where it pins the texture model

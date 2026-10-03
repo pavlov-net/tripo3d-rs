@@ -16,7 +16,12 @@ async fn tool_list_snapshot() {
         .filter(|t| {
             matches!(
                 t.name.as_ref(),
-                "get_balance" | "get_usage" | "list_tasks" | "wait_for_task" | "text_to_model"
+                "get_balance"
+                    | "get_usage"
+                    | "list_tasks"
+                    | "wait_for_task"
+                    | "text_to_model"
+                    | "text_to_image"
             )
         })
         .collect();

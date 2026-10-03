@@ -221,10 +221,10 @@ impl TripoServer {
         Ok(Json(task))
     }
 
-    /// Download a task's output models into a local directory.
+    /// Download a task's output files into a local directory.
     #[tool(
         name = "download_task_models",
-        description = "Download a completed task's output models into a local directory.",
+        description = "Download a completed task's output files (models, generated images, multiview views) into a local directory.",
         annotations(
             title = "Download Task Models",
             read_only_hint = false,
@@ -321,6 +321,102 @@ impl TripoServer {
         let id = self
             .client
             .create_task(tripo_api::tasks::TaskRequest::MultiviewToModel(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Generate an image from a text prompt.
+    #[tool(
+        name = "text_to_image",
+        description = "Generate an image from a text prompt. Models include seedream, banana, and chat_image (GPT Image 2/2.5). Result: output.generated_image_url.",
+        annotations(
+            title = "Text \u{2192} Image",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn text_to_image(
+        &self,
+        Parameters(req): Parameters<tripo_api::TextToImageRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::TextToImage(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Edit or combine reference images.
+    #[tool(
+        name = "image_to_image",
+        description = "Edit or combine reference images (input and/or inputs: URL, file token, task id, or local path). prompt is required unless template is set. Result: output.generated_image_url.",
+        annotations(
+            title = "Image \u{2192} Image",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn image_to_image(
+        &self,
+        Parameters(req): Parameters<tripo_api::ImageToImageRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::ImageToImage(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Render four views of a single image.
+    #[tool(
+        name = "image_to_multiview",
+        description = "Render front, left, back, and right views of a single image (URL, file token, local path, or task id of a prior text_to_image/image_to_image task). Results: output.{front,left,back,right}_view_url.",
+        annotations(
+            title = "Image \u{2192} Multiview",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn image_to_multiview(
+        &self,
+        Parameters(req): Parameters<tripo_api::ImageToMultiviewRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::ImageToMultiview(req))
+            .await
+            .map_err(to_error_data)?;
+        Ok(Json(params::TaskCreated { task_id: id }))
+    }
+
+    /// Apply per-view edits to a multiview image.
+    #[tool(
+        name = "edit_multiview",
+        description = "Edit a multiview image (task id of an image_to_multiview or edit_multiview task; file token, URL, or local path are documented but the service currently accepts only a task id) with at most one prompt per view: front/left/back/right.",
+        annotations(
+            title = "Edit Multiview",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn edit_multiview(
+        &self,
+        Parameters(req): Parameters<tripo_api::EditMultiviewRequest>,
+    ) -> Result<Json<params::TaskCreated>, ErrorData> {
+        let id = self
+            .client
+            .create_task(tripo_api::tasks::TaskRequest::EditMultiview(req))
             .await
             .map_err(to_error_data)?;
         Ok(Json(params::TaskCreated { task_id: id }))
@@ -574,7 +670,7 @@ impl ServerHandler for TripoServer {
             .with_protocol_version(ProtocolVersion::V_2026_07_28)
             .with_server_info(Implementation::from_build_env())
             .with_instructions(
-                "Tools for submitting, polling, downloading, and managing Tripo 3D generation tasks."
+                "Tools for submitting, polling, downloading, and managing Tripo 3D and image generation tasks."
                     .to_string(),
             )
     }

@@ -410,3 +410,58 @@ async fn calls_get_usage() {
     assert_eq!(out["records"][0]["task_id"], "abc");
     assert_eq!(out["records"][0]["credits_consumed"], 100.0);
 }
+
+#[tokio::test]
+async fn calls_image_generation_tools() {
+    let server = MockServer::start().await;
+    let client = start_server(&server).await;
+    for (name, argv) in [
+        (
+            "text_to_image",
+            json!({"prompt":"icon","model":"chat_image_2.5_sunburst","quality":"max","background":"transparent"}),
+        ),
+        (
+            "image_to_image",
+            json!({"inputs":["https://e/a.png","file_b"],"prompt":"merge image[1] and image[2]"}),
+        ),
+        ("image_to_multiview", json!({"input":"https://e/a.png"})),
+        (
+            "edit_multiview",
+            json!({"input":"task_mv","prompts":[{"prompt":"red shirt","view":"front"}]}),
+        ),
+    ] {
+        Mock::given(method("POST"))
+            .and(path(format!("/generation/{}", name.replace('_', "-"))))
+            .and(wiremock::matchers::body_json(argv.clone()))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code":0,"data":{"task_id":"img"}
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+        let r = client
+            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
+            .await
+            .unwrap();
+        assert_ne!(r.is_error, Some(true), "{name}: {r:?}");
+        assert!(format!("{r:?}").contains("img"), "{name}: {r:?}");
+    }
+}
+
+#[tokio::test]
+async fn image_tool_validation_errors_before_submit() {
+    let server = MockServer::start().await;
+    let client = start_server(&server).await;
+    let r = client
+        .call_tool(
+            CallToolRequestParams::new("text_to_image").with_arguments(args(
+                json!({"prompt":"x","model":"seedream_v4","quality":"high"}),
+            )),
+        )
+        .await;
+    assert!(
+        format!("{r:?}").contains("does not accept quality"),
+        "{r:?}"
+    );
+    assert!(server.received_requests().await.unwrap().is_empty());
+}

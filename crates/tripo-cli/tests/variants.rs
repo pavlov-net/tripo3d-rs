@@ -545,3 +545,196 @@ async fn text_to_model_wait_output_end_to_end() {
         .success();
     assert_eq!(std::fs::read(dir.path().join("abc.glb")).unwrap(), b"glb");
 }
+
+fn tripo(server: &MockServer) -> Command {
+    let mut cmd = Command::cargo_bin("tripo").unwrap();
+    cmd.args(["--api-key", "tsk_test", "--base-url", &server.uri()]);
+    cmd
+}
+
+async fn expect_create(server: &MockServer, endpoint: &str, body: serde_json::Value) {
+    Mock::given(method("POST"))
+        .and(path(format!("/generation/{endpoint}")))
+        .and(body_partial_json(body))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"img"}})),
+        )
+        .expect(1)
+        .mount(server)
+        .await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn text_to_image_chat_image_2_5_options() {
+    let server = MockServer::start().await;
+    expect_create(
+        &server,
+        "text-to-image",
+        serde_json::json!({
+            "prompt": "a game icon", "model": "chat_image_2.5_flare", "size": "1536x1024",
+            "quality": "xhigh", "background": "transparent", "output_format": "png",
+            "template": "asset_extraction"
+        }),
+    )
+    .await;
+    tripo(&server)
+        .args(["text-to-image", "--prompt", "a game icon"])
+        .args(["--model", "chat_image_2.5_flare", "--size", "1536x1024"])
+        .args(["--quality", "xhigh", "--background", "transparent"])
+        .args(["--output-format", "png", "--template", "asset_extraction"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("img"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn text_to_image_rejects_invalid_request_before_submit() {
+    let server = MockServer::start().await;
+    tripo(&server)
+        .args(["text-to-image", "--prompt", "x"])
+        .args(["--model", "seedream_v4", "--quality", "high"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("does not accept quality"));
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn image_to_image_single_and_multiple_inputs() {
+    let server = MockServer::start().await;
+    expect_create(
+        &server,
+        "image-to-image",
+        serde_json::json!({"input": "https://e/a.png", "prompt": "glass outfit"}),
+    )
+    .await;
+    expect_create(
+        &server,
+        "image-to-image",
+        serde_json::json!({
+            "inputs": ["https://e/a.png", "file_b"], "template": "3d_enhance",
+            "model": "banana", "aspect_ratio": "16:9"
+        }),
+    )
+    .await;
+    tripo(&server)
+        .args(["image-to-image", "--input", "https://e/a.png"])
+        .args(["--prompt", "glass outfit"])
+        .assert()
+        .success();
+    tripo(&server)
+        .args([
+            "image-to-image",
+            "--input",
+            "https://e/a.png",
+            "--input",
+            "file_b",
+        ])
+        .args(["--template", "3d_enhance", "--model", "banana"])
+        .args(["--aspect-ratio", "16:9"])
+        .assert()
+        .success();
+    let bodies: Vec<serde_json::Value> = server
+        .received_requests()
+        .await
+        .unwrap()
+        .iter()
+        .map(|r| r.body_json().unwrap())
+        .collect();
+    assert!(bodies[0].get("inputs").is_none());
+    assert!(bodies[1].get("input").is_none());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn image_to_image_requires_prompt_or_template() {
+    let server = MockServer::start().await;
+    tripo(&server)
+        .args(["image-to-image", "--input", "https://e/a.png"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("--prompt"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn image_to_multiview_uploads_and_downloads_views() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/files"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0,"data":{"file_token":"file_src"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    expect_create(
+        &server,
+        "image-to-multiview",
+        serde_json::json!({"input": "file_src"}),
+    )
+    .await;
+    let view = |v: &str| format!("{}/cdn/{v}.png", server.uri());
+    Mock::given(method("GET"))
+        .and(path("/tasks/img"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0,"data":{"task_id":"img","type":"image_to_multiview","status":"success",
+            "progress":100,"output":{
+                "front_view_url": view("front"), "left_view_url": view("left"),
+                "back_view_url": view("back"), "right_view_url": view("right")
+            }}
+        })))
+        .mount(&server)
+        .await;
+    for v in ["front", "left", "back", "right"] {
+        Mock::given(method("GET"))
+            .and(path(format!("/cdn/{v}.png")))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(v.as_bytes()))
+            .expect(1)
+            .mount(&server)
+            .await;
+    }
+
+    let src = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(src.path(), b"png").unwrap();
+    let out = tempfile::tempdir().unwrap();
+    tripo(&server)
+        .args([
+            "image-to-multiview",
+            "--input",
+            src.path().to_str().unwrap(),
+        ])
+        .args(["--output", out.path().to_str().unwrap()])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("img_front.png"));
+    for v in ["front", "left", "back", "right"] {
+        let bytes = std::fs::read(out.path().join(format!("img_{v}.png"))).unwrap();
+        assert_eq!(bytes, v.as_bytes());
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn edit_multiview_orders_per_view_prompts() {
+    let server = MockServer::start().await;
+    expect_create(
+        &server,
+        "edit-multiview",
+        serde_json::json!({
+            "input": "task_mv",
+            "prompts": [
+                {"prompt": "red shirt", "view": "front"},
+                {"prompt": "add a logo", "view": "back"}
+            ]
+        }),
+    )
+    .await;
+    tripo(&server)
+        .args(["edit-multiview", "--input", "task_mv"])
+        .args(["--back", "add a logo", "--front", "red shirt"])
+        .assert()
+        .success();
+    tripo(&server)
+        .args(["edit-multiview", "--input", "task_mv"])
+        .assert()
+        .code(2);
+}

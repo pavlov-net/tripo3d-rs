@@ -77,6 +77,33 @@ assert!(req.validate().is_ok());
 `versions::texture::V3_5` and `TextureQuality::Fast` for which fields need it
 and what the server assumes when it is omitted.
 
+### Image generation
+
+`TaskRequest::TextToImage`, `ImageToImage`, `ImageToMultiview`, and
+`EditMultiview` cover the v3 image endpoints. Model names live in
+`versions::image`; the server defaults are `seedream_v4` for text-to-image and
+`seedream_v5` for image-to-image; `seedream_v4` is documented for
+text-to-image only.
+[`ImageQuality`](https://docs.rs/tripo-api/latest/tripo_api/enums/enum.ImageQuality.html)
+and
+[`ImageBackground`](https://docs.rs/tripo-api/latest/tripo_api/enums/enum.ImageBackground.html)
+document which models accept them. When `model` is set, `validate()` rejects
+combinations the server would refuse:
+
+- `quality` on a model that does not accept it, or `xhigh`/`max` on
+  `chat_image_2`.
+- `background: Transparent` with `output_format: Jpeg` on a 2.5 model.
+- Custom `WIDTHxHEIGHT` sizes outside the `chat_image_2` / 2.5 limits.
+- Image-to-image without `input`/`inputs`, without `prompt` or `template`, or
+  with more `inputs` than the model allows (4 seedream, 10 banana, 16
+  `chat_image`).
+- Edit-multiview without prompts, or with more than 4.
+
+An unset or unrecognized model skips the model-specific checks. Finished image
+tasks report `output.generated_image_url`; image-to-multiview reports
+`output.{front,left,back,right}_view_url`. `download_task_models` saves all of
+them.
+
 ## License
 
 MIT

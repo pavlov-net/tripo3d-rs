@@ -62,3 +62,9 @@ pub fn export_orientation(s: &str) -> Result<ExportOrientation, String> {
         o => return Err(format!("invalid orientation `{o}`")),
     })
 }
+
+/// Parse any wire-named `tripo_api` enum through its serde representation, so
+/// the accepted spellings match the API exactly.
+pub fn wire_enum<T: serde::de::DeserializeOwned>(s: &str) -> Result<T, String> {
+    serde_json::from_value(serde_json::Value::String(s.to_owned())).map_err(|e| e.to_string())
+}

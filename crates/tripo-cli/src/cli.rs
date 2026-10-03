@@ -88,6 +88,14 @@ pub enum Command {
     ImageToModel(crate::commands::variants::ImageToModelArgs),
     /// Generate a 3D model from multi-view images.
     MultiviewToModel(crate::commands::variants::MultiviewToModelArgs),
+    /// Generate an image from a text prompt.
+    TextToImage(crate::commands::variants::TextToImageArgs),
+    /// Edit or combine reference images.
+    ImageToImage(crate::commands::variants::ImageToImageArgs),
+    /// Render front/left/back/right views of an image.
+    ImageToMultiview(crate::commands::variants::ImageToMultiviewArgs),
+    /// Edit individual views of a multiview image.
+    EditMultiview(crate::commands::variants::EditMultiviewArgs),
     /// Convert a model to a different file format.
     ConvertModel(crate::commands::variants::ConvertModelArgs),
     /// Apply a stylization preset to a model.

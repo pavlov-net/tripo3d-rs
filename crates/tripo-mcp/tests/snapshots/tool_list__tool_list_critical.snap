@@ -291,11 +291,15 @@ expression: "serde_json::to_value(&critical).unwrap()"
             "output": {
               "$ref": "#/$defs/TaskOutput",
               "default": {
+                "back_view_url": null,
+                "front_view_url": null,
                 "generated_image_url": null,
+                "left_view_url": null,
                 "model_url": null,
                 "rendered_image_url": null,
                 "rig_type": null,
-                "riggable": null
+                "riggable": null,
+                "right_view_url": null
               },
               "description": "Output URLs and flags."
             },
@@ -351,9 +355,33 @@ expression: "serde_json::to_value(&critical).unwrap()"
           "additionalProperties": true,
           "description": "Download URLs and auxiliary output fields returned on the task object.",
           "properties": {
+            "back_view_url": {
+              "default": null,
+              "description": "Back view (`image_to_multiview`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "front_view_url": {
+              "default": null,
+              "description": "Front view (`image_to_multiview`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "generated_image_url": {
               "default": null,
-              "description": "URL for the intermediate generated image (`text_to_model` only).",
+              "description": "URL for a generated image: the result of `text_to_image` /\n`image_to_image`, or the intermediate image of `text_to_model`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "left_view_url": {
+              "default": null,
+              "description": "Left view (`image_to_multiview`).",
               "type": [
                 "string",
                 "null"
@@ -392,6 +420,14 @@ expression: "serde_json::to_value(&critical).unwrap()"
               "description": "Populated by `check_riggable`.",
               "type": [
                 "boolean",
+                "null"
+              ]
+            },
+            "right_view_url": {
+              "default": null,
+              "description": "Right view (`image_to_multiview`).",
+              "type": [
+                "string",
                 "null"
               ]
             }
@@ -464,6 +500,219 @@ expression: "serde_json::to_value(&critical).unwrap()"
       "required": [
         "tasks",
         "missed"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Text → Image"
+    },
+    "description": "Generate an image from a text prompt. Models include seedream, banana, and chat_image (GPT Image 2/2.5). Result: output.generated_image_url.",
+    "inputSchema": {
+      "$defs": {
+        "ImageBackground": {
+          "description": "Background handling for image generation (`background`). Honored only\nby the `chat_image_2.5_*` models; other models ignore it. `transparent`\nrequires `output_format` `png`.",
+          "oneOf": [
+            {
+              "const": "auto",
+              "description": "Wire value: `auto`.",
+              "type": "string"
+            },
+            {
+              "const": "opaque",
+              "description": "Wire value: `opaque`.",
+              "type": "string"
+            },
+            {
+              "const": "transparent",
+              "description": "Wire value: `transparent`.\nRequires `output_format` `png`.",
+              "type": "string"
+            }
+          ]
+        },
+        "ImageOutputFormat": {
+          "description": "Output image file format (`output_format`) for image generation.",
+          "oneOf": [
+            {
+              "const": "png",
+              "description": "Wire value: `png`.",
+              "type": "string"
+            },
+            {
+              "const": "jpeg",
+              "description": "Wire value: `jpeg`.",
+              "type": "string"
+            }
+          ]
+        },
+        "ImageQuality": {
+          "description": "Rendering tier for image generation (`quality`).\n\nOnly `chat_image_2` (`low`/`medium`/`high`) and the two\n`chat_image_2.5_*` models (all tiers) accept it. Omitting it is\nequivalent to `low`. `high`, `xhigh`, and `max` cost more credits and\ntake longer.",
+          "oneOf": [
+            {
+              "const": "low",
+              "description": "Wire value: `low`.",
+              "type": "string"
+            },
+            {
+              "const": "medium",
+              "description": "Wire value: `medium`.",
+              "type": "string"
+            },
+            {
+              "const": "high",
+              "description": "Wire value: `high`.",
+              "type": "string"
+            },
+            {
+              "const": "xhigh",
+              "description": "Wire value: `xhigh`.",
+              "type": "string"
+            },
+            {
+              "const": "max",
+              "description": "Wire value: `max`.",
+              "type": "string"
+            }
+          ]
+        },
+        "TextToImageTemplate": {
+          "description": "Generation template for `generation/text-to-image`.",
+          "oneOf": [
+            {
+              "const": "asset_extraction",
+              "description": "Wire value: `asset_extraction`.\nExtract a subject from a scene.",
+              "type": "string"
+            },
+            {
+              "const": "character_completion",
+              "description": "Wire value: `character_completion`.\nComplete a partial character.",
+              "type": "string"
+            },
+            {
+              "const": "t_pose",
+              "description": "Wire value: `t_pose`.\nGenerate a character in T-pose.",
+              "type": "string"
+            },
+            {
+              "const": "variants",
+              "description": "Wire value: `variants`.\nGenerate design variations.",
+              "type": "string"
+            },
+            {
+              "const": "figure",
+              "description": "Wire value: `figure`.\nGenerate a full-body figure.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "aspect_ratio": {
+          "description": "Aspect ratio such as `16:9`. Banana models only; others use `size`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "background": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageBackground"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Background handling; model support in [`ImageBackground`]."
+        },
+        "model": {
+          "description": "Image model; see `versions::image`. Server default: `seedream_v4`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "output_format": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageOutputFormat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Output file format. Server default: `png`."
+        },
+        "prompt": {
+          "description": "Prompt text. Required, even with `template`. Append negative prompts\nafter `--no`.",
+          "type": "string"
+        },
+        "quality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageQuality"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Rendering tier; model support and cost in [`ImageQuality`]."
+        },
+        "size": {
+          "description": "Output size: a keyword (`2K`, `4K`) or `WIDTHxHEIGHT`. Supported\nvalues vary by model. Server default: `2048x2048`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "template": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextToImageTemplate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Generation template."
+        },
+        "watermark": {
+          "description": "Add an AI-generated-content watermark. Effective for seedream only.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "type": "object"
+    },
+    "name": "text_to_image",
+    "outputSchema": {
+      "$defs": {
+        "TaskId": {
+          "description": "Opaque task identifier.",
+          "type": "string"
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "task_id": {
+          "$ref": "#/$defs/TaskId",
+          "description": "Identifier of the newly created task."
+        }
+      },
+      "required": [
+        "task_id"
       ],
       "type": "object"
     }
@@ -848,9 +1097,33 @@ expression: "serde_json::to_value(&critical).unwrap()"
           "additionalProperties": true,
           "description": "Download URLs and auxiliary output fields returned on the task object.",
           "properties": {
+            "back_view_url": {
+              "default": null,
+              "description": "Back view (`image_to_multiview`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "front_view_url": {
+              "default": null,
+              "description": "Front view (`image_to_multiview`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "generated_image_url": {
               "default": null,
-              "description": "URL for the intermediate generated image (`text_to_model` only).",
+              "description": "URL for a generated image: the result of `text_to_image` /\n`image_to_image`, or the intermediate image of `text_to_model`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "left_view_url": {
+              "default": null,
+              "description": "Left view (`image_to_multiview`).",
               "type": [
                 "string",
                 "null"
@@ -889,6 +1162,14 @@ expression: "serde_json::to_value(&critical).unwrap()"
               "description": "Populated by `check_riggable`.",
               "type": [
                 "boolean",
+                "null"
+              ]
+            },
+            "right_view_url": {
+              "default": null,
+              "description": "Right view (`image_to_multiview`).",
+              "type": [
+                "string",
                 "null"
               ]
             }
@@ -991,11 +1272,15 @@ expression: "serde_json::to_value(&critical).unwrap()"
         "output": {
           "$ref": "#/$defs/TaskOutput",
           "default": {
+            "back_view_url": null,
+            "front_view_url": null,
             "generated_image_url": null,
+            "left_view_url": null,
             "model_url": null,
             "rendered_image_url": null,
             "rig_type": null,
-            "riggable": null
+            "riggable": null,
+            "right_view_url": null
           },
           "description": "Output URLs and flags."
         },

@@ -36,7 +36,7 @@ pub enum TaskCommand {
         #[arg(long)]
         timeout: Option<u64>,
     },
-    /// Download a task's output models into `--output`.
+    /// Download a task's output files (models, images, views) into `--output`.
     Download {
         /// Task identifier.
         task_id: String,
