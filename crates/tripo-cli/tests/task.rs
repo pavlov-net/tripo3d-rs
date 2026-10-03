@@ -86,7 +86,8 @@ async fn task_wait_non_success_exit_6() {
     Mock::given(method("GET"))
         .and(path("/tasks/abc"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"failed","progress":100,"created_at":"2026-01-01T00:00:00Z"}
+            "code":0,"data":{"task_id":"abc","type":"text_to_model","status":"failed","progress":100,"created_at":"2026-01-01T00:00:00Z",
+                     "error_code":2018,"error_message":"model too complex"}
         })))
         .mount(&server)
         .await;
@@ -104,7 +105,11 @@ async fn task_wait_non_success_exit_6() {
         ])
         .assert()
         .failure()
-        .code(6);
+        .code(6)
+        .stdout(predicate::str::contains(r#""error_code": 2018"#))
+        .stderr(predicate::str::contains(
+            "ended with status Failed (error 2018: model too complex)",
+        ));
 }
 
 #[tokio::test(flavor = "current_thread")]

@@ -66,7 +66,8 @@ impl Client {
     /// Poll `GET /tasks/{id}` until the status is terminal or `opts.timeout` is reached.
     ///
     /// Returns the final `Task` even for non-success terminal statuses; callers can check
-    /// `task.status`. Use `Error::WaitTimeout` if you want an error on timeout (returned here).
+    /// `task.status` and `error_code` / `error_message`, or convert it with
+    /// [`Error::task_failed`]. Returns `Error::WaitTimeout` when `opts.timeout` elapses.
     #[tracing::instrument(skip(self, opts), fields(task_id = %id))]
     pub async fn wait_for_task(&self, id: &TaskId, opts: WaitOptions) -> Result<Task> {
         let started = Instant::now();
@@ -112,6 +113,8 @@ mod tests {
             input: BTreeMap::new(),
             output: TaskOutput::default(),
             progress: 0,
+            error_code: None,
+            error_message: None,
             created_at: String::new(),
             completed_at: None,
             credits_consumed: None,

@@ -111,7 +111,7 @@ pub async fn run_variant<A: VariantArgs>(g: &GlobalArgs, mut args: A) -> Result<
     if task.status != TaskStatus::Success {
         serde_json::to_writer_pretty(std::io::stdout(), &task)?;
         println!();
-        return Err(tripo_api::Error::TaskFailed(task.task_id.clone(), task.status).into());
+        return Err(tripo_api::Error::task_failed(&task).into());
     }
 
     if let Some(dir) = opts.output.as_ref() {

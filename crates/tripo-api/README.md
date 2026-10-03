@@ -19,6 +19,15 @@ client.download_task_models(&task, std::path::Path::new("./out"), Default::defau
 # }
 ```
 
+## Task results
+
+`wait_for_task` returns the final `Task` for every terminal status. Failed
+tasks may carry `error_code` and `error_message` (the legacy `error_msg`
+spelling is accepted); `Error::task_failed(&task)` turns a non-success task
+into an error that includes them. Status strings this crate does not know
+decode as `TaskStatus::Unknown`, and output fields without a typed accessor
+are kept in `TaskOutput::extra`.
+
 ## Features
 
 - `schemars` (default off): derive `schemars::JsonSchema` on public types.

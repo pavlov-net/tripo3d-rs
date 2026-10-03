@@ -74,3 +74,27 @@ async fn times_out() {
         .unwrap_err();
     assert!(matches!(err, tripo_api::Error::WaitTimeout(_)));
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn failed_task_carries_server_detail() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET")).and(path("/tasks/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0, "data":{"task_id":"abc","type":"text_to_model","status":"failed","progress":0,
+                              "created_at":"2026-01-01T00:00:00Z","error_code":2018,"error_message":"model too complex"}
+        })))
+        .mount(&server).await;
+
+    let task = client(&server)
+        .wait_for_task(&TaskId::new("abc"), WaitOptions::default())
+        .await
+        .unwrap();
+    assert_eq!(task.status, TaskStatus::Failed);
+    assert_eq!(task.error_code, Some(2018));
+    let err = tripo_api::Error::task_failed(&task);
+    assert!(matches!(
+        &err,
+        tripo_api::Error::TaskFailed { error_code: Some(2018), error_message: Some(m), .. } if m == "model too complex"
+    ));
+    assert!(err.to_string().ends_with("(error 2018: model too complex)"));
+}
