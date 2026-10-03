@@ -7,7 +7,7 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 mod common;
-use common::{args, start_server, start_server_with};
+use common::{args, call_err, call_ok, start_server, start_server_with};
 
 #[tokio::test]
 async fn calls_get_balance() {
@@ -48,10 +48,7 @@ async fn calls_mesh_seg_completion_decimate() {
         ),
         ("mesh_decimate", json!({"input":"task_m","face_limit":2000})),
     ] {
-        let r = client
-            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
-            .await;
-        assert!(r.is_ok(), "{name} failed: {r:?}");
+        call_ok(&client, name, argv).await;
     }
 }
 
@@ -77,10 +74,7 @@ async fn calls_texture_refine_rigcheck_rig_retarget() {
             json!({"input":"task_m","animation":"preset:walk"}),
         ),
     ] {
-        let r = client
-            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
-            .await;
-        assert!(r.is_ok(), "{name} failed: {r:?}");
+        call_ok(&client, name, argv).await;
     }
 }
 
@@ -105,10 +99,7 @@ async fn calls_image_multiview_convert_stylize() {
             json!({"original_model_task_id":"task_m","style":"voxel"}),
         ),
     ] {
-        let r = client
-            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
-            .await;
-        assert!(r.is_ok(), "{name} failed: {r:?}");
+        call_ok(&client, name, argv).await;
     }
 }
 
@@ -149,10 +140,7 @@ async fn calls_import_splat_smart_segment() {
             json!({"seg_type":"image","input":"file_x","granularity":"coarse"}),
         ),
     ] {
-        let r = client
-            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
-            .await;
-        assert!(r.is_ok(), "{name} failed: {r:?}");
+        call_ok(&client, name, argv).await;
     }
 }
 
@@ -160,15 +148,15 @@ async fn calls_import_splat_smart_segment() {
 async fn smart_segment_model_without_transform_errors() {
     let server = MockServer::start().await;
     let client = start_server(&server).await;
-    let r = client
-        .call_tool(
-            CallToolRequestParams::new("mesh_smart_segment")
-                .with_arguments(args(json!({"seg_type":"model","input":"https://e/m.glb"}))),
-        )
-        .await;
+    let text = call_err(
+        &client,
+        "mesh_smart_segment",
+        json!({"seg_type":"model","input":"https://e/m.glb"}),
+    )
+    .await;
     assert!(
-        format!("{r:?}").contains("transform"),
-        "expected transform error, got {r:?}"
+        text.starts_with("invalid request:") && text.contains("transform"),
+        "{text}"
     );
     assert!(server.received_requests().await.unwrap().is_empty());
 }
@@ -234,6 +222,34 @@ async fn calls_download_task_models() {
         .unwrap();
     assert!(format!("{result:?}").contains("abc.glb"));
     assert_eq!(std::fs::read(dir.path().join("abc.glb")).unwrap(), b"glb");
+}
+
+#[tokio::test]
+async fn download_over_existing_file_points_at_overwrite() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/tasks/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{
+                "task_id":"abc","type":"text_to_model","status":"success","progress":100,"created_at":"2026-01-01T00:00:00Z",
+                "output":{"model_url": format!("{}/files/abc.glb", server.uri())}
+            }
+        })))
+        .mount(&server)
+        .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("abc.glb"), b"keep").unwrap();
+    let client = start_server(&server).await;
+    let text = call_err(
+        &client,
+        "download_task_models",
+        json!({"task_id":"abc","output_dir": dir.path()}),
+    )
+    .await;
+    assert!(text.starts_with("file already exists: "), "{text}");
+    assert!(text.contains("`overwrite`"), "{text}");
 }
 
 #[tokio::test]
@@ -439,13 +455,8 @@ async fn calls_list_tasks() {
 async fn list_tasks_over_limit_is_tool_error() {
     let client = start_server_with("http://127.0.0.1:1/").await;
     let ids: Vec<String> = (0..=100).map(|i| format!("t{i}")).collect();
-    let err = client
-        .call_tool(
-            CallToolRequestParams::new("list_tasks").with_arguments(args(json!({"task_ids":ids}))),
-        )
-        .await
-        .unwrap_err();
-    assert!(format!("{err:?}").contains("1..=100"), "{err:?}");
+    let text = call_err(&client, "list_tasks", json!({"task_ids":ids})).await;
+    assert!(text.contains("1..=100"), "{text}");
 }
 
 #[tokio::test]
@@ -500,11 +511,7 @@ async fn calls_image_generation_tools() {
             .expect(1)
             .mount(&server)
             .await;
-        let r = client
-            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
-            .await
-            .unwrap();
-        assert_ne!(r.is_error, Some(true), "{name}: {r:?}");
+        let r = call_ok(&client, name, argv).await;
         assert!(format!("{r:?}").contains("img"), "{name}: {r:?}");
     }
 }
@@ -513,16 +520,95 @@ async fn calls_image_generation_tools() {
 async fn image_tool_validation_errors_before_submit() {
     let server = MockServer::start().await;
     let client = start_server(&server).await;
-    let r = client
-        .call_tool(
-            CallToolRequestParams::new("text_to_image").with_arguments(args(
-                json!({"prompt":"x","model":"seedream_v4","quality":"high"}),
-            )),
-        )
+    let text = call_err(
+        &client,
+        "text_to_image",
+        json!({"prompt":"x","model":"seedream_v4","quality":"high"}),
+    )
+    .await;
+    assert!(text.contains("does not accept quality"), "{text}");
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn api_error_is_tool_error_with_message() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/generation/text-to-model"))
+        .respond_with(ResponseTemplate::new(403).set_body_json(json!({
+            "code":2010,
+            "message":"insufficient credits",
+            "suggestion":"top up your account",
+            "request_id":"req_1"
+        })))
+        .expect(1)
+        .mount(&server)
         .await;
+
+    let client = start_server(&server).await;
+    let text = call_err(&client, "text_to_model", json!({"prompt":"chair"})).await;
+    assert!(text.contains("insufficient credits"), "{text}");
+    assert!(text.contains("req_1"), "{text}");
+}
+
+#[tokio::test]
+async fn file_error_is_tool_error() {
+    let server = MockServer::start().await;
+    let client = start_server(&server).await;
+    let text = call_err(
+        &client,
+        "upload_file",
+        json!({"path":"/nonexistent/tripo-mcp-test.png"}),
+    )
+    .await;
     assert!(
-        format!("{r:?}").contains("does not accept quality"),
-        "{r:?}"
+        text.starts_with("/nonexistent/tripo-mcp-test.png: "),
+        "{text}"
     );
     assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn wait_for_task_stops_polling_after_cancel() {
+    use rmcp::model::{CallToolRequest, ClientRequest};
+    use rmcp::service::PeerRequestOptions;
+    use std::time::Duration;
+
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/tasks/abc"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "code":0,
+            "data":{"task_id":"abc","type":"text_to_model","status":"running","progress":10,"created_at":"2026-01-01T00:00:00Z"}
+        })))
+        .mount(&server)
+        .await;
+
+    let client = start_server(&server).await;
+    let params = CallToolRequestParams::new("wait_for_task")
+        .with_arguments(args(json!({"task_id":"abc","max_interval_seconds":1})));
+    let handle = client
+        .send_cancellable_request(
+            ClientRequest::CallToolRequest(CallToolRequest::new(params)),
+            PeerRequestOptions::no_options(),
+        )
+        .await
+        .unwrap();
+
+    // Wait for the first poll, then cancel.
+    let polls = || async { server.received_requests().await.unwrap().len() };
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while polls().await == 0 {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("first poll never arrived");
+    handle.cancel(Some("test".into())).await.unwrap();
+    let at_cancel = polls().await;
+
+    // `max_interval_seconds: 1` caps the poll interval at 1s, so an
+    // uncancelled handler would poll again well within this window.
+    tokio::time::sleep(Duration::from_millis(1500)).await;
+    assert_eq!(polls().await, at_cancel, "kept polling after cancellation");
 }

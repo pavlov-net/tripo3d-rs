@@ -460,6 +460,77 @@ async fn download_errors_on_existing_file_without_overwrite() {
 }
 
 #[tokio::test]
+async fn dropped_download_removes_partial_file() {
+    use std::time::Duration;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tripo_api::{DownloadOptions, TaskOutput};
+
+    // Storage stub that sends headers and part of the body, then stalls, so
+    // the download is mid-write when its future is dropped.
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        let mut buf = [0u8; 4096];
+        let _ = sock.read(&mut buf).await;
+        sock.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 1000\r\n\r\npartial")
+            .await
+            .unwrap();
+        std::future::pending::<()>().await;
+    });
+
+    let c = Client::builder()
+        .api_key("tsk_test")
+        .base_url("http://127.0.0.1:1/".parse().unwrap())
+        .build()
+        .unwrap();
+    let task = task_with_output(
+        "slow",
+        TaskOutput {
+            model_url: Some(format!("http://{addr}/slow.glb")),
+            ..Default::default()
+        },
+    );
+    let dir = tempfile::tempdir().unwrap();
+    let partial = dir.path().join("slow.glb.partial");
+
+    tokio::time::timeout(Duration::from_secs(5), async {
+        tokio::select! {
+            res = c.download_task_models(&task, dir.path(), DownloadOptions::default()) => {
+                panic!("download finished despite a stalled body: {res:?}");
+            }
+            () = async {
+                while !partial.exists() {
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            } => {}
+        }
+    })
+    .await
+    .expect(".partial file never appeared");
+
+    let left: Vec<_> = std::fs::read_dir(dir.path()).unwrap().collect();
+    assert!(left.is_empty(), "files left after cancellation: {left:?}");
+}
+
+#[tokio::test]
+async fn upload_of_missing_file_names_the_path() {
+    let server = MockServer::start().await;
+    let missing = std::path::Path::new("/nonexistent/tripo-api-test.png");
+    let err = client(&server).upload_file(missing).await.unwrap_err();
+    assert!(
+        matches!(&err, Error::File { path, .. } if path == missing),
+        "{err:?}"
+    );
+    assert!(
+        err.to_string()
+            .starts_with("/nonexistent/tripo-api-test.png: "),
+        "{err}"
+    );
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[tokio::test]
 #[allow(clippy::float_cmp)] // compare JSON numbers against the same parsed literals
 async fn task_credits_preserve_fractional_and_whole_numbers() {
     let server = MockServer::start().await;

@@ -118,12 +118,10 @@ async fn download(g: &GlobalArgs, id: &str, out_dir: &std::path::Path) -> Result
         ..Default::default()
     };
     let cancel = crate::signals::global();
+    // Dropping the download future removes its `.partial` files.
     let files = tokio::select! {
         res = client.download_task_models(&task, out_dir, opts) => res?,
-        () = cancel.cancelled() => {
-            crate::cleanup::partial_files(out_dir).await;
-            return Err(crate::signals::Interrupted.into());
-        }
+        () = cancel.cancelled() => return Err(crate::signals::Interrupted.into()),
     };
     for p in files.paths() {
         println!("{}", p.display());

@@ -31,3 +31,13 @@ async fn tool_list_snapshot() {
         serde_json::to_value(&critical).unwrap()
     );
 }
+
+#[tokio::test]
+async fn initialize_reports_this_server() {
+    let client = start_server_with("http://127.0.0.1:1/").await;
+    let info = client.peer_info().expect("initialize result");
+    let server = info.server_info.as_ref().expect("server info");
+    assert_eq!(server.name, "tripo-mcp");
+    assert_eq!(server.version, env!("CARGO_PKG_VERSION"));
+    assert!(info.capabilities.tools.is_some());
+}

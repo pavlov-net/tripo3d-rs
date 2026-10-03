@@ -6,7 +6,11 @@
 
 #![allow(dead_code)]
 
-use rmcp::{RoleClient, ServiceExt, service::RunningService};
+use rmcp::{
+    RoleClient, ServiceExt,
+    model::{CallToolRequestParams, CallToolResult},
+    service::RunningService,
+};
 use wiremock::MockServer;
 
 /// Build a `TripoServer` against `base_url` and return a connected MCP client.
@@ -31,6 +35,61 @@ pub async fn start_server_with(base_url: &str) -> RunningService<RoleClient, ()>
 /// Spin up a `TripoServer` pointed at `mock`.
 pub async fn start_server(mock: &MockServer) -> RunningService<RoleClient, ()> {
     start_server_with(&mock.uri()).await
+}
+
+/// Call tool `name` with `arguments` and panic unless it succeeds.
+pub async fn call_ok(
+    client: &RunningService<RoleClient, ()>,
+    name: &'static str,
+    arguments: serde_json::Value,
+) -> CallToolResult {
+    let result = call(client, name, arguments).await;
+    assert_tool_ok(name, &result);
+    result
+}
+
+/// Call tool `name` with `arguments` and return its tool-error text.
+pub async fn call_err(
+    client: &RunningService<RoleClient, ()>,
+    name: &'static str,
+    arguments: serde_json::Value,
+) -> String {
+    tool_error_text(&call(client, name, arguments).await)
+}
+
+async fn call(
+    client: &RunningService<RoleClient, ()>,
+    name: &'static str,
+    arguments: serde_json::Value,
+) -> CallToolResult {
+    client
+        .call_tool(CallToolRequestParams::new(name).with_arguments(args(arguments)))
+        .await
+        .unwrap()
+}
+
+/// Text content of a tool-error result. Panics unless `is_error` is set.
+pub fn tool_error_text(result: &CallToolResult) -> String {
+    assert_eq!(
+        result.is_error,
+        Some(true),
+        "expected a tool error: {result:?}"
+    );
+    assert!(
+        result.structured_content.is_none(),
+        "tool error carries structured content: {result:?}"
+    );
+    result
+        .content
+        .iter()
+        .filter_map(|c| c.as_text().map(|t| t.text.as_str()))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Panic if `result` is a tool error.
+pub fn assert_tool_ok(name: &str, result: &CallToolResult) {
+    assert_ne!(result.is_error, Some(true), "{name} failed: {result:?}");
 }
 
 /// Coerce a JSON value into the `JsonObject` that `CallToolRequestParams`

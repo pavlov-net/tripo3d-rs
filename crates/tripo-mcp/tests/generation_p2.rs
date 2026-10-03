@@ -1,9 +1,8 @@
-use rmcp::model::CallToolRequestParams;
 use serde_json::json;
 use wiremock::matchers::{body_partial_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 mod common;
-use common::{args, generation_bodies, start_server};
+use common::{call_ok, generation_bodies, start_server};
 
 #[tokio::test]
 async fn generation_options_reach_all_endpoints() {
@@ -21,10 +20,6 @@ async fn generation_options_reach_all_endpoints() {
             .expect(1)
             .mount(&server)
             .await;
-        let result = client
-            .call_tool(CallToolRequestParams::new(name).with_arguments(args(body)))
-            .await
-            .unwrap();
-        assert_ne!(result.is_error, Some(true), "{result:?}");
+        call_ok(&client, name, body).await;
     }
 }
