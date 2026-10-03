@@ -96,6 +96,8 @@ pub enum Command {
     ImageToMultiview(crate::commands::variants::ImageToMultiviewArgs),
     /// Edit individual views of a multiview image.
     EditMultiview(crate::commands::variants::EditMultiviewArgs),
+    /// Generate a 3D Gaussian Splat (.splat) from a single image.
+    ImageToSplat(crate::commands::variants::ImageToSplatArgs),
     /// Convert a model to a different file format.
     ConvertModel(crate::commands::variants::ConvertModelArgs),
     /// Apply a stylization preset to a model.
@@ -104,6 +106,8 @@ pub enum Command {
     TextureModel(crate::commands::variants::TextureModelArgs),
     /// Refine a draft model.
     RefineModel(crate::commands::variants::RefineModelArgs),
+    /// Import an external model file for downstream tasks.
+    ImportModel(crate::commands::variants::ImportModelArgs),
     /// Pre-check whether a model can be rigged.
     CheckRiggable(crate::commands::variants::CheckRiggableArgs),
     /// Generate a skeletal rig for an existing model.
@@ -112,6 +116,8 @@ pub enum Command {
     RetargetAnimation(crate::commands::variants::RetargetAnimationArgs),
     /// Decompose a model into semantic parts.
     MeshSegmentation(crate::commands::variants::MeshSegmentationArgs),
+    /// Segment an image or GLB into parts, including auto modeling.
+    MeshSmartSegment(crate::commands::variants::MeshSmartSegmentArgs),
     /// Fill holes in an existing mesh.
     MeshCompletion(crate::commands::variants::MeshCompletionArgs),
     /// Reduce model polycount (retopology; replaces v2 smart-lowpoly).

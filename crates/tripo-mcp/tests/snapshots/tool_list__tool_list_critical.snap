@@ -295,11 +295,16 @@ expression: "serde_json::to_value(&critical).unwrap()"
                 "front_view_url": null,
                 "generated_image_url": null,
                 "left_view_url": null,
+                "mask_url": null,
+                "model_task_id": null,
                 "model_url": null,
+                "prompt": null,
                 "rendered_image_url": null,
                 "rig_type": null,
                 "riggable": null,
-                "right_view_url": null
+                "right_view_url": null,
+                "seg_model_url": null,
+                "seg_task_id": null
               },
               "description": "Output URLs and flags."
             },
@@ -387,9 +392,33 @@ expression: "serde_json::to_value(&critical).unwrap()"
                 "null"
               ]
             },
+            "mask_url": {
+              "default": null,
+              "description": "Segmentation mask image URL (`mesh/smartsegment`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "model_task_id": {
+              "default": null,
+              "description": "Id of the auto-modeling sub-task (`mesh/smartsegment`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "model_url": {
               "default": null,
               "description": "URL for the main output model.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "prompt": {
+              "default": null,
+              "description": "Part names the segmentation used (`mesh/smartsegment`).",
               "type": [
                 "string",
                 "null"
@@ -426,6 +455,22 @@ expression: "serde_json::to_value(&critical).unwrap()"
             "right_view_url": {
               "default": null,
               "description": "Right view (`image_to_multiview`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "seg_model_url": {
+              "default": null,
+              "description": "Segmented model URL (`mesh/smartsegment`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "seg_task_id": {
+              "default": null,
+              "description": "Id of the segmentation sub-task (`mesh/smartsegment`).",
               "type": [
                 "string",
                 "null"
@@ -1129,9 +1174,33 @@ expression: "serde_json::to_value(&critical).unwrap()"
                 "null"
               ]
             },
+            "mask_url": {
+              "default": null,
+              "description": "Segmentation mask image URL (`mesh/smartsegment`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "model_task_id": {
+              "default": null,
+              "description": "Id of the auto-modeling sub-task (`mesh/smartsegment`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "model_url": {
               "default": null,
               "description": "URL for the main output model.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "prompt": {
+              "default": null,
+              "description": "Part names the segmentation used (`mesh/smartsegment`).",
               "type": [
                 "string",
                 "null"
@@ -1168,6 +1237,22 @@ expression: "serde_json::to_value(&critical).unwrap()"
             "right_view_url": {
               "default": null,
               "description": "Right view (`image_to_multiview`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "seg_model_url": {
+              "default": null,
+              "description": "Segmented model URL (`mesh/smartsegment`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "seg_task_id": {
+              "default": null,
+              "description": "Id of the segmentation sub-task (`mesh/smartsegment`).",
               "type": [
                 "string",
                 "null"
@@ -1276,11 +1361,16 @@ expression: "serde_json::to_value(&critical).unwrap()"
             "front_view_url": null,
             "generated_image_url": null,
             "left_view_url": null,
+            "mask_url": null,
+            "model_task_id": null,
             "model_url": null,
+            "prompt": null,
             "rendered_image_url": null,
             "rig_type": null,
             "riggable": null,
-            "right_view_url": null
+            "right_view_url": null,
+            "seg_model_url": null,
+            "seg_task_id": null
           },
           "description": "Output URLs and flags."
         },

@@ -490,6 +490,150 @@ async fn mesh_decimate_posts_body() {
         .success();
 }
 
+fn run_tripo(server: &MockServer, args: &[&str]) -> assert_cmd::assert::Assert {
+    Command::cargo_bin("tripo")
+        .unwrap()
+        .args(["--api-key", "tsk_test", "--base-url", &server.uri()])
+        .args(args)
+        .assert()
+}
+
+async fn mock_create(server: &MockServer, endpoint: &str, body: serde_json::Value) {
+    Mock::given(method("POST"))
+        .and(path(endpoint))
+        .and(wiremock::matchers::body_json(body))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"code":0,"data":{"task_id":"new"}})),
+        )
+        .expect(1)
+        .mount(server)
+        .await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn import_model_with_local_path_uploads_first() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/files"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "code":0,"data":{"file_token":"file_model"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    mock_create(
+        &server,
+        "/models/import",
+        serde_json::json!({"input":"file_model"}),
+    )
+    .await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let model = dir.path().join("chair.fbx");
+    std::fs::write(&model, b"fbx").unwrap();
+    run_tripo(
+        &server,
+        &["import-model", "--input", model.to_str().unwrap()],
+    )
+    .success()
+    .stdout(predicate::str::contains("new"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn image_to_splat_posts_body() {
+    let server = MockServer::start().await;
+    mock_create(
+        &server,
+        "/generation/image-to-splat",
+        serde_json::json!({"input":"https://example.com/photo.png","model_seed":7}),
+    )
+    .await;
+    run_tripo(
+        &server,
+        &[
+            "image-to-splat",
+            "--input",
+            "https://example.com/photo.png",
+            "--model-seed",
+            "7",
+        ],
+    )
+    .success();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn mesh_smart_segment_model_posts_transform() {
+    let server = MockServer::start().await;
+    mock_create(
+        &server,
+        "/mesh/smartsegment",
+        serde_json::json!({
+            "seg_type":"model",
+            "input":"https://example.com/character.glb",
+            "granularity":"fine",
+            "hint":"body parts",
+            "transform":[-1.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0, 0.0,0.0,1.0,0.0, 0.0,0.0,0.0,1.0]
+        }),
+    )
+    .await;
+    run_tripo(
+        &server,
+        &[
+            "mesh-smart-segment",
+            "--seg-type",
+            "model",
+            "--input",
+            "https://example.com/character.glb",
+            "--granularity",
+            "fine",
+            "--hint",
+            "body parts",
+            "--transform",
+            "-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1",
+        ],
+    )
+    .success();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn mesh_smart_segment_model_requires_transform() {
+    let server = MockServer::start().await;
+    run_tripo(
+        &server,
+        &[
+            "mesh-smart-segment",
+            "--seg-type",
+            "model",
+            "--input",
+            "https://example.com/character.glb",
+        ],
+    )
+    .code(2)
+    .stderr(predicate::str::contains("transform"));
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn mesh_smart_segment_rejects_short_transform() {
+    let server = MockServer::start().await;
+    run_tripo(
+        &server,
+        &[
+            "mesh-smart-segment",
+            "--seg-type",
+            "model",
+            "--input",
+            "https://example.com/character.glb",
+            "--transform",
+            "1,0,0,1",
+        ],
+    )
+    .code(2)
+    .stderr(predicate::str::contains("got 4"));
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn text_to_model_wait_output_end_to_end() {
     let server = MockServer::start().await;

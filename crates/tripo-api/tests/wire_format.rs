@@ -557,3 +557,62 @@ fn edit_multiview_body_and_endpoint() {
     }
     "###);
 }
+
+use tripo_api::{
+    ImageToSplatRequest, ImportModelRequest, MeshSmartSegmentRequest, SegGranularity, SegType,
+};
+
+#[test]
+fn import_model_url() {
+    let req = TaskRequest::ImportModel(ImportModelRequest {
+        input: ImageInput::parse("https://example.com/my-model.glb"),
+    });
+    assert_eq!(req.endpoint(), "models/import");
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "input": "https://example.com/my-model.glb"
+    }
+    "###);
+}
+
+#[test]
+fn image_to_splat_with_seed() {
+    let req = TaskRequest::ImageToSplat(ImageToSplatRequest {
+        input: ImageInput::FileToken("file_abc123".into()),
+        model_seed: Some(42),
+    });
+    assert_eq!(req.endpoint(), "generation/image-to-splat");
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "input": "file_abc123",
+      "model_seed": 42
+    }
+    "###);
+}
+
+#[test]
+fn mesh_smart_segment_image() {
+    let req = TaskRequest::MeshSmartSegment(MeshSmartSegmentRequest {
+        seg_type: SegType::Image,
+        input: ImageInput::FileToken("file_a1b2c3d4".into()),
+        granularity: Some(SegGranularity::Medium),
+        hint: Some("game character with sword and armor".into()),
+        transform: None,
+    });
+    assert_eq!(req.endpoint(), "mesh/smartsegment");
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn mesh_smart_segment_model_with_transform() {
+    let req = TaskRequest::MeshSmartSegment(MeshSmartSegmentRequest {
+        seg_type: SegType::Model,
+        input: ImageInput::parse("https://example.com/character.glb"),
+        granularity: Some(SegGranularity::Fine),
+        hint: Some("character body parts".into()),
+        transform: Some([
+            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        ]),
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}

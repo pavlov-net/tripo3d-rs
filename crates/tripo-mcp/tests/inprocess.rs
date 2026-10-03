@@ -113,6 +113,67 @@ async fn calls_image_multiview_convert_stylize() {
 }
 
 #[tokio::test]
+async fn calls_import_splat_smart_segment() {
+    let server = MockServer::start().await;
+    for (endpoint, body) in [
+        ("/models/import", json!({"input":"https://e/m.glb"})),
+        (
+            "/generation/image-to-splat",
+            json!({"input":"https://e/x.png","model_seed":3}),
+        ),
+        (
+            "/mesh/smartsegment",
+            json!({"seg_type":"image","input":"file_x","granularity":"coarse"}),
+        ),
+    ] {
+        Mock::given(method("POST"))
+            .and(path(endpoint))
+            .and(wiremock::matchers::body_json(body))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "code":0,"data":{"task_id":"w"}
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+    }
+
+    let client = start_server(&server).await;
+    for (name, argv) in [
+        ("import_model", json!({"input":"https://e/m.glb"})),
+        (
+            "image_to_splat",
+            json!({"input":"https://e/x.png","model_seed":3}),
+        ),
+        (
+            "mesh_smart_segment",
+            json!({"seg_type":"image","input":"file_x","granularity":"coarse"}),
+        ),
+    ] {
+        let r = client
+            .call_tool(CallToolRequestParams::new(name).with_arguments(args(argv)))
+            .await;
+        assert!(r.is_ok(), "{name} failed: {r:?}");
+    }
+}
+
+#[tokio::test]
+async fn smart_segment_model_without_transform_errors() {
+    let server = MockServer::start().await;
+    let client = start_server(&server).await;
+    let r = client
+        .call_tool(
+            CallToolRequestParams::new("mesh_smart_segment")
+                .with_arguments(args(json!({"seg_type":"model","input":"https://e/m.glb"}))),
+        )
+        .await;
+    assert!(
+        format!("{r:?}").contains("transform"),
+        "expected transform error, got {r:?}"
+    );
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[tokio::test]
 async fn calls_text_to_model() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))

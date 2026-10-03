@@ -10,12 +10,12 @@ use tokio::io::AsyncWriteExt;
 use crate::client::Client;
 use crate::enums::MultiviewView;
 use crate::error::{Error, Result};
-use crate::types::{Task, TaskOutput};
+use crate::types::Task;
 
 /// Which outputs to consider.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutputKind {
-    /// `output.model_url` — main mesh.
+    /// `output.model_url` — main mesh (a `.splat` for `image_to_splat`).
     Model,
     /// `output.rendered_image_url` — preview render.
     RenderedImage,
@@ -24,11 +24,15 @@ pub enum OutputKind {
     GeneratedImage,
     /// `output.<view>_view_url` — one image-to-multiview view.
     View(MultiviewView),
+    /// `output.seg_model_url` — segmented mesh (`mesh/smartsegment`).
+    SegModel,
+    /// `output.mask_url` — segmentation mask (`mesh/smartsegment`).
+    Mask,
 }
 
 impl OutputKind {
     /// Every output kind, in download-result order.
-    const ALL: [Self; 7] = [
+    const ALL: [Self; 9] = [
         Self::Model,
         Self::RenderedImage,
         Self::GeneratedImage,
@@ -36,14 +40,20 @@ impl OutputKind {
         Self::View(MultiviewView::Left),
         Self::View(MultiviewView::Back),
         Self::View(MultiviewView::Right),
+        Self::SegModel,
+        Self::Mask,
     ];
 
     /// The task output URL for this kind, the file extension to use when the
     /// URL has none, and the filename suffix after `<task_id>_` (`None` for
     /// the bare `<task_id>.<ext>`).
-    fn source(self, out: &TaskOutput) -> (Option<&String>, &'static str, Option<&'static str>) {
+    fn source(self, task: &Task) -> (Option<&String>, &'static str, Option<&'static str>) {
         use MultiviewView as V;
+        let out = &task.output;
         match self {
+            Self::Model if task.task_type == "image_to_splat" => {
+                (out.model_url.as_ref(), "splat", None)
+            }
             Self::Model => (out.model_url.as_ref(), "glb", None),
             Self::RenderedImage => (out.rendered_image_url.as_ref(), "jpg", Some("rendered")),
             Self::GeneratedImage => (out.generated_image_url.as_ref(), "png", Some("generated")),
@@ -51,6 +61,8 @@ impl OutputKind {
             Self::View(V::Left) => (out.left_view_url.as_ref(), "png", Some("left")),
             Self::View(V::Back) => (out.back_view_url.as_ref(), "png", Some("back")),
             Self::View(V::Right) => (out.right_view_url.as_ref(), "png", Some("right")),
+            Self::SegModel => (out.seg_model_url.as_ref(), "glb", Some("seg")),
+            Self::Mask => (out.mask_url.as_ref(), "png", Some("mask")),
         }
     }
 }
@@ -89,6 +101,10 @@ pub struct DownloadedFiles {
     /// Image-to-multiview view paths, keyed by view.
     #[serde(default)]
     pub views: BTreeMap<MultiviewView, PathBuf>,
+    /// Segmented model path (`mesh/smartsegment`).
+    pub seg_model: Option<PathBuf>,
+    /// Segmentation mask image path (`mesh/smartsegment`).
+    pub mask: Option<PathBuf>,
 }
 
 impl DownloadedFiles {
@@ -105,6 +121,8 @@ impl DownloadedFiles {
             OutputKind::RenderedImage => self.rendered_image.as_deref(),
             OutputKind::GeneratedImage => self.generated_image.as_deref(),
             OutputKind::View(view) => self.views.get(&view).map(PathBuf::as_path),
+            OutputKind::SegModel => self.seg_model.as_deref(),
+            OutputKind::Mask => self.mask.as_deref(),
         }
     }
 
@@ -116,6 +134,8 @@ impl DownloadedFiles {
             OutputKind::View(view) => {
                 self.views.insert(view, path);
             }
+            OutputKind::SegModel => self.seg_model = Some(path),
+            OutputKind::Mask => self.mask = Some(path),
         }
     }
 }
@@ -143,7 +163,7 @@ impl Client {
 
         let mut jobs: Vec<(OutputKind, String, PathBuf)> = Vec::new();
         for kind in &opts.kinds {
-            let (Some(url), default_ext, suffix) = kind.source(&task.output) else {
+            let (Some(url), default_ext, suffix) = kind.source(task) else {
                 continue;
             };
             let ext = extension_of(url, default_ext);
@@ -196,4 +216,40 @@ async fn download_one(
     drop(f);
     tokio::fs::rename(&partial, &target).await?;
     Ok((kind, target))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn task(task_type: &str, model_url: &str) -> Task {
+        serde_json::from_value(serde_json::json!({
+            "task_id": "t", "type": task_type, "status": "success",
+            "output": {"model_url": model_url},
+        }))
+        .unwrap()
+    }
+
+    fn model_ext(t: &Task) -> String {
+        let (url, default_ext, _) = OutputKind::Model.source(t);
+        extension_of(url.unwrap(), default_ext)
+    }
+
+    #[test]
+    fn extension_from_url_path_ignores_query() {
+        assert_eq!(
+            extension_of("https://cdn/x/scene.splat?sig=1", "glb"),
+            "splat"
+        );
+        assert_eq!(extension_of("https://cdn/x/model.fbx", "glb"), "fbx");
+    }
+
+    #[test]
+    fn splat_task_defaults_to_splat_extension() {
+        assert_eq!(
+            model_ext(&task("image_to_splat", "https://cdn/out")),
+            "splat"
+        );
+        assert_eq!(model_ext(&task("text_to_model", "https://cdn/out")), "glb");
+    }
 }

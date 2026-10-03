@@ -35,18 +35,19 @@ pub use download::{DownloadOptions, DownloadedFiles, OutputKind};
 pub use enums::{
     Animation, ExportOrientation, FbxPreset, GeometryQuality, ImageBackground, ImageOutputFormat,
     ImageQuality, ImageToImageTemplate, MultiviewView, Orientation, OutputFormat, PostStyle,
-    RigOutputFormat, RigSpec, RigType, RigTypeResponse, TextToImageTemplate, TextureAlignment,
-    TextureFormat, TextureQuality,
+    RigOutputFormat, RigSpec, RigType, RigTypeResponse, SegGranularity, SegType,
+    TextToImageTemplate, TextureAlignment, TextureFormat, TextureQuality,
 };
 pub use error::{Error, Result};
 pub use image::ImageInput;
 pub use retry::RetryPolicy;
 pub use tasks::{
     AnimationInput, CheckRiggableRequest, ConvertModelRequest, EditMultiviewRequest,
-    ImageToImageRequest, ImageToModelRequest, ImageToMultiviewRequest, MeshCompletionRequest,
-    MeshDecimateRequest, MeshSegmentationRequest, MultiviewEdit, MultiviewToModelRequest,
-    RefineModelRequest, RetargetAnimationRequest, RigModelRequest, StylizeModelRequest,
-    TaskRequest, TextToImageRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
+    ImageToImageRequest, ImageToModelRequest, ImageToMultiviewRequest, ImageToSplatRequest,
+    ImportModelRequest, MeshCompletionRequest, MeshDecimateRequest, MeshSegmentationRequest,
+    MeshSmartSegmentRequest, MultiviewEdit, MultiviewToModelRequest, RefineModelRequest,
+    RetargetAnimationRequest, RigModelRequest, StylizeModelRequest, TaskRequest,
+    TextToImageRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
 };
 pub use types::{
     Balance, PresignedUpload, Task, TaskId, TaskList, TaskOutput, TaskStatus, Timestamp,
