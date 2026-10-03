@@ -2,21 +2,16 @@
 //!
 //! Tool methods are attached to this struct via `#[tool]` and aggregated by
 //! `#[tool_router]`. `#[tool_handler]` then fills in the `list_tools` and
-//! `call_tool` hooks on `impl ServerHandler`.
-//!
-//! Tool execution failures (API errors, failed validation, I/O) come back as
-//! a [`CallToolResult`] with `is_error: true` via [`ToolError`], so the model
-//! can read the message. JSON-RPC errors are left to rmcp for protocol
-//! problems such as malformed arguments.
+//! `call_tool` hooks on `impl ServerHandler`. Tools fail with [`ToolError`].
 
 use std::sync::Arc;
 
 use rmcp::{
-    ErrorData, Json, RoleServer, ServerHandler,
-    handler::server::{tool::IntoCallToolResult, wrapper::Parameters},
+    Json, RoleServer, ServerHandler,
+    handler::server::wrapper::Parameters,
     model::{
-        CallToolResponse, CallToolResult, ContentBlock, Implementation, ProgressNotificationParam,
-        ServerCapabilities, ServerConfig,
+        ContentBlock, Implementation, IntoContents, ProgressNotificationParam, ServerCapabilities,
+        ServerConfig,
     },
     service::RequestContext,
     tool, tool_handler, tool_router,
@@ -182,18 +177,24 @@ impl TripoServer {
         use std::time::Duration;
         use tripo_api::WaitOptions;
 
+        // One forwarding task sends notifications in order (MCP requires
+        // progress to increase). It ends once the wait drops the callback.
         let on_progress = ctx.meta.get_progress_token().map(|token| {
+            let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
             let peer = ctx.peer.clone();
+            tokio::spawn(async move {
+                while let Some(param) = rx.recv().await {
+                    let _ = peer.notify_progress(param).await;
+                }
+            });
             Box::new(move |task: &tripo_api::Task| {
                 let pct = f64::from(task.progress.clamp(0, 100));
                 let message = format!("{:?} ({pct:.0}%)", task.status);
-                let param = ProgressNotificationParam::new(token.clone(), pct)
-                    .with_total(100.0)
-                    .with_message(message);
-                let peer = peer.clone();
-                tokio::spawn(async move {
-                    let _ = peer.notify_progress(param).await;
-                });
+                let _ = tx.send(
+                    ProgressNotificationParam::new(token.clone(), pct)
+                        .with_total(100.0)
+                        .with_message(message),
+                );
             }) as tripo_api::ProgressCallback
         });
 
@@ -634,16 +635,11 @@ impl ServerHandler for TripoServer {
     }
 }
 
-/// A tool execution failure, reported to the model as a [`CallToolResult`]
-/// with `is_error: true` and the message as text content.
+/// A tool execution failure, reported to the model as a tool result with
+/// `is_error: true` and the message as text content, so it can read and act
+/// on it. Protocol problems such as malformed arguments stay JSON-RPC errors.
 #[derive(Debug)]
 pub struct ToolError(String);
-
-impl ToolError {
-    fn cancelled() -> Self {
-        Self("request cancelled by the client".to_owned())
-    }
-}
 
 impl From<tripo_api::Error> for ToolError {
     fn from(err: tripo_api::Error) -> Self {
@@ -656,9 +652,9 @@ impl From<tripo_api::Error> for ToolError {
     }
 }
 
-impl IntoCallToolResult for ToolError {
-    fn into_call_tool_result(self) -> Result<CallToolResponse, ErrorData> {
-        Ok(CallToolResult::error(vec![ContentBlock::text(self.0)]).into())
+impl IntoContents for ToolError {
+    fn into_contents(self) -> Vec<ContentBlock> {
+        vec![ContentBlock::text(self.0)]
     }
 }
 
@@ -669,8 +665,8 @@ async fn until_cancelled<T, E: Into<ToolError>>(
     ctx: &RequestContext<RoleServer>,
     fut: impl Future<Output = Result<T, E>>,
 ) -> Result<T, ToolError> {
-    tokio::select! {
-        res = fut => res.map_err(Into::into),
-        () = ctx.ct.cancelled() => Err(ToolError::cancelled()),
+    match ctx.ct.run_until_cancelled(fut).await {
+        Some(res) => res.map_err(Into::into),
+        None => Err(ToolError("request cancelled by the client".to_owned())),
     }
 }
