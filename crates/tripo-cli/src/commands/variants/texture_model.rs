@@ -22,12 +22,12 @@ pub struct TextureModelArgs {
     /// Repeated; exactly 4 reference images (`URL`, `file_token`, or path) in
     /// order [front, left, back, right]; maps into `texture_prompt.images`.
     #[arg(long, action = clap::ArgAction::Append)]
-    pub images: Vec<String>,
+    pub images_prompt: Vec<String>,
     /// Style image (`URL`, `file_token`, or path); maps into `texture_prompt.style_image`.
     #[arg(long)]
     pub style_image: Option<String>,
-    /// Texture model version (v3.5-20260815|v3.0-20250812|v2.5-20250123).
-    /// v3.5 is required for fast quality.
+    /// Texture model version (see `tripo_api::versions::texture`); fast
+    /// quality requires v3.5.
     #[arg(long)]
     pub model: Option<String>,
     /// PBR shading.
@@ -67,8 +67,12 @@ impl VariantArgs for TextureModelArgs {
         let prompt = TexturePrompt {
             text: self.text_prompt,
             image: self.image_prompt.as_deref().map(ImageInput::parse),
-            images: (!self.images.is_empty())
-                .then(|| self.images.iter().map(|s| ImageInput::parse(s)).collect()),
+            images: (!self.images_prompt.is_empty()).then(|| {
+                self.images_prompt
+                    .iter()
+                    .map(|s| ImageInput::parse(s))
+                    .collect()
+            }),
             style_image: self.style_image.as_deref().map(ImageInput::parse),
         };
         Ok(TaskRequest::TextureModel(TextureModelRequest {

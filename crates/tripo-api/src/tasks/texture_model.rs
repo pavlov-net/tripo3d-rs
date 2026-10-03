@@ -2,8 +2,8 @@
 //!
 //! Wire-format quirk: `text` / `image` / `images` / `style_image` are rolled
 //! up into a nested `texture_prompt` object, sent only when at least one is
-//! present. `text`/`image`/`images` are mutually exclusive; `style_image` may
-//! only accompany `text`.
+//! present. `text`/`image`/`images` are mutually exclusive; the server reads
+//! `style_image` only alongside `text`.
 
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +27,8 @@ pub struct TexturePrompt {
     /// multi-angle texture guidance.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub images: Option<Vec<ImageInput>>,
-    /// Style image (uploaded/URL/token). Only used with `text`.
+    /// Style image (uploaded/URL/token). The server ignores it unless `text`
+    /// is set.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub style_image: Option<ImageInput>,
 }
@@ -49,11 +50,6 @@ impl TexturePrompt {
         if modes.into_iter().filter(|&set| set).count() > 1 {
             return Err(Error::InvalidRequest(
                 "texture_prompt.text, texture_prompt.image, and texture_prompt.images are mutually exclusive".into(),
-            ));
-        }
-        if self.style_image.is_some() && self.text.is_none() {
-            return Err(Error::InvalidRequest(
-                "texture_prompt.style_image is only used with texture_prompt.text".into(),
             ));
         }
         if let Some(images) = &self.images

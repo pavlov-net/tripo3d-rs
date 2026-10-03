@@ -53,7 +53,7 @@ lower detail) and `delight: Option<bool>` (remove baked-in lighting from the
 reference image, default `true` server-side). `Fast` is rejected client-side
 unless the texture version is v3.5. `TexturePrompt::images` takes exactly 4
 reference images in order [front, left, back, right]; `text`, `image`, and
-`images` are mutually exclusive, and `style_image` is only valid with `text`.
+`images` are mutually exclusive, and the server ignores `style_image` unless `text` is set.
 `Client::create_task` validates these before uploading local paths.
 
 ## License

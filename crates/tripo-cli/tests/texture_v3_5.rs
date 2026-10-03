@@ -94,15 +94,15 @@ async fn texture_model_v3_5_with_four_images() {
         .args(["--model", "v3.5-20260815", "--texture-quality", "fast"])
         .args(["--delight", "false"])
         .args([
-            "--images",
+            "--images-prompt",
             "https://cdn/f.jpg",
-            "--images",
+            "--images-prompt",
             "https://cdn/l.jpg",
         ])
         .args([
-            "--images",
+            "--images-prompt",
             "https://cdn/b.jpg",
-            "--images",
+            "--images-prompt",
             "https://cdn/r.jpg",
         ])
         .assert()
@@ -121,9 +121,9 @@ async fn texture_model_invalid_requests_are_rejected_locally() {
         (&["--texture-quality", "fast"][..], "v3.5-20260815"),
         (
             &[
-                "--images",
+                "--images-prompt",
                 "https://cdn/f.jpg",
-                "--images",
+                "--images-prompt",
                 "https://cdn/l.jpg",
             ][..],
             "exactly 4",

@@ -128,9 +128,9 @@ tripo image-to-model --input ./photo.jpg \
 ```
 
 `fast` without a v3.5 texture version is rejected before submission.
-`texture-model` also accepts `--images` four times, in order front, left,
+`texture-model` also accepts `--images-prompt` four times, in order front, left,
 back, right, for multi-angle texture guidance. `--text-prompt`,
-`--image-prompt`, and `--images` are mutually exclusive.
+`--image-prompt`, and `--images-prompt` are mutually exclusive.
 
 ## License
 

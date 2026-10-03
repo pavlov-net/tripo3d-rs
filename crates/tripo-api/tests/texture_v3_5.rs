@@ -1,6 +1,6 @@
 use serde_json::json;
 use tripo_api::{Client, TaskRequest, versions};
-use wiremock::matchers::{body_partial_json, method, path};
+use wiremock::matchers::{body_partial_json, body_string_contains, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// One request per generation endpoint, built from the same option fields.
@@ -144,19 +144,15 @@ fn texture_prompt_modes_are_mutually_exclusive() {
         let req = texture_request(json!({"texture_prompt": prompt}));
         assert!(invalid_message(&req).contains("mutually exclusive"));
     }
-    for prompt in [
-        json!({"style_image": image}),
-        json!({"image": image, "style_image": image}),
-        json!({"images": images, "style_image": image}),
-    ] {
-        let req = texture_request(json!({"texture_prompt": prompt}));
-        assert!(invalid_message(&req).contains("style_image"));
-    }
+    // The docs say the server ignores `style_image` outside text mode; it
+    // does not reject it, so neither does the client.
     for prompt in [
         json!({"text": "brass"}),
         json!({"text": "brass", "style_image": image}),
         json!({"image": image}),
         json!({"images": images}),
+        json!({"style_image": image}),
+        json!({"image": image, "style_image": image}),
     ] {
         texture_request(json!({"texture_prompt": prompt}))
             .validate()
@@ -164,52 +160,94 @@ fn texture_prompt_modes_are_mutually_exclusive() {
     }
 }
 
-#[tokio::test]
-async fn create_task_uploads_local_texture_prompt_images() {
-    let server = MockServer::start().await;
+/// Mounts a `/files` mock that answers `token` when the multipart body
+/// contains `content`, so each upload's token is traceable to its source.
+async fn mount_upload(server: &MockServer, content: &str, token: &str) {
     Mock::given(method("POST"))
         .and(path("/files"))
+        .and(body_string_contains(content))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "code": 0, "data": {"file_token": "file_up"}
+            "code": 0, "data": {"file_token": token}
         })))
-        .expect(4)
-        .mount(&server)
+        .expect(1)
+        .mount(server)
         .await;
+}
+
+/// Sends `prompt` to a mocked `/models/texture` and asserts the body carries
+/// `expected_prompt` as its `texture_prompt`.
+async fn create_texture_task(
+    server: &MockServer,
+    prompt: serde_json::Value,
+    expected_prompt: serde_json::Value,
+) {
     Mock::given(method("POST"))
         .and(path("/models/texture"))
-        .and(body_partial_json(json!({
-            "model": "v3.5-20260815",
-            "texture_quality": "fast",
-            "delight": true,
-            "texture_prompt": {"images": ["file_up", "file_up", "file_up", "file_up"]},
-        })))
+        .and(body_partial_json(
+            json!({"texture_prompt": expected_prompt}),
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "code": 0, "data": {"task_id": "tex"}
         })))
         .expect(1)
-        .mount(&server)
+        .mount(server)
         .await;
-
-    let dir = tempfile::tempdir().unwrap();
-    let paths: Vec<_> = ["front", "left", "back", "right"]
-        .iter()
-        .map(|name| {
-            let p = dir.path().join(format!("{name}.png"));
-            std::fs::write(&p, b"png").unwrap();
-            p
-        })
-        .collect();
-    let req = texture_request(json!({
-        "model": versions::texture::V3_5,
-        "texture_quality": "fast",
-        "delight": true,
-        "texture_prompt": {"images": paths},
-    }));
     let client = Client::builder()
         .api_key("tsk_test")
         .base_url(server.uri().parse().unwrap())
         .build()
         .unwrap();
+    let req = texture_request(json!({"texture_prompt": prompt}));
     let id = client.create_task(req).await.unwrap();
     assert_eq!(id.as_str(), "tex");
+}
+
+fn write_file(dir: &tempfile::TempDir, name: &str, content: &str) -> std::path::PathBuf {
+    let p = dir.path().join(name);
+    std::fs::write(&p, content).unwrap();
+    p
+}
+
+#[tokio::test]
+async fn create_task_uploads_local_texture_prompt_images_in_order() {
+    let server = MockServer::start().await;
+    mount_upload(&server, "front-bytes", "file_front").await;
+    mount_upload(&server, "right-bytes", "file_right").await;
+    let dir = tempfile::tempdir().unwrap();
+    let front = write_file(&dir, "front.png", "front-bytes");
+    let right = write_file(&dir, "right.png", "right-bytes");
+    create_texture_task(
+        &server,
+        json!({"images": [front, "https://cdn/l.png", "file_back", right]}),
+        json!({"images": ["file_front", "https://cdn/l.png", "file_back", "file_right"]}),
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn create_task_uploads_local_texture_prompt_image() {
+    let server = MockServer::start().await;
+    mount_upload(&server, "ref-bytes", "file_ref").await;
+    let dir = tempfile::tempdir().unwrap();
+    let image = write_file(&dir, "ref.png", "ref-bytes");
+    create_texture_task(
+        &server,
+        json!({"image": image}),
+        json!({"image": "file_ref"}),
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn create_task_uploads_local_texture_prompt_style_image() {
+    let server = MockServer::start().await;
+    mount_upload(&server, "style-bytes", "file_style").await;
+    let dir = tempfile::tempdir().unwrap();
+    let style = write_file(&dir, "style.png", "style-bytes");
+    create_texture_task(
+        &server,
+        json!({"text": "brass", "style_image": style}),
+        json!({"text": "brass", "style_image": "file_style"}),
+    )
+    .await;
 }
