@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 macro_rules! string_enum {
     ($(#[$meta:meta])* $vis:vis enum $name:ident { $($(#[$vmeta:meta])* $variant:ident => $wire:literal),+ $(,)? }) => {
         $(#[$meta])*
-        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
         #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         $vis enum $name {
             $(
@@ -28,7 +28,7 @@ macro_rules! string_enum {
 macro_rules! string_enum_open {
     ($(#[$meta:meta])* $vis:vis enum $name:ident { $($(#[$vmeta:meta])* $variant:ident => $wire:literal),+ $(,)? }) => {
         $(#[$meta])*
-        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
         #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
         $vis enum $name {
             $(
@@ -179,6 +179,86 @@ string_enum! {
     pub enum RigOutputFormat {
         Glb => "glb",
         Fbx => "fbx",
+    }
+}
+
+string_enum! {
+    /// Rendering tier for image generation (`quality`).
+    ///
+    /// Only `chat_image_2` (`low`/`medium`/`high`) and the two
+    /// `chat_image_2.5_*` models (all tiers) accept it. Omitting it is
+    /// equivalent to `low`. `high`, `xhigh`, and `max` cost more credits and
+    /// take longer.
+    pub enum ImageQuality {
+        Low => "low",
+        Medium => "medium",
+        High => "high",
+        Xhigh => "xhigh",
+        Max => "max",
+    }
+}
+
+string_enum! {
+    /// Background handling for image generation (`background`). Honored only
+    /// by the `chat_image_2.5_*` models; other models ignore it. `transparent`
+    /// requires `output_format` `png`.
+    pub enum ImageBackground {
+        Auto => "auto",
+        Opaque => "opaque",
+        /// Requires `output_format` `png`.
+        Transparent => "transparent",
+    }
+}
+
+string_enum! {
+    /// Output image file format (`output_format`) for image generation.
+    pub enum ImageOutputFormat {
+        Png => "png",
+        Jpeg => "jpeg",
+    }
+}
+
+string_enum! {
+    /// Generation template for `generation/text-to-image`.
+    pub enum TextToImageTemplate {
+        /// Extract a subject from a scene.
+        AssetExtraction => "asset_extraction",
+        /// Complete a partial character.
+        CharacterCompletion => "character_completion",
+        /// Generate a character in T-pose.
+        TPose => "t_pose",
+        /// Generate design variations.
+        Variants => "variants",
+        /// Generate a full-body figure.
+        Figure => "figure",
+    }
+}
+
+string_enum! {
+    /// Editing template for `generation/image-to-image`. When set, `prompt`
+    /// becomes optional.
+    pub enum ImageToImageTemplate {
+        /// Convert to T-pose.
+        TPose => "t_pose",
+        /// Complete a partial character.
+        CharacterCompletion => "character_completion",
+        /// Enhance for 3D generation.
+        Enhance3d => "3d_enhance",
+        /// Generate design variations.
+        Variants => "variants",
+        /// Generate a full-body figure.
+        Figure => "figure",
+    }
+}
+
+string_enum! {
+    /// One view of a four-view multiview image (`generation/edit-multiview`).
+    #[derive(PartialOrd, Ord)]
+    pub enum MultiviewView {
+        Front => "front",
+        Left => "left",
+        Back => "back",
+        Right => "right",
     }
 }
 

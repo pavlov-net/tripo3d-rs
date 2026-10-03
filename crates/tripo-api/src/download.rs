@@ -1,5 +1,6 @@
 //! Download output URLs from a `Task` into a directory.
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use futures::stream::{FuturesUnordered, StreamExt};
@@ -7,8 +8,9 @@ use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
 
 use crate::client::Client;
+use crate::enums::MultiviewView;
 use crate::error::{Error, Result};
-use crate::types::{Task, TaskId};
+use crate::types::{Task, TaskOutput};
 
 /// Which outputs to consider.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,16 +19,38 @@ pub enum OutputKind {
     Model,
     /// `output.rendered_image_url` — preview render.
     RenderedImage,
-    /// `output.generated_image_url` — intermediate text-to-image result.
+    /// `output.generated_image_url` — text/image-to-image result, or the
+    /// intermediate image of text-to-model.
     GeneratedImage,
+    /// `output.<view>_view_url` — one image-to-multiview view.
+    View(MultiviewView),
 }
 
 impl OutputKind {
-    fn filename(self, id: &TaskId, ext: &str) -> String {
+    /// Every output kind, in download-result order.
+    const ALL: [Self; 7] = [
+        Self::Model,
+        Self::RenderedImage,
+        Self::GeneratedImage,
+        Self::View(MultiviewView::Front),
+        Self::View(MultiviewView::Left),
+        Self::View(MultiviewView::Back),
+        Self::View(MultiviewView::Right),
+    ];
+
+    /// The task output URL for this kind, the file extension to use when the
+    /// URL has none, and the filename suffix after `<task_id>_` (`None` for
+    /// the bare `<task_id>.<ext>`).
+    fn source(self, out: &TaskOutput) -> (Option<&String>, &'static str, Option<&'static str>) {
+        use MultiviewView as V;
         match self {
-            Self::Model => format!("{id}.{ext}"),
-            Self::RenderedImage => format!("{id}_rendered.{ext}"),
-            Self::GeneratedImage => format!("{id}_generated.{ext}"),
+            Self::Model => (out.model_url.as_ref(), "glb", None),
+            Self::RenderedImage => (out.rendered_image_url.as_ref(), "jpg", Some("rendered")),
+            Self::GeneratedImage => (out.generated_image_url.as_ref(), "png", Some("generated")),
+            Self::View(V::Front) => (out.front_view_url.as_ref(), "png", Some("front")),
+            Self::View(V::Left) => (out.left_view_url.as_ref(), "png", Some("left")),
+            Self::View(V::Back) => (out.back_view_url.as_ref(), "png", Some("back")),
+            Self::View(V::Right) => (out.right_view_url.as_ref(), "png", Some("right")),
         }
     }
 }
@@ -47,11 +71,7 @@ impl Default for DownloadOptions {
         Self {
             max_concurrency: 4,
             overwrite: false,
-            kinds: vec![
-                OutputKind::Model,
-                OutputKind::RenderedImage,
-                OutputKind::GeneratedImage,
-            ],
+            kinds: OutputKind::ALL.to_vec(),
         }
     }
 }
@@ -64,17 +84,39 @@ pub struct DownloadedFiles {
     pub model: Option<PathBuf>,
     /// Rendered preview image path.
     pub rendered_image: Option<PathBuf>,
-    /// Intermediate generated image path.
+    /// Generated image path (image generation, or text-to-model intermediate).
     pub generated_image: Option<PathBuf>,
+    /// Image-to-multiview view paths, keyed by view.
+    #[serde(default)]
+    pub views: BTreeMap<MultiviewView, PathBuf>,
 }
 
 impl DownloadedFiles {
     /// Iterate over the paths that were actually written, in a stable order.
     pub fn paths(&self) -> impl Iterator<Item = &Path> {
-        [&self.model, &self.rendered_image, &self.generated_image]
+        OutputKind::ALL
             .into_iter()
-            .flatten()
-            .map(PathBuf::as_path)
+            .filter_map(|kind| self.get(kind))
+    }
+
+    fn get(&self, kind: OutputKind) -> Option<&Path> {
+        match kind {
+            OutputKind::Model => self.model.as_deref(),
+            OutputKind::RenderedImage => self.rendered_image.as_deref(),
+            OutputKind::GeneratedImage => self.generated_image.as_deref(),
+            OutputKind::View(view) => self.views.get(&view).map(PathBuf::as_path),
+        }
+    }
+
+    fn set(&mut self, kind: OutputKind, path: PathBuf) {
+        match kind {
+            OutputKind::Model => self.model = Some(path),
+            OutputKind::RenderedImage => self.rendered_image = Some(path),
+            OutputKind::GeneratedImage => self.generated_image = Some(path),
+            OutputKind::View(view) => {
+                self.views.insert(view, path);
+            }
+        }
     }
 }
 
@@ -101,18 +143,19 @@ impl Client {
 
         let mut jobs: Vec<(OutputKind, String, PathBuf)> = Vec::new();
         for kind in &opts.kinds {
-            let (url, default_ext) = match kind {
-                OutputKind::Model => (&task.output.model_url, "glb"),
-                OutputKind::RenderedImage => (&task.output.rendered_image_url, "jpg"),
-                OutputKind::GeneratedImage => (&task.output.generated_image_url, "jpg"),
+            let (Some(url), default_ext, suffix) = kind.source(&task.output) else {
+                continue;
             };
-            let Some(url) = url.clone() else { continue };
-            let ext = extension_of(&url, default_ext);
-            let target = dir.join(kind.filename(&task.task_id, &ext));
+            let ext = extension_of(url, default_ext);
+            let id = &task.task_id;
+            let target = dir.join(match suffix {
+                Some(suffix) => format!("{id}_{suffix}.{ext}"),
+                None => format!("{id}.{ext}"),
+            });
             if !opts.overwrite && tokio::fs::try_exists(&target).await? {
                 return Err(Error::FileExists(target));
             }
-            jobs.push((*kind, url, target));
+            jobs.push((*kind, url.clone(), target));
         }
 
         let max = opts.max_concurrency.max(1);
@@ -127,11 +170,7 @@ impl Client {
         }
         while let Some(done) = in_flight.next().await {
             let (kind, path) = done?;
-            match kind {
-                OutputKind::Model => out.model = Some(path),
-                OutputKind::RenderedImage => out.rendered_image = Some(path),
-                OutputKind::GeneratedImage => out.generated_image = Some(path),
-            }
+            out.set(kind, path);
             if let Some(job) = pending.next() {
                 in_flight.push(download_one(self, job));
             }

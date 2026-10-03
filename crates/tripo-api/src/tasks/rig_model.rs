@@ -118,7 +118,7 @@ mod tests {
             RigType::Aquatic,
             RigType::Others,
         ] {
-            req(Some(t.clone()), None).validate().unwrap_err();
+            req(Some(t), None).validate().unwrap_err();
         }
     }
 }

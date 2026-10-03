@@ -169,20 +169,102 @@ async fn create_task_uploads_local_image_first() {
     assert_eq!(id.as_str(), "new-task");
 }
 
+#[tokio::test]
+async fn create_task_uploads_image_generation_inputs() {
+    use serde_json::json;
+    use tripo_api::ImageInput;
+    use tripo_api::tasks::TaskRequest;
+    use wiremock::matchers::body_partial_json;
+
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/files"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(json!({"code":0,"data":{"file_token":"file_up"}})),
+        )
+        .expect(5)
+        .mount(&server)
+        .await;
+    for endpoint in ["image-to-image", "image-to-multiview", "edit-multiview"] {
+        Mock::given(method("POST"))
+            .and(path(format!("/generation/{endpoint}")))
+            .and(body_partial_json(json!({"input":"file_up"})))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({"code":0,"data":{"task_id":"t"}})),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+    }
+
+    let tmp = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(tmp.path(), b"png").unwrap();
+    let local = || ImageInput::Path(tmp.path().to_path_buf());
+    let c = client(&server);
+
+    let mut i2i: tripo_api::ImageToImageRequest =
+        serde_json::from_value(json!({"prompt":"merge"})).unwrap();
+    i2i.input = Some(local());
+    i2i.inputs = Some(vec![
+        local(),
+        local(),
+        ImageInput::FileToken("file_kept".into()),
+    ]);
+    c.create_task(TaskRequest::ImageToImage(i2i)).await.unwrap();
+
+    c.create_task(TaskRequest::ImageToMultiview(
+        tripo_api::ImageToMultiviewRequest { input: local() },
+    ))
+    .await
+    .unwrap();
+
+    let edit = tripo_api::EditMultiviewRequest {
+        input: local(),
+        prompts: vec![tripo_api::MultiviewEdit {
+            prompt: "red shirt".into(),
+            view: tripo_api::MultiviewView::Front,
+        }],
+    };
+    c.create_task(TaskRequest::EditMultiview(edit))
+        .await
+        .unwrap();
+
+    let requests = server.received_requests().await.unwrap();
+    let i2i_body: serde_json::Value = requests
+        .iter()
+        .find(|r| r.url.path() == "/generation/image-to-image")
+        .unwrap()
+        .body_json()
+        .unwrap();
+    assert_eq!(
+        i2i_body["inputs"],
+        json!(["file_up", "file_up", "file_kept"])
+    );
+}
+
 fn success_task(server: &MockServer, with_rendered: bool) -> tripo_api::Task {
-    use std::collections::BTreeMap;
-    use tripo_api::{Task, TaskId, TaskOutput, TaskStatus};
-    Task {
-        task_id: TaskId::new("abc"),
-        task_type: "text_to_model".into(),
-        status: TaskStatus::Success,
-        input: BTreeMap::new(),
-        output: TaskOutput {
+    task_with_output(
+        "abc",
+        tripo_api::TaskOutput {
             model_url: Some(format!("{}/files/abc.glb", server.uri())),
             rendered_image_url: with_rendered
                 .then(|| format!("{}/files/abc.jpg?sig=x", server.uri())),
             ..Default::default()
         },
+    )
+}
+
+/// A finished task with the given id and output.
+fn task_with_output(id: &str, output: tripo_api::TaskOutput) -> tripo_api::Task {
+    use std::collections::BTreeMap;
+    use tripo_api::{Task, TaskId, TaskStatus};
+    Task {
+        task_id: TaskId::new(id),
+        task_type: String::new(),
+        status: TaskStatus::Success,
+        input: BTreeMap::new(),
+        output,
         progress: 100,
         error_code: None,
         error_message: None,
@@ -232,6 +314,81 @@ async fn downloads_model_and_rendered_image() {
             "download of {} must not carry the API key",
             req.url
         );
+    }
+}
+
+#[tokio::test]
+async fn downloads_generated_image_and_multiview_views() {
+    use tripo_api::{DownloadOptions, MultiviewView, TaskOutput};
+
+    let server = MockServer::start().await;
+    for name in [
+        "image.png",
+        "front.png",
+        "left.png",
+        "back.png",
+        "right.png",
+    ] {
+        Mock::given(method("GET"))
+            .and(path(format!("/cdn/{name}")))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(name.as_bytes()))
+            .expect(1)
+            .mount(&server)
+            .await;
+    }
+    let url = |name: &str| Some(format!("{}/cdn/{name}", server.uri()));
+    let c = client(&server);
+    let dir = tempfile::tempdir().unwrap();
+
+    let image = task_with_output(
+        "task_img",
+        TaskOutput {
+            generated_image_url: url("image.png"),
+            ..Default::default()
+        },
+    );
+    let files = c
+        .download_task_models(&image, dir.path(), DownloadOptions::default())
+        .await
+        .unwrap();
+    let generated = files.generated_image.unwrap();
+    assert_eq!(generated, dir.path().join("task_img_generated.png"));
+    assert_eq!(std::fs::read(generated).unwrap(), b"image.png");
+
+    let multiview = task_with_output(
+        "task_mv",
+        TaskOutput {
+            front_view_url: url("front.png"),
+            left_view_url: url("left.png"),
+            back_view_url: url("back.png"),
+            right_view_url: url("right.png"),
+            ..Default::default()
+        },
+    );
+    let files = c
+        .download_task_models(&multiview, dir.path(), DownloadOptions::default())
+        .await
+        .unwrap();
+    assert_eq!(
+        files.views[&MultiviewView::Back],
+        dir.path().join("task_mv_back.png")
+    );
+    let names: Vec<_> = files
+        .paths()
+        .map(|p| p.file_name().unwrap().to_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "task_mv_front.png",
+            "task_mv_left.png",
+            "task_mv_back.png",
+            "task_mv_right.png"
+        ]
+    );
+    for view in ["front", "left", "back", "right"] {
+        let bytes = std::fs::read(dir.path().join(format!("task_mv_{view}.png"))).unwrap();
+        assert_eq!(bytes, format!("{view}.png").as_bytes());
     }
 }
 

@@ -120,9 +120,22 @@ pub struct TaskOutput {
     /// URL for a rendered preview image.
     #[serde(default)]
     pub rendered_image_url: Option<String>,
-    /// URL for the intermediate generated image (`text_to_model` only).
+    /// URL for a generated image: the result of `text_to_image` /
+    /// `image_to_image`, or the intermediate image of `text_to_model`.
     #[serde(default)]
     pub generated_image_url: Option<String>,
+    /// Front view (`image_to_multiview`).
+    #[serde(default)]
+    pub front_view_url: Option<String>,
+    /// Left view (`image_to_multiview`).
+    #[serde(default)]
+    pub left_view_url: Option<String>,
+    /// Back view (`image_to_multiview`).
+    #[serde(default)]
+    pub back_view_url: Option<String>,
+    /// Right view (`image_to_multiview`).
+    #[serde(default)]
+    pub right_view_url: Option<String>,
     /// Populated by `check_riggable`.
     #[serde(default)]
     pub riggable: Option<bool>,

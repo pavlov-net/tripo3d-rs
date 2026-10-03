@@ -38,6 +38,14 @@ tripo rig-model --input <id> --rig-type biped --spec mixamo
 tripo upload ./scan.glb
 tripo upload --presign ./photo.png
 
+# Images
+tripo text-to-image --prompt "a ceramic fox" --output ./out
+tripo image-to-image --input ./fox.png --prompt "make it glass" \
+  --model chat_image_2.5_sunburst --quality xhigh --background transparent
+tripo image-to-image --input a.png --input b.png --prompt "character from image[1], outfit from image[2]"
+tripo image-to-multiview --input ./fox.png --output ./views
+tripo edit-multiview --input <multiview_task_id> --front "red scarf" --back "add a tail"
+
 # Balance and per-task credit usage
 tripo balance
 tripo usage --limit 20 --offset 0
@@ -48,8 +56,8 @@ tripo completions bash > /etc/bash_completion.d/tripo
 
 ### Generation export orientation
 
-Text, image, and multiview generation accept `--export-orientation` with
-`+x`, `+y`, `-x`, or `-y`. For example:
+`text-to-model`, `image-to-model`, and `multiview-to-model` accept
+`--export-orientation` with `+x`, `+y`, `-x`, or `-y`. For example:
 
 ```sh
 tripo text-to-model --prompt "A wooden chair" --export-orientation -y
@@ -60,6 +68,19 @@ rig, retarget, or otherwise post-process the result, leave it unset and use
 `convert-model --export-orientation` as the final step. Tripo documents that
 setting it during generation can produce wrongly oriented downstream results
 without reporting an error. Omitting the option preserves the server default.
+
+### Image generation
+
+`text-to-image` and `image-to-image` accept `--model`, `--size` (keyword or
+`WIDTHxHEIGHT`), `--quality`, `--background`, `--aspect-ratio`,
+`--output-format`, and `--template`. Which models accept which options is
+listed in the [`tripo-api` README](https://github.com/pavlov-net/tripo3d-rs/blob/main/crates/tripo-api/README.md#image-generation);
+invalid combinations are rejected before anything is sent.
+
+Pass `--input` once to `image-to-image` for a single reference or repeat it to
+send several (`image[1]`, `image[2]`, ...). `edit-multiview` takes one prompt
+per view through `--front`, `--left`, `--back`, and `--right`. `--output`
+downloads the generated image or the four views.
 
 ## Exit codes
 

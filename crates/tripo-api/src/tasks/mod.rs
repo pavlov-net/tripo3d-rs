@@ -10,7 +10,11 @@ use crate::versions;
 
 pub mod check_riggable;
 pub mod convert_model;
+pub mod edit_multiview;
+mod image_rules;
+pub mod image_to_image;
 pub mod image_to_model;
+pub mod image_to_multiview;
 pub mod mesh_completion;
 pub mod mesh_decimate;
 pub mod mesh_segmentation;
@@ -19,12 +23,16 @@ pub mod refine_model;
 pub mod retarget_animation;
 pub mod rig_model;
 pub mod stylize_model;
+pub mod text_to_image;
 pub mod text_to_model;
 pub mod texture_model;
 
 pub use check_riggable::CheckRiggableRequest;
 pub use convert_model::ConvertModelRequest;
+pub use edit_multiview::{EditMultiviewRequest, MultiviewEdit};
+pub use image_to_image::ImageToImageRequest;
 pub use image_to_model::ImageToModelRequest;
+pub use image_to_multiview::ImageToMultiviewRequest;
 pub use mesh_completion::MeshCompletionRequest;
 pub use mesh_decimate::MeshDecimateRequest;
 pub use mesh_segmentation::MeshSegmentationRequest;
@@ -33,6 +41,7 @@ pub use refine_model::RefineModelRequest;
 pub use retarget_animation::{AnimationInput, RetargetAnimationRequest};
 pub use rig_model::RigModelRequest;
 pub use stylize_model::StylizeModelRequest;
+pub use text_to_image::TextToImageRequest;
 pub use text_to_model::TextToModelRequest;
 pub use texture_model::{TextureModelRequest, TexturePrompt};
 
@@ -49,6 +58,14 @@ pub enum TaskRequest {
     ImageToModel(ImageToModelRequest),
     /// `POST /generation/multiview-to-model` — generate from multiple images (front/back/left/right).
     MultiviewToModel(MultiviewToModelRequest),
+    /// `POST /generation/text-to-image` — generate an image from a text prompt.
+    TextToImage(TextToImageRequest),
+    /// `POST /generation/image-to-image` — edit or fuse reference images.
+    ImageToImage(ImageToImageRequest),
+    /// `POST /generation/image-to-multiview` — render front/left/back/right views of an image.
+    ImageToMultiview(ImageToMultiviewRequest),
+    /// `POST /generation/edit-multiview` — apply per-view edits to a multiview image.
+    EditMultiview(EditMultiviewRequest),
     /// `POST /models/convert` — convert a completed model to another file format.
     ConvertModel(ConvertModelRequest),
     /// `POST /models/stylize` — apply a stylization preset (lego/voxel/etc).
@@ -79,6 +96,10 @@ impl TaskRequest {
             Self::TextToModel(_) => "generation/text-to-model",
             Self::ImageToModel(_) => "generation/image-to-model",
             Self::MultiviewToModel(_) => "generation/multiview-to-model",
+            Self::TextToImage(_) => "generation/text-to-image",
+            Self::ImageToImage(_) => "generation/image-to-image",
+            Self::ImageToMultiview(_) => "generation/image-to-multiview",
+            Self::EditMultiview(_) => "generation/edit-multiview",
             Self::ConvertModel(_) => "models/convert",
             Self::Stylize(_) => "models/stylize",
             Self::TextureModel(_) => "models/texture",
@@ -102,6 +123,9 @@ impl TaskRequest {
             Self::ImageToModel(r) => r.validate(),
             Self::MultiviewToModel(r) => r.validate(),
             Self::TextureModel(r) => r.validate(),
+            Self::TextToImage(r) => r.validate(),
+            Self::ImageToImage(r) => r.validate(),
+            Self::EditMultiview(r) => r.validate(),
             _ => Ok(()),
         }
     }
@@ -111,14 +135,12 @@ impl TaskRequest {
     pub async fn upload_images(&mut self, client: &Client) -> Result<()> {
         match self {
             Self::ImageToModel(r) => upload_image_if_path(client, &mut r.input).await,
-            Self::MultiviewToModel(r) => {
-                let futs = r
-                    .inputs
-                    .iter_mut()
-                    .flatten()
-                    .map(|img| upload_image_if_path(client, img));
-                futures::future::try_join_all(futs).await?;
-                Ok(())
+            Self::ImageToMultiview(r) => upload_image_if_path(client, &mut r.input).await,
+            Self::EditMultiview(r) => upload_image_if_path(client, &mut r.input).await,
+            Self::MultiviewToModel(r) => upload_all(client, r.inputs.iter_mut().flatten()).await,
+            Self::ImageToImage(r) => {
+                let inputs = r.inputs.iter_mut().flatten();
+                upload_all(client, r.input.iter_mut().chain(inputs)).await
             }
             Self::TextureModel(r) => {
                 let p = &mut r.texture_prompt;
@@ -132,6 +154,7 @@ impl TaskRequest {
                 Ok(())
             }
             Self::TextToModel(_)
+            | Self::TextToImage(_)
             | Self::ConvertModel(_)
             | Self::Stylize(_)
             | Self::Refine(_)
@@ -261,6 +284,15 @@ pub(crate) async fn upload_image_if_path(client: &Client, img: &mut ImageInput) 
         let up = client.upload_file(&*p).await?;
         *img = ImageInput::FileToken(up.file_token);
     }
+    Ok(())
+}
+
+/// Upload every `ImageInput::Path` in `images` concurrently.
+async fn upload_all<'a>(
+    client: &Client,
+    images: impl Iterator<Item = &'a mut ImageInput>,
+) -> Result<()> {
+    futures::future::try_join_all(images.map(|img| upload_image_if_path(client, img))).await?;
     Ok(())
 }
 

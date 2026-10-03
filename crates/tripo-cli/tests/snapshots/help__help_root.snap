@@ -15,6 +15,10 @@ Commands:
   text-to-model       Generate a 3D model from a text prompt
   image-to-model      Generate a 3D model from a single image
   multiview-to-model  Generate a 3D model from multi-view images
+  text-to-image       Generate an image from a text prompt
+  image-to-image      Edit or combine reference images
+  image-to-multiview  Render front/left/back/right views of an image
+  edit-multiview      Edit individual views of a multiview image
   convert-model       Convert a model to a different file format
   stylize-model       Apply a stylization preset to a model
   texture-model       (Re-)texture an existing model

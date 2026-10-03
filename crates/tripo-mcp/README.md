@@ -24,12 +24,16 @@ annotation hints are set explicitly on every tool:
 | `get_task`             | Fetch task state                       |     Y     |      —      |     Y      |
 | `list_tasks`           | Fetch up to 100 tasks at once          |     Y     |      —      |     Y      |
 | `wait_for_task`        | Poll until terminal; streams progress  |     Y     |      —      |     Y      |
-| `download_task_models` | Download output files                  |     N     |      N      |     N      |
+| `download_task_models` | Download output models and images      |     N     |      N      |     N      |
 | `upload_file`          | Upload a file (presigned over 60 MiB)  |     N     |      N      |     N      |
 | `create_raw_task`      | Forward-compat escape hatch            |     N     |      N      |     N      |
 | `text_to_model`        | Text prompt to 3D                      |     N     |      N      |     N      |
 | `image_to_model`       | Single image to 3D                     |     N     |      N      |     N      |
 | `multiview_to_model`   | Multi-view to 3D                       |     N     |      N      |     N      |
+| `text_to_image`        | Text prompt to image                   |     N     |      N      |     N      |
+| `image_to_image`       | Edit or combine reference images       |     N     |      N      |     N      |
+| `image_to_multiview`   | Image to four-view images              |     N     |      N      |     N      |
+| `edit_multiview`       | Per-view edits of a multiview image    |     N     |      N      |     N      |
 | `convert_model`        | Format/preset conversion               |     N     |      N      |     N      |
 | `stylize_model`        | Post-style                             |     N     |      N      |     N      |
 | `texture_model`        | Re-texture                             |     N     |      N      |     N      |
