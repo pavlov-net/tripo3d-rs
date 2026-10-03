@@ -223,6 +223,52 @@ fn texture_model_with_text_and_style_image() {
     insta::assert_json_snapshot!(json_of(&req));
 }
 
+#[test]
+fn texture_model_v3_5_fast_delight() {
+    let req = TaskRequest::TextureModel(TextureModelRequest {
+        input: "task_src".into(),
+        model: Some(tripo_api::versions::texture::V3_5.into()),
+        texture_quality: Some(TextureQuality::Fast),
+        delight: Some(false),
+        pbr: Some(true),
+        ..Default::default()
+    });
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn texture_model_with_multiview_images() {
+    let req = TaskRequest::TextureModel(TextureModelRequest {
+        input: "task_src".into(),
+        model: Some(tripo_api::versions::texture::V3_5.into()),
+        texture_prompt: TexturePrompt {
+            images: Some(vec![
+                ImageInput::Url("https://cdn/front.jpg".parse().unwrap()),
+                ImageInput::FileToken("file_left".into()),
+                ImageInput::Url("https://cdn/back.jpg".parse().unwrap()),
+                ImageInput::FileToken("file_right".into()),
+            ]),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+    req.validate().unwrap();
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
+#[test]
+fn text_to_model_texture_version() {
+    let req = TaskRequest::TextToModel(TextToModelRequest {
+        prompt: "a red robot".into(),
+        texture_quality: Some(TextureQuality::Fast),
+        texture_version: Some(tripo_api::versions::texture_version::V3_5.into()),
+        delight: Some(true),
+        ..Default::default()
+    });
+    req.validate().unwrap();
+    insta::assert_json_snapshot!(json_of(&req));
+}
+
 use tripo_api::{CheckRiggableRequest, RefineModelRequest};
 
 #[test]
