@@ -1,5 +1,7 @@
 # tripo-api
 
+> **Deprecated:** this crate is no longer maintained, and 0.3.0 is its final release. Use Tripo's official Rust SDK, [`tripo3d-sdk`](https://crates.io/crates/tripo3d-sdk), instead.
+
 Unofficial async Rust client for the [Tripo 3D Generation API](https://developers.tripo3d.ai/).
 
 ## Usage

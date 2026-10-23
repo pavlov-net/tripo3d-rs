@@ -1,5 +1,7 @@
 # tripo-mcp
 
+> **Deprecated:** this crate is no longer maintained, and 0.3.0 is its final release. Tripo's official CLI, [`tripo-cli`](https://www.npmjs.com/package/tripo-cli) on npm, includes an MCP server (`tripo mcp`).
+
 Unofficial Model Context Protocol server for the [Tripo 3D Generation API](https://developers.tripo3d.ai/).
 
 Exposes every Tripo operation as an MCP tool. Speaks stdio — works with Claude

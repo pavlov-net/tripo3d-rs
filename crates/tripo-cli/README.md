@@ -1,5 +1,7 @@
 # tripo
 
+> **Deprecated:** this crate is no longer maintained, and 0.3.0 is its final release. Use Tripo's official CLI, [`tripo-cli`](https://www.npmjs.com/package/tripo-cli) on npm, instead.
+
 Unofficial command-line client for the [Tripo 3D Generation API](https://developers.tripo3d.ai/).
 
 ## Install

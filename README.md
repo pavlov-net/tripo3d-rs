@@ -1,5 +1,7 @@
 # tripo3d-rs
 
+> **Deprecated:** this project is no longer maintained, and 0.3.0 is its final release. Tripo now publishes an official Rust SDK, [`tripo3d-sdk`](https://crates.io/crates/tripo3d-sdk), and an official CLI, [`tripo-cli`](https://www.npmjs.com/package/tripo-cli) on npm, which also includes an MCP server (`tripo mcp`). The crates stay on crates.io, but they won't track new API changes.
+
 Unofficial Rust tooling for the [Tripo 3D Generation API](https://developers.tripo3d.ai/). Turn a text prompt, a single image, or a few multi-view photos into a 3D model or Gaussian splat, or import your own model — then convert formats, re-texture, rig, retarget animations, segment meshes, and more. Generate and edit 2D images too: text-to-image, image-to-image (including GPT Image 2.5), and four-view multiview images.
 
 This repo ships three things, layered on one another:

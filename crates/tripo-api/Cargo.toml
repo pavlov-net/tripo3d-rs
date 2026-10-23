@@ -1,7 +1,7 @@
 [package]
 name        = "tripo-api"
 version     = "0.3.0"
-description = "Unofficial async Rust client for the Tripo 3D Generation API"
+description = "Deprecated: unofficial async Rust client for the Tripo 3D Generation API"
 keywords    = ["tripo", "3d", "api", "sdk", "async"]
 categories  = ["api-bindings", "asynchronous"]
 edition     = { workspace = true }
