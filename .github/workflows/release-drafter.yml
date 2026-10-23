@@ -9,6 +9,13 @@ permissions:
   contents: write
   pull-requests: write
 
+# Serialize runs so back-to-back merges don't race each other's "Bump version"
+# push. Queued runs check out the latest main (see below), so they see the
+# previous run's bump commit instead of being rejected as non-fast-forward.
+concurrency:
+  group: release-drafter
+  cancel-in-progress: false
+
 jobs:
   release-drafter:
     name: Release Drafter
@@ -18,6 +25,8 @@ jobs:
         id: drafter
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable @ 2026-04
@@ -26,6 +35,11 @@ jobs:
 
       - name: Install cargo-edit
         uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
+        env:
+          # install-action has no prebuilt cargo-edit, so it falls back to
+          # building from source. rust-toolchain.toml's MSRV pin is too old
+          # for that; build with the stable toolchain installed above.
+          RUSTUP_TOOLCHAIN: stable
         with:
           tool: cargo-edit
 
