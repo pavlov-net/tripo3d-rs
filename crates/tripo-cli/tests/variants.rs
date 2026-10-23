@@ -550,6 +550,33 @@ async fn rig_model_v3_posts_vrm_spec() {
     .success();
 }
 
+#[tokio::test(flavor = "current_thread")]
+async fn mesh_uv_posts_body() {
+    let server = MockServer::start().await;
+    mock_create(
+        &server,
+        "/mesh/uv",
+        serde_json::json!({
+            "input":"task_m","bake":false,"export_orientation":"-x","compress":"geometry"
+        }),
+    )
+    .await;
+    run_tripo(
+        &server,
+        &[
+            "mesh-uv",
+            "--input",
+            "task_m",
+            "--bake",
+            "false",
+            "--export-orientation",
+            "-x",
+            "--compress",
+        ],
+    )
+    .success();
+}
+
 fn run_tripo(server: &MockServer, args: &[&str]) -> assert_cmd::assert::Assert {
     Command::cargo_bin("tripo")
         .unwrap()

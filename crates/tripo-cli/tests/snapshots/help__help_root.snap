@@ -32,6 +32,7 @@ Commands:
   mesh-smart-segment  Segment an image or GLB into parts, including auto modeling
   mesh-completion     Fill holes in an existing mesh
   mesh-decimate       Reduce model polycount (retopology; replaces v2 smart-lowpoly)
+  mesh-uv             Re-unwrap UVs, remapping existing textures, rigging, and animation
   help                Print this message or the help of the given subcommand(s)
 
 Options:

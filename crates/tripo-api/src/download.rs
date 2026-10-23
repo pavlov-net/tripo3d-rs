@@ -28,11 +28,13 @@ pub enum OutputKind {
     SegModel,
     /// `output.mask_url` — segmentation mask (`mesh/smartsegment`).
     Mask,
+    /// `output.uv_render_url` — UV atlas preview (`mesh/uv`).
+    UvRender,
 }
 
 impl OutputKind {
     /// Every output kind, in download-result order.
-    const ALL: [Self; 9] = [
+    const ALL: [Self; 10] = [
         Self::Model,
         Self::RenderedImage,
         Self::GeneratedImage,
@@ -42,6 +44,7 @@ impl OutputKind {
         Self::View(MultiviewView::Right),
         Self::SegModel,
         Self::Mask,
+        Self::UvRender,
     ];
 
     /// The task output URL for this kind, the file extension to use when the
@@ -59,6 +62,7 @@ impl OutputKind {
             Self::View(view) => (out.views.get(view), "jpg", Some(view.as_str())),
             Self::SegModel => (out.seg_model_url.as_deref(), "glb", Some("seg")),
             Self::Mask => (out.mask_url.as_deref(), "png", Some("mask")),
+            Self::UvRender => (out.uv_render_url.as_deref(), "webp", Some("uv")),
         }
     }
 }
@@ -101,6 +105,8 @@ pub struct DownloadedFiles {
     pub seg_model: Option<PathBuf>,
     /// Segmentation mask image path (`mesh/smartsegment`).
     pub mask: Option<PathBuf>,
+    /// UV atlas preview image path (`mesh/uv`).
+    pub uv_render: Option<PathBuf>,
 }
 
 impl DownloadedFiles {
@@ -119,6 +125,7 @@ impl DownloadedFiles {
             OutputKind::View(view) => self.views.get(&view).map(PathBuf::as_path),
             OutputKind::SegModel => self.seg_model.as_deref(),
             OutputKind::Mask => self.mask.as_deref(),
+            OutputKind::UvRender => self.uv_render.as_deref(),
         }
     }
 
@@ -132,6 +139,7 @@ impl DownloadedFiles {
             }
             OutputKind::SegModel => self.seg_model = Some(path),
             OutputKind::Mask => self.mask = Some(path),
+            OutputKind::UvRender => self.uv_render = Some(path),
         }
     }
 }

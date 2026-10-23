@@ -619,6 +619,25 @@ impl TripoServer {
     ) -> Result<Json<params::TaskCreated>, ToolError> {
         self.submit(TaskRequest::MeshDecimate(req)).await
     }
+
+    /// Re-unwrap a model's UVs (Smart UV).
+    #[tool(
+        name = "mesh_uv",
+        description = "Re-unwrap a model's UVs, remapping existing textures, rigging, and animation (URL, file token, task id, or local path). Results: output.model_url and output.uv_render_url (UV atlas preview).",
+        annotations(
+            title = "Mesh UV",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = true,
+        )
+    )]
+    async fn mesh_uv(
+        &self,
+        Parameters(req): Parameters<tripo_api::MeshUvRequest>,
+    ) -> Result<Json<params::TaskCreated>, ToolError> {
+        self.submit(TaskRequest::MeshUv(req)).await
+    }
 }
 
 #[tool_handler]

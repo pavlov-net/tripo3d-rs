@@ -391,6 +391,26 @@ fn mesh_decimate_body_and_endpoint() {
     insta::assert_json_snapshot!(json_of(&req));
 }
 
+#[test]
+fn mesh_uv_body_and_endpoint() {
+    let req = TaskRequest::MeshUv(tripo_api::MeshUvRequest {
+        input: tripo_api::ImageInput::FileToken("task_src".into()),
+        model: None,
+        bake: Some(false),
+        export_orientation: Some(tripo_api::ExportOrientation::MinusX),
+        compress: Some(tripo_api::CompressionMode::Geometry),
+    });
+    assert_eq!(req.endpoint(), "mesh/uv");
+    insta::assert_json_snapshot!(json_of(&req), @r###"
+    {
+      "bake": false,
+      "compress": "geometry",
+      "export_orientation": "-x",
+      "input": "task_src"
+    }
+    "###);
+}
+
 use tripo_api::{
     EditMultiviewRequest, ImageBackground, ImageOutputFormat, ImageQuality, ImageToImageRequest,
     ImageToImageTemplate, ImageToMultiviewRequest, MultiviewEdit, MultiviewView,

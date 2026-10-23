@@ -152,6 +152,9 @@ pub struct TaskOutput {
     /// Id of the auto-modeling sub-task (`mesh/smartsegment`).
     #[serde(default)]
     pub model_task_id: Option<String>,
+    /// UV atlas preview image URL (`mesh/uv`).
+    #[serde(default)]
+    pub uv_render_url: Option<String>,
     /// Output fields without a typed accessor (e.g. ones added by a newer
     /// server), kept verbatim.
     #[serde(flatten)]

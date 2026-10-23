@@ -47,6 +47,7 @@ annotation hints are set explicitly on every tool:
 | `mesh_smart_segment`   | Image/GLB segmentation with modeling   |     N     |      N      |     N      |
 | `mesh_completion`      | Complete missing parts                 |     N     |      N      |     N      |
 | `mesh_decimate`        | Retopology (high-poly to low-poly)     |     N     |      N      |     N      |
+| `mesh_uv`              | Smart UV re-unwrap                     |     N     |      N      |     N      |
 
 `destructive_hint` is only meaningful on non-read-only tools (`—` in the
 table means the hint is not set). On every non-read-only tool it is set
