@@ -96,7 +96,7 @@ pub enum TaskRequest {
     MeshSmartSegment(MeshSmartSegmentRequest),
     /// `POST /mesh/complete` — fill holes in an existing mesh.
     MeshCompletion(MeshCompletionRequest),
-    /// `POST /mesh/decimate` — retopology: reduce polycount (smart v2.0 or basic v1.0).
+    /// `POST /mesh/decimate` — retopology: reduce polycount (v3.0, smart v2.0, or basic v1.0).
     MeshDecimate(MeshDecimateRequest),
 }
 
@@ -142,6 +142,7 @@ impl TaskRequest {
             Self::ImageToImage(r) => r.validate(),
             Self::EditMultiview(r) => r.validate(),
             Self::MeshSmartSegment(r) => r.validate(),
+            Self::MeshDecimate(r) => r.validate(),
             _ => Ok(()),
         }
     }

@@ -6,28 +6,32 @@ use tripo_api::{MeshDecimateRequest, TaskRequest};
 
 use crate::commands::variants::{VariantArgs, VariantRunOpts};
 
-/// Reduce model polycount: smart retopology (v2.0, default) or basic
-/// decimation (v1.0, requires `--face-limit`).
+/// Reduce model polycount: smart retopology (v2.0, default), the newest
+/// retopology with optional UV unwrap (v3.0), or basic decimation (v1.0,
+/// requires `--face-limit`).
 #[derive(Debug, Args)]
 pub struct MeshDecimateArgs {
     /// Model source: task id, file token, or URL.
     #[arg(long)]
     pub input: String,
-    /// Algorithm version (v2.0|v1.0).
+    /// Algorithm version (v3.0|v2.0|v1.0).
     #[arg(long)]
     pub model: Option<String>,
     /// Produce a quad mesh.
     #[arg(long)]
     pub quad: Option<bool>,
-    /// Restrict to named parts (comma-separated; v2.0 only).
+    /// Restrict to named parts (comma-separated; v2.0 and v3.0).
     #[arg(long, value_delimiter = ',')]
     pub part_names: Option<Vec<String>>,
     /// Target face count (required for v1.0).
     #[arg(long)]
     pub face_limit: Option<i32>,
-    /// Bake textures onto the low-poly model (v2.0 only).
+    /// Bake textures onto the low-poly model (v2.0 and v3.0).
     #[arg(long)]
     pub bake: Option<bool>,
+    /// Unwrap UVs during retopology (v3.0 only).
+    #[arg(long)]
+    pub smart_uv: Option<bool>,
 
     #[command(flatten)]
     pub run: VariantRunOpts,
@@ -45,6 +49,7 @@ impl VariantArgs for MeshDecimateArgs {
             part_names: self.part_names,
             face_limit: self.face_limit,
             bake: self.bake,
+            smart_uv: self.smart_uv,
         }))
     }
 }

@@ -385,6 +385,7 @@ fn mesh_decimate_body_and_endpoint() {
         bake: Some(true),
         model: None,
         part_names: None,
+        smart_uv: None,
     });
     assert_eq!(req.endpoint(), "mesh/decimate");
     insta::assert_json_snapshot!(json_of(&req));

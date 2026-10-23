@@ -36,7 +36,7 @@ tripo text-to-model --prompt "a red robot" --output ./out
 tripo image-to-model --input ./photo.jpg --output ./out
 tripo texture-model --input <id> --model v3.5-20260815 --texture-quality fast
 tripo text-to-image --prompt "a ceramic fox" --model chat_image_2.5_flare --quality high --output ./out
-tripo rig-model --input <id> --rig-type biped --spec mixamo
+tripo rig-model --input <id> --model v3.0-20260909 --spec vrm
 ```
 
 See the [CLI README](crates/tripo-cli) for the full command list and exit codes.
