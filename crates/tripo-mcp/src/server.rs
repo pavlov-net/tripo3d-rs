@@ -509,7 +509,7 @@ impl TripoServer {
     /// Generate a skeletal rig.
     #[tool(
         name = "rig_model",
-        description = "Generate a skeletal rig for an existing model.",
+        description = "Generate a skeletal rig for an existing model. The default rigger (v1.0) is biped-only; model v3.0-20260909 is recommended for humanoids and required for rig_type others and the actorcore/unity/unreal/vrm specs.",
         annotations(
             title = "Rig Model",
             read_only_hint = false,
@@ -604,7 +604,7 @@ impl TripoServer {
     /// Reduce model polycount (retopology).
     #[tool(
         name = "mesh_decimate",
-        description = "Reduce model polycount: smart retopology (model v2.0, default) or basic decimation (v1.0).",
+        description = "Reduce model polycount: smart retopology (model v2.0, default), v3.0 retopology with optional smart_uv unwrap, or basic decimation (v1.0, requires face_limit).",
         annotations(
             title = "Mesh Decimate",
             read_only_hint = false,

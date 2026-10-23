@@ -110,10 +110,16 @@ pub mod rig {
     /// v1.0 (March 2024). Only supports `rig_type: biped`; 90+ animation
     /// presets. Server default.
     pub const V1_0: &str = "v1.0-20240301";
-    /// v2.5 (February 2026). Supports all `rig_type` values.
+    /// v2.5 (February 2026). Built for non-humanoid creatures; supports every
+    /// `rig_type` except `others`.
     pub const V2_5: &str = "v2.5-20260210";
-    /// Server default (note: v1.0 is biped-only — use `V2_5` for any
-    /// non-biped `rig_type`).
+    /// v3.0 (September 2026). Recommended for humanoids: faster and higher
+    /// quality bipeds, v2.5 quality for other rig types. The only version
+    /// that supports `rig_type: others` and the `actorcore` / `unity` /
+    /// `unreal` / `vrm` specs. Uses the v2.5 animation presets.
+    pub const V3_0: &str = "v3.0-20260909";
+    /// Server default (note: v1.0 is biped-only — use `V2_5` or `V3_0` for
+    /// any non-biped `rig_type`).
     pub const DEFAULT: &str = V1_0;
 }
 
@@ -127,6 +133,9 @@ pub mod mesh {
 
 /// Versions accepted by `mesh/decimate` (retopology).
 pub mod decimate {
+    /// v3.0 — newest retopology (35 credits triangle, 40 quad). The only
+    /// version that accepts `smart_uv`.
+    pub const V3_0: &str = "v3.0";
     /// v2.0 — smart retopology (P-series AI model, 30 credits). Server default.
     pub const V2_0: &str = "v2.0";
     /// v1.0 — basic decimation (10 credits). Requires `face_limit`.

@@ -490,6 +490,66 @@ async fn mesh_decimate_posts_body() {
         .success();
 }
 
+#[tokio::test(flavor = "current_thread")]
+async fn mesh_decimate_v3_posts_smart_uv() {
+    let server = MockServer::start().await;
+    mock_create(
+        &server,
+        "/mesh/decimate",
+        serde_json::json!({"input":"task_m","model":"v3.0","smart_uv":true}),
+    )
+    .await;
+    run_tripo(
+        &server,
+        &[
+            "mesh-decimate",
+            "--input",
+            "task_m",
+            "--model",
+            "v3.0",
+            "--smart-uv",
+            "true",
+        ],
+    )
+    .success();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn mesh_decimate_smart_uv_on_default_model_fails_before_post() {
+    let server = MockServer::start().await;
+    run_tripo(
+        &server,
+        &["mesh-decimate", "--input", "task_m", "--smart-uv", "true"],
+    )
+    .failure()
+    .stderr(predicate::str::contains("smart_uv requires model v3.0"));
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn rig_model_v3_posts_vrm_spec() {
+    let server = MockServer::start().await;
+    mock_create(
+        &server,
+        "/animations/rig",
+        serde_json::json!({"input":"task_m","model":"v3.0-20260909","spec":"vrm"}),
+    )
+    .await;
+    run_tripo(
+        &server,
+        &[
+            "rig-model",
+            "--input",
+            "task_m",
+            "--model",
+            "v3.0-20260909",
+            "--spec",
+            "vrm",
+        ],
+    )
+    .success();
+}
+
 fn run_tripo(server: &MockServer, args: &[&str]) -> assert_cmd::assert::Assert {
     Command::cargo_bin("tripo")
         .unwrap()

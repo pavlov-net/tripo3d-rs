@@ -95,10 +95,12 @@ string_enum_open! {
 }
 
 string_enum! {
-    /// Target rigging convention.
+    /// Target rigging convention (bone naming). Applies to `rig_type: biped`
+    /// only; the server ignores it for other rig types. Every spec except
+    /// `tripo` and `mixamo` requires rig [`V3_0`](crate::versions::rig::V3_0).
     pub enum RigSpec {
-        Mixamo => "mixamo",
-        Tripo  => "tripo",
+        Mixamo => "mixamo", Tripo => "tripo",
+        ActorCore => "actorcore", Unity => "unity", Unreal => "unreal", Vrm => "vrm",
     }
 }
 
