@@ -21,6 +21,7 @@ expression: names
     "mesh_decimate",
     "mesh_segmentation",
     "mesh_smart_segment",
+    "mesh_uv",
     "multiview_to_model",
     "refine_model",
     "retarget_animation",

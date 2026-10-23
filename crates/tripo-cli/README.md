@@ -37,6 +37,7 @@ tripo mesh-smart-segment --seg-type image --input ./photo.png --hint "head, arms
 tripo mesh-smart-segment --seg-type model --input ./model.glb \
   --transform 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1
 tripo rig-model --input <id> --model v3.0-20260909 --spec vrm
+tripo mesh-uv --input <id> --output ./out   # also writes <id>_uv.webp atlas preview
 
 # Upload a local file, print its file token (files over 60 MiB, or any
 # file with --presign, go through a presigned storage URL)

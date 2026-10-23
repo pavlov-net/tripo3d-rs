@@ -304,7 +304,8 @@ expression: "serde_json::to_value(&critical).unwrap()"
                 "riggable": null,
                 "right_view_url": null,
                 "seg_model_url": null,
-                "seg_task_id": null
+                "seg_task_id": null,
+                "uv_render_url": null
               },
               "description": "Output URLs and flags."
             },
@@ -471,6 +472,14 @@ expression: "serde_json::to_value(&critical).unwrap()"
             "seg_task_id": {
               "default": null,
               "description": "Id of the segmentation sub-task (`mesh/smartsegment`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "uv_render_url": {
+              "default": null,
+              "description": "UV atlas preview image URL (`mesh/uv`).",
               "type": [
                 "string",
                 "null"
@@ -1257,6 +1266,14 @@ expression: "serde_json::to_value(&critical).unwrap()"
                 "string",
                 "null"
               ]
+            },
+            "uv_render_url": {
+              "default": null,
+              "description": "UV atlas preview image URL (`mesh/uv`).",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           "type": "object"
@@ -1370,7 +1387,8 @@ expression: "serde_json::to_value(&critical).unwrap()"
             "riggable": null,
             "right_view_url": null,
             "seg_model_url": null,
-            "seg_task_id": null
+            "seg_task_id": null,
+            "uv_render_url": null
           },
           "description": "Output URLs and flags."
         },

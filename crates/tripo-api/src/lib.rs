@@ -49,9 +49,9 @@ pub use tasks::{
     AnimationInput, CheckRiggableRequest, ConvertModelRequest, EditMultiviewRequest,
     ImageToImageRequest, ImageToModelRequest, ImageToMultiviewRequest, ImageToSplatRequest,
     ImportModelRequest, MeshCompletionRequest, MeshDecimateRequest, MeshSegmentationRequest,
-    MeshSmartSegmentRequest, MultiviewEdit, MultiviewToModelRequest, RefineModelRequest,
-    RetargetAnimationRequest, RigModelRequest, StylizeModelRequest, TaskRequest,
-    TextToImageRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
+    MeshSmartSegmentRequest, MeshUvRequest, MultiviewEdit, MultiviewToModelRequest,
+    RefineModelRequest, RetargetAnimationRequest, RigModelRequest, StylizeModelRequest,
+    TaskRequest, TextToImageRequest, TextToModelRequest, TextureModelRequest, TexturePrompt,
 };
 pub use types::{
     Balance, MultiviewViews, PresignedUpload, Task, TaskId, TaskList, TaskOutput, TaskStatus,

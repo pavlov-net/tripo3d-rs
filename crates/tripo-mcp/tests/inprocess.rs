@@ -30,7 +30,7 @@ async fn calls_get_balance() {
 }
 
 #[tokio::test]
-async fn calls_mesh_seg_completion_decimate() {
+async fn calls_mesh_tools() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -47,6 +47,7 @@ async fn calls_mesh_seg_completion_decimate() {
             json!({"input":"task_m","part_names":["a"]}),
         ),
         ("mesh_decimate", json!({"input":"task_m","face_limit":2000})),
+        ("mesh_uv", json!({"input":"task_m","bake":false})),
     ] {
         call_ok(&client, name, argv).await;
     }

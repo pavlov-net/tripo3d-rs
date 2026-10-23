@@ -38,5 +38,6 @@ pub async fn dispatch(args: Cli) -> anyhow::Result<()> {
         Command::MeshSmartSegment(a) => variants::run_variant(g, a).await,
         Command::MeshCompletion(a) => variants::run_variant(g, a).await,
         Command::MeshDecimate(a) => variants::run_variant(g, a).await,
+        Command::MeshUv(a) => variants::run_variant(g, a).await,
     }
 }

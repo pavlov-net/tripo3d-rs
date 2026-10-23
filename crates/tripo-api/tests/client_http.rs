@@ -445,6 +445,33 @@ async fn downloads_smart_segment_outputs() {
 }
 
 #[tokio::test]
+async fn downloads_uv_render() {
+    use tripo_api::{DownloadOptions, TaskOutput};
+
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/out/uv_render.webp"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"uv" as &[u8]))
+        .mount(&server)
+        .await;
+
+    let task = task_with_output(
+        "uv",
+        TaskOutput {
+            uv_render_url: Some(format!("{}/out/uv_render.webp", server.uri())),
+            ..Default::default()
+        },
+    );
+    let dir = tempfile::tempdir().unwrap();
+    let out = client(&server)
+        .download_task_models(&task, dir.path(), DownloadOptions::default())
+        .await
+        .unwrap();
+    assert_eq!(out.uv_render, Some(dir.path().join("uv_uv.webp")));
+    assert_eq!(std::fs::read(dir.path().join("uv_uv.webp")).unwrap(), b"uv");
+}
+
+#[tokio::test]
 async fn download_errors_on_existing_file_without_overwrite() {
     use tripo_api::DownloadOptions;
     let server = MockServer::start().await;

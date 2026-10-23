@@ -122,4 +122,6 @@ pub enum Command {
     MeshCompletion(crate::commands::variants::MeshCompletionArgs),
     /// Reduce model polycount (retopology; replaces v2 smart-lowpoly).
     MeshDecimate(crate::commands::variants::MeshDecimateArgs),
+    /// Re-unwrap UVs, remapping existing textures, rigging, and animation.
+    MeshUv(crate::commands::variants::MeshUvArgs),
 }

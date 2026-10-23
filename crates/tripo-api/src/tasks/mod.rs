@@ -21,6 +21,7 @@ pub mod mesh_completion;
 pub mod mesh_decimate;
 pub mod mesh_segmentation;
 pub mod mesh_smart_segment;
+pub mod mesh_uv;
 pub mod multiview_to_model;
 pub mod refine_model;
 pub mod retarget_animation;
@@ -42,6 +43,7 @@ pub use mesh_completion::MeshCompletionRequest;
 pub use mesh_decimate::MeshDecimateRequest;
 pub use mesh_segmentation::MeshSegmentationRequest;
 pub use mesh_smart_segment::MeshSmartSegmentRequest;
+pub use mesh_uv::MeshUvRequest;
 pub use multiview_to_model::MultiviewToModelRequest;
 pub use refine_model::RefineModelRequest;
 pub use retarget_animation::{AnimationInput, RetargetAnimationRequest};
@@ -98,6 +100,8 @@ pub enum TaskRequest {
     MeshCompletion(MeshCompletionRequest),
     /// `POST /mesh/decimate` — retopology: reduce polycount (v3.0, smart v2.0, or basic v1.0).
     MeshDecimate(MeshDecimateRequest),
+    /// `POST /mesh/uv` — re-unwrap UVs, remapping existing textures, rigging, and animation.
+    MeshUv(MeshUvRequest),
 }
 
 impl TaskRequest {
@@ -125,6 +129,7 @@ impl TaskRequest {
             Self::MeshSmartSegment(_) => "mesh/smartsegment",
             Self::MeshCompletion(_) => "mesh/complete",
             Self::MeshDecimate(_) => "mesh/decimate",
+            Self::MeshUv(_) => "mesh/uv",
         }
     }
 
@@ -157,7 +162,8 @@ impl TaskRequest {
             | Self::EditMultiview(EditMultiviewRequest { input, .. })
             | Self::ImageToSplat(ImageToSplatRequest { input, .. })
             | Self::ImportModel(ImportModelRequest { input })
-            | Self::MeshSmartSegment(MeshSmartSegmentRequest { input, .. }) => {
+            | Self::MeshSmartSegment(MeshSmartSegmentRequest { input, .. })
+            | Self::MeshUv(MeshUvRequest { input, .. }) => {
                 upload_image_if_path(client, input).await
             }
             Self::MultiviewToModel(r) => upload_all(client, r.inputs.iter_mut().flatten()).await,
