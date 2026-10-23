@@ -2,7 +2,7 @@
 source: crates/tripo-cli/tests/help.rs
 expression: "help_of(&[])"
 ---
-Unofficial command-line client for the Tripo 3D Generation API
+Deprecated: unofficial command-line client for the Tripo 3D Generation API
 
 Usage: tripo [OPTIONS] <COMMAND>
 
